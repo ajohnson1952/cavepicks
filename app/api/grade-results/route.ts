@@ -1,0 +1,96 @@
+// app/api/grade-results/route.ts
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/db";
+import { getCurrentWeekBounds } from "@/lib/lock";
+import { fetchEspnScoreboard, teamNamesMatch, toYyyymmdd, EspnResult } from "@/lib/espnScores";
+import { gradePick } from "@/lib/scoring";
+
+export async function GET() {
+  const week = await prisma.week.findUnique({
+    where: { seasonYear_weekNumber: { seasonYear: 2026, weekNumber: 1 } },
+  });
+  if (!week) return NextResponse.json({ ok: true, gamesGraded: 0, picksGraded: 0, note: "no active week" });
+
+  const { start, end } = getCurrentWeekBounds();
+
+  const games = await prisma.game.findMany({
+    where: { weekId: week.id, commenceTime: { gte: start, lte: end }, isFinal: false },
+    include: { oddsSnapshots: { orderBy: { capturedAt: "desc" }, take: 1 } },
+  });
+
+  if (games.length === 0) {
+    return NextResponse.json({ ok: true, gamesGraded: 0, picksGraded: 0, note: "nothing left to grade" });
+  }
+
+  // Only fetch ESPN for the specific dates our ungraded games actually fall on
+  const dates = Array.from(new Set(games.map((g) => toYyyymmdd(g.commenceTime))));
+  const allResults: EspnResult[] = [];
+  for (const d of dates) {
+    const results = await fetchEspnScoreboard(d);
+    allResults.push(...results);
+  }
+
+  let gamesGraded = 0;
+  let picksGraded = 0;
+
+  for (const game of games) {
+    const match = allResults.find(
+      (r) =>
+        r.completed &&
+        teamNamesMatch(game.homeTeam, r.homeTeam) &&
+        teamNamesMatch(game.awayTeam, r.awayTeam)
+    );
+    if (!match) continue;
+
+    await prisma.game.update({
+      where: { id: game.id },
+      data: { homeScore: match.homeScore, awayScore: match.awayScore, isFinal: true },
+    });
+    gamesGraded++;
+
+    const picks = await prisma.pick.findMany({ where: { gameId: game.id } });
+    const snap = game.oddsSnapshots[0];
+
+    for (const pick of picks) {
+      let lockedLine = pick.lockedLine;
+      let dogSpreadValue = pick.dogSpreadValue;
+
+      // Safety net: if a pick somehow never got locked (sweep missed it),
+      // force-lock it now using the last cached line before grading.
+      if (!pick.locked && snap) {
+        if (pick.pickType === "SPREAD") {
+          lockedLine = pick.selection === game.homeTeam ? snap.spreadHome : snap.spreadAway;
+        } else if (pick.pickType === "TOTAL") {
+          lockedLine = snap.total;
+        } else if (pick.pickType === "DOG") {
+          dogSpreadValue =
+            pick.selection === game.homeTeam
+              ? Math.abs(snap.spreadHome ?? 0)
+              : Math.abs(snap.spreadAway ?? 0);
+        }
+        await prisma.pick.update({
+          where: { id: pick.id },
+          data: { locked: true, lockedAt: new Date(), lockedLine, dogSpreadValue },
+        });
+      }
+
+      const result = gradePick(
+        { homeTeam: game.homeTeam, awayTeam: game.awayTeam, homeScore: match.homeScore, awayScore: match.awayScore },
+        { pickType: pick.pickType, selection: pick.selection, lockedLine, dogSpreadValue }
+      );
+
+      await prisma.pick.update({
+        where: { id: pick.id },
+        data: {
+          graded: true,
+          isWin: result.isWin,
+          isPush: result.isPush,
+          pointsEarned: result.pointsEarned,
+        },
+      });
+      picksGraded++;
+    }
+  }
+
+  return NextResponse.json({ ok: true, gamesGraded, picksGraded });
+}
