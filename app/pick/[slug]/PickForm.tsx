@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useFormState } from "react-dom";
 import { submitPicks, lockPick, unlockPick, clearPick, lockSelection } from "./actions";
 
@@ -52,6 +53,20 @@ export default function PickForm({
   const submitAction = submitPicks.bind(null, slug);
   const [state, formAction] = useFormState(submitAction, { error: null });
 
+  // Tracks whether each pick slot currently has a selection, purely so the
+  // Lock button can appear only once there's something worth locking.
+  // The radios themselves stay uncontrolled (defaultChecked) - this is just
+  // a UI signal layered on top via onChange, not the source of truth.
+  const initialSelected: Record<string, boolean> = {};
+  for (const g of games) {
+    if (g.spread.selection) initialSelected[`SPREAD_${g.id}`] = true;
+    if (g.total.selection) initialSelected[`TOTAL_${g.id}`] = true;
+    if (g.dog?.selection) initialSelected[`DOG_${g.id}`] = true;
+  }
+  const [hasSelection, setHasSelection] = useState<Record<string, boolean>>(initialSelected);
+
+  const mark = (key: string) => setHasSelection((prev) => ({ ...prev, [key]: true }));
+
   return (
     <form action={formAction}>
       {state.error && (
@@ -63,7 +78,10 @@ export default function PickForm({
       {games.length === 0 && <p>No games in this week&apos;s slate yet.</p>}
 
       {games.map((g) => {
-        const gameFullyLocked = g.pastAutoLock; // safety net even if the sweep hasn't run yet
+        const gameFullyLocked = g.pastAutoLock;
+        const spreadKey = `SPREAD_${g.id}`;
+        const totalKey = `TOTAL_${g.id}`;
+        const dogKey = `DOG_${g.id}`;
 
         return (
           <div key={g.id} style={{ border: "1px solid #ddd", padding: "0.75rem", marginBottom: "0.75rem" }}>
@@ -110,6 +128,7 @@ export default function PickForm({
                             name={`spread_${g.id}`}
                             value="away"
                             defaultChecked={g.spread.selection === g.awayTeam}
+                            onChange={() => mark(spreadKey)}
                           />{" "}
                           {g.awayTeam} {g.snap.spreadAway != null && g.snap.spreadAway > 0 ? "+" : ""}
                           {g.snap.spreadAway}
@@ -121,19 +140,22 @@ export default function PickForm({
                             name={`spread_${g.id}`}
                             value="home"
                             defaultChecked={g.spread.selection === g.homeTeam}
+                            onChange={() => mark(spreadKey)}
                           />{" "}
                           {g.homeTeam} {g.snap.spreadHome != null && g.snap.spreadHome > 0 ? "+" : ""}
                           {g.snap.spreadHome}
                         </label>
                       </div>
-                      <div>
-                        <button formAction={lockSelection.bind(null, slug, g.id, "SPREAD")}>
-                          Lock In spread pick
-                        </button>{" "}
-                        {g.spread.pickId && (
-                          <button formAction={clearPick.bind(null, slug, g.id, "SPREAD")}>Clear</button>
-                        )}
-                      </div>
+                      {hasSelection[spreadKey] && (
+                        <div style={{ marginTop: "0.25rem" }}>
+                          <button formAction={lockSelection.bind(null, slug, g.id, "SPREAD")}>
+                            🔒 Lock In
+                          </button>{" "}
+                          {g.spread.pickId && (
+                            <button formAction={clearPick.bind(null, slug, g.id, "SPREAD")}>Clear</button>
+                          )}
+                        </div>
+                      )}
                     </>
                   )}
                 </div>
@@ -160,6 +182,7 @@ export default function PickForm({
                             name={`total_${g.id}`}
                             value="over"
                             defaultChecked={g.total.selection === "over"}
+                            onChange={() => mark(totalKey)}
                           />{" "}
                           Over {g.snap.total}
                         </label>
@@ -170,18 +193,21 @@ export default function PickForm({
                             name={`total_${g.id}`}
                             value="under"
                             defaultChecked={g.total.selection === "under"}
+                            onChange={() => mark(totalKey)}
                           />{" "}
                           Under {g.snap.total}
                         </label>
                       </div>
-                      <div>
-                        <button formAction={lockSelection.bind(null, slug, g.id, "TOTAL")}>
-                          Lock In total pick
-                        </button>{" "}
-                        {g.total.pickId && (
-                          <button formAction={clearPick.bind(null, slug, g.id, "TOTAL")}>Clear</button>
-                        )}
-                      </div>
+                      {hasSelection[totalKey] && (
+                        <div style={{ marginTop: "0.25rem" }}>
+                          <button formAction={lockSelection.bind(null, slug, g.id, "TOTAL")}>
+                            🔒 Lock In
+                          </button>{" "}
+                          {g.total.pickId && (
+                            <button formAction={clearPick.bind(null, slug, g.id, "TOTAL")}>Clear</button>
+                          )}
+                        </div>
+                      )}
                     </>
                   )}
                 </div>
@@ -211,18 +237,21 @@ export default function PickForm({
                               name="dogPick"
                               value={`${g.id}|${g.snap.underdogTeam}`}
                               defaultChecked={g.dog.selection === g.snap.underdogTeam}
+                              onChange={() => mark(dogKey)}
                             />{" "}
                             Make {g.snap.underdogTeam} my dog pick
                           </label>
                         </div>
-                        <div>
-                          <button formAction={lockSelection.bind(null, slug, g.id, "DOG")}>
-                            Lock In dog pick
-                          </button>{" "}
-                          {g.dog.pickId && (
-                            <button formAction={clearPick.bind(null, slug, g.id, "DOG")}>Clear</button>
-                          )}
-                        </div>
+                        {hasSelection[dogKey] && (
+                          <div style={{ marginTop: "0.25rem" }}>
+                            <button formAction={lockSelection.bind(null, slug, g.id, "DOG")}>
+                              🔒 Lock In
+                            </button>{" "}
+                            {g.dog.pickId && (
+                              <button formAction={clearPick.bind(null, slug, g.id, "DOG")}>Clear</button>
+                            )}
+                          </div>
+                        )}
                       </>
                     )}
                   </div>
