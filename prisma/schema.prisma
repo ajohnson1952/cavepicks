@@ -13,6 +13,7 @@ model User {
   pickSlug  String   @unique // long random token, e.g. "x7v9qz3m2k4p" - this is their private link, not guessable
   createdAt DateTime @default(now())
   picks     Pick[]
+  potWins   WeeklyPot[]
 }
 
 model Week {
@@ -23,6 +24,7 @@ model Week {
   // LOCK_OFFSET_MINUTES before that game's own commenceTime (see lib/lock.ts)
   games      Game[]
   picks      Pick[]
+  pot        WeeklyPot?
 
   @@unique([seasonYear, weekNumber])
 }
@@ -31,7 +33,8 @@ model Game {
   id            String         @id @default(cuid())
   weekId        String
   week          Week           @relation(fields: [weekId], references: [id])
-  espnEventId   String?        @unique // for matching ESPN scoreboard results
+  oddsApiEventId String?       @unique // The Odds API's own game id, used to match early/lock pulls
+  espnEventId   String?        @unique // for matching ESPN scoreboard results later
   homeTeam      String
   awayTeam      String
   commenceTime  DateTime
@@ -88,4 +91,18 @@ model Pick {
   createdAt DateTime @default(now())
 
   @@unique([userId, weekId, gameId, pickType])
+}
+
+// One row per week. amount starts at WEEKLY_BUYIN * playerCount and absorbs
+// any carried-over amount from prior unresolved (tied) weeks.
+// winnerId is null until resolved; stays null forever on a tied week (rollover).
+model WeeklyPot {
+  id        String   @id @default(cuid())
+  weekId    String   @unique
+  week      Week     @relation(fields: [weekId], references: [id])
+  amount    Float
+  winnerId  String?
+  winner    User?    @relation(fields: [winnerId], references: [id])
+  resolved  Boolean  @default(false) // true once that week's games are all graded and tallied
+  createdAt DateTime @default(now())
 }
