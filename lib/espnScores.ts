@@ -30,16 +30,32 @@ const NAME_ALIASES: Record<string, string> = {
   "uconn": "connecticut",
   "pitt": "pittsburgh",
   "ul lafayette": "louisiana",
+  "umass": "massachusetts",
+  "liu": "long island",
+  "youngstown st": "youngstown state",
+  "citadel": "the citadel",
+  "ut rio grande valley": "utrgv",
 };
 
+// Aliases apply as substring substitution (with word boundaries), not exact
+// full-string match - a team name like "UConn Huskies" needs the "uconn"
+// portion swapped, not the whole phrase matched verbatim.
 function normalize(name: string): string {
-  const cleaned = name
+  let cleaned = name
     .toLowerCase()
     .trim()
     .replace(/['\u2019]/g, "") // strip apostrophes: Hawai'i -> hawaii
     .replace(/\./g, "") // strip periods: St. -> st
     .replace(/\s+/g, " ");
-  return NAME_ALIASES[cleaned] ?? cleaned;
+
+  for (const [key, value] of Object.entries(NAME_ALIASES)) {
+    const pattern = new RegExp(`\\b${key}\\b`);
+    if (pattern.test(cleaned)) {
+      cleaned = cleaned.replace(pattern, value);
+      break;
+    }
+  }
+  return cleaned;
 }
 
 export async function fetchEspnScoreboard(yyyymmdd: string): Promise<EspnResult[]> {
