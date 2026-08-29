@@ -1,20 +1,24 @@
 "use server";
 
 import { prisma } from "@/lib/db";
-import { isGameLocked } from "@/lib/lock";
+import { isGameLocked, WEEK_WINDOW_DAYS } from "@/lib/lock";
 import { revalidatePath } from "next/cache";
 
-export async function submitPicks(slug: string, formData: FormData) {
+export async function submitPicks(
+  slug: string,
+  prevState: { error: string | null },
+  formData: FormData
+): Promise<{ error: string | null }> {
   const user = await prisma.user.findUnique({ where: { pickSlug: slug } });
-  if (!user) throw new Error("Player not found");
+  if (!user) return { error: "Player not found" };
 
   const week = await prisma.week.findUnique({
     where: { seasonYear_weekNumber: { seasonYear: 2026, weekNumber: 1 } },
   });
-  if (!week) throw new Error("No active week found");
+  if (!week) return { error: "No active week found" };
 
   const games = await prisma.game.findMany({
-    where: { weekId: week.id },
+    where: { weekId: week.id, commenceTime: { lte: new Date(Date.now() + WEEK_WINDOW_DAYS * 86_400_000) } },
     include: { oddsSnapshots: { orderBy: { capturedAt: "desc" }, take: 1 } },
   });
   const gameById = new Map(games.map((g) => [g.id, g]));
@@ -61,10 +65,10 @@ export async function submitPicks(slug: string, formData: FormData) {
 
   // Only block going OVER the limits - saving partial progress (fewer than 5, or 0 dog) is fine
   if (totalSideCount > 5) {
-    throw new Error(`That's ${totalSideCount} side/total picks - max is 5. Unselect one first.`);
+    return { error: `That's ${totalSideCount} side/total picks - max is 5. Unselect one first.` };
   }
   if (totalDogCount > 1) {
-    throw new Error("Only one dog pick allowed per week.");
+    return { error: "Only one dog pick allowed per week." };
   }
 
   for (const sel of newSideSelections) {
@@ -110,4 +114,5 @@ export async function submitPicks(slug: string, formData: FormData) {
   }
 
   revalidatePath(`/pick/${slug}`);
+  return { error: null };
 }

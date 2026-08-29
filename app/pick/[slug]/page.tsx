@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/db";
-import { isGameLocked, lockTimeFor } from "@/lib/lock";
-import { submitPicks } from "./actions";
+import { isGameLocked, lockTimeFor, WEEK_WINDOW_DAYS } from "@/lib/lock";
+import PickForm from "./PickForm";
 import { notFound } from "next/navigation";
 
 export default async function PickPage({ params }: { params: { slug: string } }) {
@@ -19,8 +19,11 @@ export default async function PickPage({ params }: { params: { slug: string } })
     );
   }
 
+  // Only this week's slate - Odds API returns the whole season, so cut it off
+  const windowEnd = new Date(Date.now() + WEEK_WINDOW_DAYS * 86_400_000);
+
   const games = await prisma.game.findMany({
-    where: { weekId: week.id },
+    where: { weekId: week.id, commenceTime: { lte: windowEnd } },
     include: { oddsSnapshots: { orderBy: { capturedAt: "desc" }, take: 1 } },
     orderBy: { commenceTime: "asc" },
   });
@@ -40,7 +43,26 @@ export default async function PickPage({ params }: { params: { slug: string } })
   }, 0);
   const hasLockedDog = lockedGames.some((g) => pickLookup.has(`${g.id}_DOG`));
 
-  const boundSubmit = submitPicks.bind(null, params.slug);
+  const openGamesView = openGames.map((g) => {
+    const snap = g.oddsSnapshots[0] ?? null;
+    return {
+      id: g.id,
+      homeTeam: g.homeTeam,
+      awayTeam: g.awayTeam,
+      lockAtDisplay: lockTimeFor(g.commenceTime).toLocaleString(),
+      snap: snap
+        ? {
+            spreadHome: snap.spreadHome,
+            spreadAway: snap.spreadAway,
+            total: snap.total,
+            underdogTeam: snap.underdogTeam,
+          }
+        : null,
+      existingSpread: pickLookup.get(`${g.id}_SPREAD`)?.selection,
+      existingTotal: pickLookup.get(`${g.id}_TOTAL`)?.selection,
+      existingDog: pickLookup.get(`${g.id}_DOG`)?.selection,
+    };
+  });
 
   return (
     <main style={{ maxWidth: 700 }}>
@@ -74,96 +96,7 @@ export default async function PickPage({ params }: { params: { slug: string } })
         </section>
       )}
 
-      <form action={boundSubmit}>
-        <h2>Open games</h2>
-        {openGames.length === 0 && <p>No open games right now.</p>}
-        {openGames.map((g) => {
-          const snap = g.oddsSnapshots[0];
-          const existingSpread = pickLookup.get(`${g.id}_SPREAD`);
-          const existingTotal = pickLookup.get(`${g.id}_TOTAL`);
-          const existingDog = pickLookup.get(`${g.id}_DOG`);
-          const lockAt = lockTimeFor(g.commenceTime);
-
-          return (
-            <div key={g.id} style={{ border: "1px solid #ddd", padding: "0.75rem", marginBottom: "0.75rem" }}>
-              <strong>
-                {g.awayTeam} @ {g.homeTeam}
-              </strong>
-              <div style={{ fontSize: "0.85em", color: "#666" }}>
-                Locks {lockAt.toLocaleString()} &middot; line shown is informational, not final until lock
-              </div>
-
-              {snap ? (
-                <>
-                  <div style={{ marginTop: "0.5rem" }}>
-                    <label>
-                      <input
-                        type="radio"
-                        name={`spread_${g.id}`}
-                        value="away"
-                        defaultChecked={existingSpread?.selection === g.awayTeam}
-                      />{" "}
-                      {g.awayTeam} {snap.spreadAway != null && snap.spreadAway > 0 ? "+" : ""}
-                      {snap.spreadAway}
-                    </label>
-                    <br />
-                    <label>
-                      <input
-                        type="radio"
-                        name={`spread_${g.id}`}
-                        value="home"
-                        defaultChecked={existingSpread?.selection === g.homeTeam}
-                      />{" "}
-                      {g.homeTeam} {snap.spreadHome != null && snap.spreadHome > 0 ? "+" : ""}
-                      {snap.spreadHome}
-                    </label>
-                  </div>
-
-                  <div style={{ marginTop: "0.5rem" }}>
-                    <label>
-                      <input
-                        type="radio"
-                        name={`total_${g.id}`}
-                        value="over"
-                        defaultChecked={existingTotal?.selection === "over"}
-                      />{" "}
-                      Over {snap.total}
-                    </label>
-                    <br />
-                    <label>
-                      <input
-                        type="radio"
-                        name={`total_${g.id}`}
-                        value="under"
-                        defaultChecked={existingTotal?.selection === "under"}
-                      />{" "}
-                      Under {snap.total}
-                    </label>
-                  </div>
-
-                  {snap.underdogTeam && !hasLockedDog && (
-                    <div style={{ marginTop: "0.5rem" }}>
-                      <label>
-                        <input
-                          type="radio"
-                          name="dogPick"
-                          value={`${g.id}|${snap.underdogTeam}`}
-                          defaultChecked={existingDog?.selection === snap.underdogTeam}
-                        />{" "}
-                        Make {snap.underdogTeam} my dog pick
-                      </label>
-                    </div>
-                  )}
-                </>
-              ) : (
-                <p>Odds not posted yet for this game.</p>
-              )}
-            </div>
-          );
-        })}
-
-        <button type="submit">Save picks</button>
-      </form>
+      <PickForm slug={params.slug} openGames={openGamesView} hasLockedDog={hasLockedDog} />
     </main>
   );
 }
