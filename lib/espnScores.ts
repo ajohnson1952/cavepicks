@@ -31,7 +31,7 @@ const NAME_ALIASES: Record<string, string> = {
   "pitt": "pittsburgh",
   "ul lafayette": "louisiana",
   "umass": "massachusetts",
-  "liu": "long island",
+  "liu": "long island university",
   "youngstown st": "youngstown state",
   "citadel": "the citadel",
   "ut rio grande valley": "utrgv",
