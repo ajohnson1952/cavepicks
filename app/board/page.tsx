@@ -2,6 +2,12 @@ import { prisma } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
+function abbr(selection: string, homeTeam: string, homeAbbr: string | null, awayTeam: string, awayAbbr: string | null) {
+  if (selection === homeTeam) return homeAbbr ?? selection;
+  if (selection === awayTeam) return awayAbbr ?? selection;
+  return selection;
+}
+
 export default async function BoardPage() {
   const week = await prisma.week.findUnique({
     where: { seasonYear_weekNumber: { seasonYear: 2026, weekNumber: 1 } },
@@ -51,26 +57,35 @@ export default async function BoardPage() {
             </div>
             <div className="divider" />
             {sidePicks.length === 0 && <p className="subtext" style={{ margin: 0 }}>No side picks yet</p>}
-            {sidePicks.map((p) => (
-              <div key={p.id} style={{ fontSize: "13px", marginBottom: "4px" }}>
-                <span className="mono" style={{ color: "var(--dim)" }}>
-                  {p.pickType === "SPREAD" ? "SPRD" : "TOTL"}
-                </span>{" "}
-                {p.game.awayTeam} @ {p.game.homeTeam} &mdash; {p.selection}
-                {p.locked ? (
-                  <span className="locked-badge" style={{ marginLeft: "6px" }}>
-                    <span className="locked-dot" />
-                    <span className="locked-text mono">{p.lockedLine ?? "?"}</span>
-                  </span>
-                ) : (
-                  <span className="meta"> (open)</span>
-                )}
-              </div>
-            ))}
+            {sidePicks.map((p) => {
+              const matchupAbbr = `${p.game.awayAbbr ?? p.game.awayTeam} @ ${p.game.homeAbbr ?? p.game.homeTeam}`;
+              const pickLabel =
+                p.pickType === "SPREAD"
+                  ? abbr(p.selection, p.game.homeTeam, p.game.homeAbbr, p.game.awayTeam, p.game.awayAbbr)
+                  : p.selection;
+              return (
+                <div key={p.id} style={{ fontSize: "13px", marginBottom: "4px" }}>
+                  <span className="mono" style={{ color: "var(--dim)" }}>
+                    {p.pickType === "SPREAD" ? "SPRD" : "TOTL"}
+                  </span>{" "}
+                  {matchupAbbr} &mdash; {pickLabel}
+                  {p.locked ? (
+                    <span className="locked-badge" style={{ marginLeft: "6px" }}>
+                      <span className="locked-dot" />
+                      <span className="locked-text mono">{p.lockedLine ?? "?"}</span>
+                    </span>
+                  ) : (
+                    <span className="meta"> (open)</span>
+                  )}
+                </div>
+              );
+            })}
             {dogPick && (
               <div style={{ fontSize: "13px", marginTop: "6px" }}>
                 <span className="mono" style={{ color: "var(--dim)" }}>DOG</span>{" "}
-                {dogPick.game.awayTeam} @ {dogPick.game.homeTeam} &mdash; {dogPick.selection}
+                {dogPick.game.awayAbbr ?? dogPick.game.awayTeam} @ {dogPick.game.homeAbbr ?? dogPick.game.homeTeam}
+                {" \u2014 "}
+                {abbr(dogPick.selection, dogPick.game.homeTeam, dogPick.game.homeAbbr, dogPick.game.awayTeam, dogPick.game.awayAbbr)}
                 {dogPick.locked ? (
                   <span className="locked-badge" style={{ marginLeft: "6px" }}>
                     <span className="locked-dot" />
