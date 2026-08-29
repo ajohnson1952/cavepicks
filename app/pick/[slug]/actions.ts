@@ -341,3 +341,71 @@ export async function autosaveSelection(
   revalidatePath("/board");
   return { error: null };
 }
+
+// Locks a pick using a value passed directly from client state - no <form>
+// or FormData needed, called as a plain function from a button's onClick.
+export async function lockValue(
+  slug: string,
+  gameId: string,
+  pickType: "SPREAD" | "TOTAL" | "DOG",
+  selection: string
+) {
+  const user = await prisma.user.findUnique({ where: { pickSlug: slug } });
+  if (!user) return { error: "Player not found" };
+
+  const week = await prisma.week.findUnique({
+    where: { seasonYear_weekNumber: { seasonYear: 2026, weekNumber: 1 } },
+  });
+  if (!week) return { error: "No active week found" };
+
+  const game = await prisma.game.findUnique({
+    where: { id: gameId },
+    include: { oddsSnapshots: { orderBy: { capturedAt: "desc" }, take: 1 } },
+  });
+  if (!game) return { error: "Game not found" };
+  if (isPastAutoLock(game.commenceTime)) return { error: "This game already auto-locked" };
+
+  const snap = game.oddsSnapshots[0];
+  if (!snap) return { error: "No odds available yet to lock against" };
+
+  const existingPicks = await prisma.pick.findMany({ where: { userId: user.id, weekId: week.id } });
+  const alreadyExists = existingPicks.some((p) => p.gameId === gameId && p.pickType === pickType);
+
+  if (!alreadyExists) {
+    if (pickType === "DOG") {
+      if (existingPicks.some((p) => p.pickType === "DOG")) {
+        return { error: "Only one dog pick allowed per week." };
+      }
+    } else {
+      const sideCount = existingPicks.filter((p) => p.pickType === "SPREAD" || p.pickType === "TOTAL").length;
+      if (sideCount >= 5) return { error: "You already have 5 side/total picks - clear one first." };
+    }
+  }
+
+  const data: {
+    selection: string;
+    locked: boolean;
+    lockedAt: Date;
+    lockedLine?: number | null;
+    dogSpreadValue?: number | null;
+  } = { selection, locked: true, lockedAt: new Date() };
+
+  if (pickType === "SPREAD") {
+    data.lockedLine = selection === game.homeTeam ? snap.spreadHome : snap.spreadAway;
+  } else if (pickType === "TOTAL") {
+    data.lockedLine = snap.total;
+  } else if (pickType === "DOG") {
+    data.dogSpreadValue =
+      selection === game.homeTeam ? Math.abs(snap.spreadHome ?? 0) : Math.abs(snap.spreadAway ?? 0);
+  }
+
+  await prisma.pick.upsert({
+    where: { userId_weekId_gameId_pickType: { userId: user.id, weekId: week.id, gameId, pickType } },
+    update: data,
+    create: { userId: user.id, weekId: week.id, gameId, pickType, ...data },
+  });
+
+  revalidatePath(`/pick/${slug}`);
+  revalidatePath("/board");
+  return { error: null };
+}

@@ -14,7 +14,7 @@ export default async function PickPage({ params }: { params: { slug: string } })
     return (
       <main>
         <h1>No active week yet</h1>
-        <p>Ask the commissioner to pull odds first.</p>
+        <p className="subtext">Ask the commissioner to pull odds first.</p>
       </main>
     );
   }
@@ -23,7 +23,7 @@ export default async function PickPage({ params }: { params: { slug: string } })
 
   const games = await prisma.game.findMany({
     where: { weekId: week.id, commenceTime: { gte: start, lte: end } },
-    include: { oddsSnapshots: { orderBy: { capturedAt: "desc" }, take: 1 } },
+    include: { oddsSnapshots: { orderBy: { capturedAt: "asc" } } }, // full history, for movement
     orderBy: { commenceTime: "asc" },
   });
 
@@ -31,7 +31,6 @@ export default async function PickPage({ params }: { params: { slug: string } })
   const pickLookup = new Map<string, (typeof picks)[number]>();
   for (const p of picks) pickLookup.set(`${p.gameId}_${p.pickType}`, p);
 
-  // Everyone's LOCKED picks this week, for the "who's locked what" display
   const gameIds = games.map((g) => g.id);
   const lockedPicksEveryone = await prisma.pick.findMany({
     where: { gameId: { in: gameIds }, locked: true, userId: { not: user.id } },
@@ -44,10 +43,10 @@ export default async function PickPage({ params }: { params: { slug: string } })
     lockedByOthersByGame.set(p.gameId, list);
   }
 
-  const lastUpdated = games
-    .map((g) => g.oddsSnapshots[0]?.capturedAt)
-    .filter((d): d is Date => !!d)
-    .sort((a, b) => b.getTime() - a.getTime())[0];
+  const allSnapshotTimes = games.flatMap((g) => g.oddsSnapshots.map((s) => s.capturedAt));
+  const lastUpdated = allSnapshotTimes.length
+    ? allSnapshotTimes.sort((a, b) => b.getTime() - a.getTime())[0]
+    : null;
 
   const lockedSideCount = picks.filter(
     (p) => (p.pickType === "SPREAD" || p.pickType === "TOTAL") && p.locked
@@ -55,7 +54,23 @@ export default async function PickPage({ params }: { params: { slug: string } })
   const lockedDogPick = picks.find((p) => p.pickType === "DOG" && p.locked);
 
   const gameViews = games.map((g) => {
-    const snap = g.oddsSnapshots[0] ?? null;
+    const snapshots = g.oddsSnapshots;
+    const latest = snapshots[snapshots.length - 1] ?? null;
+    const opening = snapshots[0] ?? null;
+
+    const spreadHomeMove =
+      latest && opening && latest.spreadHome != null && opening.spreadHome != null
+        ? Math.round((latest.spreadHome - opening.spreadHome) * 10) / 10
+        : null;
+    const spreadAwayMove =
+      latest && opening && latest.spreadAway != null && opening.spreadAway != null
+        ? Math.round((latest.spreadAway - opening.spreadAway) * 10) / 10
+        : null;
+    const totalMove =
+      latest && opening && latest.total != null && opening.total != null
+        ? Math.round((latest.total - opening.total) * 10) / 10
+        : null;
+
     const spreadPick = pickLookup.get(`${g.id}_SPREAD`);
     const totalPick = pickLookup.get(`${g.id}_TOTAL`);
     const dogPick = pickLookup.get(`${g.id}_DOG`);
@@ -70,20 +85,22 @@ export default async function PickPage({ params }: { params: { slug: string } })
           dateStyle: "medium",
           timeStyle: "short",
         }) + " CT",
-      autoLockDisplay: new Date(g.commenceTime.getTime() - 30 * 60_000).toLocaleString("en-US", {
-        timeZone: "America/Chicago",
-        dateStyle: "medium",
-        timeStyle: "short",
-      }) + " CT",
+      autoLockDisplay:
+        new Date(g.commenceTime.getTime() - 30 * 60_000).toLocaleString("en-US", {
+          timeZone: "America/Chicago",
+          dateStyle: "medium",
+          timeStyle: "short",
+        }) + " CT",
       pastAutoLock: isPastAutoLock(g.commenceTime),
-      snap: snap
+      snap: latest
         ? {
-            spreadHome: snap.spreadHome,
-            spreadAway: snap.spreadAway,
-            total: snap.total,
-            underdogTeam: snap.underdogTeam,
+            spreadHome: latest.spreadHome,
+            spreadAway: latest.spreadAway,
+            total: latest.total,
+            underdogTeam: latest.underdogTeam,
           }
         : null,
+      movement: { spreadHome: spreadHomeMove, spreadAway: spreadAwayMove, total: totalMove },
       spread: {
         pickId: spreadPick?.id ?? null,
         selection: spreadPick?.selection ?? null,
@@ -96,7 +113,7 @@ export default async function PickPage({ params }: { params: { slug: string } })
         locked: !!totalPick?.locked,
         lockedLine: totalPick?.lockedLine ?? null,
       },
-      dog: snap?.underdogTeam
+      dog: latest?.underdogTeam
         ? {
             pickId: dogPick?.id ?? null,
             selection: dogPick?.selection ?? null,
@@ -109,14 +126,12 @@ export default async function PickPage({ params }: { params: { slug: string } })
   });
 
   return (
-    <main style={{ maxWidth: 700 }}>
-      <h1>{user.name}&apos;s Picks</h1>
-      <p>
-        {lockedSideCount}/5 side picks locked in &middot; dog pick{" "}
-        {lockedDogPick ? "locked in" : "not locked yet"}
-      </p>
-      <p style={{ fontSize: "0.85em", color: "#666" }}>
-        Odds last updated:{" "}
+    <main>
+      <h1>{user.name}&apos;s picks</h1>
+      <p className="subtext">
+        {lockedSideCount}/5 side picks locked &middot; dog pick {lockedDogPick ? "locked" : "not locked"}
+        <br />
+        Last updated:{" "}
         {lastUpdated
           ? lastUpdated.toLocaleString("en-US", {
               timeZone: "America/Chicago",
@@ -124,9 +139,8 @@ export default async function PickPage({ params }: { params: { slug: string } })
               timeStyle: "short",
             }) + " CT"
           : "never yet"}
-      </p>
-      <p style={{ fontSize: "0.85em" }}>
-        <a href="/board">See everyone&apos;s picks &rarr;</a>
+        {" · "}
+        <a href="/board">See everyone&apos;s picks</a>
       </p>
       <PickForm slug={params.slug} games={gameViews} hasLockedDog={!!lockedDogPick} />
     </main>
