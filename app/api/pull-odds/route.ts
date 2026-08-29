@@ -15,9 +15,17 @@ export async function GET(request: Request) {
   });
 
   try {
-    const results = await pullOdds(type, week.id);
-    return NextResponse.json({ ok: true, snapshotType: type, count: results.length, results });
+    const { results, unmatchedTeams, espnTeamsFetched } = await pullOdds(type, week.id);
+    return NextResponse.json({
+      ok: true,
+      snapshotType: type,
+      count: results.length,
+      results,
+      espnTeamsFetched,
+      unmatchedTeams,
+    });
   } catch (err: any) {
     return NextResponse.json({ ok: false, error: err.message }, { status: 500 });
   }
 }
+
