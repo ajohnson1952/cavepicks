@@ -38,7 +38,7 @@ export default async function BoardPage() {
   return (
     <main>
       <h1>The board</h1>
-      <p className="subtext">Week {week.weekNumber} &middot; everyone&apos;s picks, live. &middot; <a href="/standings">Standings</a></p>
+      <p className="subtext">Week {week.weekNumber} &middot; everyone&apos;s picks, live.</p>
 
       {users.map((u) => {
         const userPicks = picksByUser.get(u.id) ?? [];

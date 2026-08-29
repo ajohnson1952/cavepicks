@@ -157,9 +157,6 @@ export default async function StandingsPage() {
         ))}
       </div>
 
-      <p className="subtext">
-        <a href="/board">Board</a>
-      </p>
     </main>
   );
 }
