@@ -315,19 +315,21 @@ export default function PickForm({
                 )}
 
                 {/* Dog */}
-                {g.dog && (
+                {g.dog && (() => {
+                  const dog = g.dog;
+                  return (
                   <div className="pill-single">
-                    {gameFullyLocked || g.dog.locked ? (
-                      g.dog.selection ? (
+                    {gameFullyLocked || dog.locked ? (
+                      dog.selection ? (
                         <div className="locked-detail">
                           <span className="locked-badge">
                             <span className="locked-dot" />
                             <span className="locked-text">LOCKED</span>
                           </span>{" "}
-                          Dog: {g.dog.selection}
-                          {g.dog.dogSpreadValue != null ? ` (worth ${g.dog.dogSpreadValue} pts)` : ""}
-                          {!gameFullyLocked && g.dog.pickId && (
-                            <button className="btn btn-ghost" onClick={() => unlockPick(slug, g.dog.pickId!)}>
+                          Dog: {dog.selection}
+                          {dog.dogSpreadValue != null ? ` (worth ${dog.dogSpreadValue} pts)` : ""}
+                          {!gameFullyLocked && dog.pickId && (
+                            <button className="btn btn-ghost" onClick={() => unlockPick(slug, dog.pickId!)}>
                               unlock
                             </button>
                           )}
@@ -338,14 +340,14 @@ export default function PickForm({
                         <button
                           type="button"
                           className={`pill-btn${
-                            dogChoice === `${g.id}|${g.snap.underdogTeam}` ? " selected" : ""
+                            dogChoice === `${g.id}|${g.snap?.underdogTeam}` ? " selected" : ""
                           }`}
                           onClick={() => pickDog(g)}
                         >
                           <div className="pill-label">Dog pick</div>
-                          <div className="pill-value">{g.snap.underdogTeam}</div>
+                          <div className="pill-value">{g.snap?.underdogTeam}</div>
                         </button>
-                        {dogChoice === `${g.id}|${g.snap.underdogTeam}` && (
+                        {dogChoice === `${g.id}|${g.snap?.underdogTeam}` && (
                           <div style={{ display: "flex", gap: "10px", alignItems: "center", marginTop: "8px" }}>
                             <button
                               className="btn btn-lock"
@@ -374,7 +376,8 @@ export default function PickForm({
                       </>
                     )}
                   </div>
-                )}
+                  );
+                })()}
               </>
             )}
           </div>
