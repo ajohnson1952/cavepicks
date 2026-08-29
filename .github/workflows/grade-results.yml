@@ -1,0 +1,13 @@
+name: Grade Results
+
+on:
+  schedule:
+    - cron: "*/30 * * * *"
+  workflow_dispatch: {}
+
+jobs:
+  grade:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Hit the grading endpoint
+        run: curl -sf "https://cavepicks.onrender.com/api/grade-results"
