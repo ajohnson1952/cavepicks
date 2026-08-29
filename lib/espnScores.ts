@@ -21,13 +21,11 @@ export type EspnResult = {
 // Add to this as real mismatches turn up - see the unmatched[] diagnostic
 // in the grading route for how to spot them.
 const NAME_ALIASES: Record<string, string> = {
-  "ole miss": "mississippi",
   "miami (oh)": "miami",
   "miami (fl)": "miami",
   "louisiana-monroe": "ul monroe",
   "louisiana": "louisiana lafayette",
-  "app state": "appalachian state",
-  "uconn": "connecticut",
+  "appalachian state": "app state",
   "pitt": "pittsburgh",
   "ul lafayette": "louisiana",
   "umass": "massachusetts",
@@ -39,6 +37,8 @@ const NAME_ALIASES: Record<string, string> = {
 
 function cleanBase(name: string): string {
   return name
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "") // strip accents: San Jose State -> San Jose State
     .toLowerCase()
     .trim()
     .replace(/['\u2019]/g, "")
