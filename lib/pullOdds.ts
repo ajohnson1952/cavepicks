@@ -7,10 +7,13 @@ export async function pullOdds(snapshotType: "early" | "lock", weekId: string) {
   const games = await fetchDraftKingsOdds();
   const espnTeams = await fetchEspnTeams(); // one call, reused for every game below
   const results = [];
+  const unmatchedTeams = new Set<string>();
 
   for (const g of games) {
     const homeInfo = findEspnTeamInfo(g.homeTeam, espnTeams);
     const awayInfo = findEspnTeamInfo(g.awayTeam, espnTeams);
+    if (!homeInfo) unmatchedTeams.add(g.homeTeam);
+    if (!awayInfo) unmatchedTeams.add(g.awayTeam);
 
     const game = await prisma.game.upsert({
       where: { oddsApiEventId: g.id },
@@ -56,5 +59,5 @@ export async function pullOdds(snapshotType: "early" | "lock", weekId: string) {
     });
   }
 
-  return results;
+  return { results, unmatchedTeams: Array.from(unmatchedTeams), espnTeamsFetched: espnTeams.length };
 }

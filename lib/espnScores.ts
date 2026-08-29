@@ -33,8 +33,13 @@ const NAME_ALIASES: Record<string, string> = {
 };
 
 function normalize(name: string): string {
-  const n = name.toLowerCase().trim();
-  return NAME_ALIASES[n] ?? n;
+  const cleaned = name
+    .toLowerCase()
+    .trim()
+    .replace(/['\u2019]/g, "") // strip apostrophes: Hawai'i -> hawaii
+    .replace(/\./g, "") // strip periods: St. -> st
+    .replace(/\s+/g, " ");
+  return NAME_ALIASES[cleaned] ?? cleaned;
 }
 
 export async function fetchEspnScoreboard(yyyymmdd: string): Promise<EspnResult[]> {
