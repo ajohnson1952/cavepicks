@@ -1,0 +1,6 @@
+services:
+  - type: web
+    name: cfb-pickem
+    runtime: node
+    buildCommand: npm install && npm run build
+    startCommand: npm run start
