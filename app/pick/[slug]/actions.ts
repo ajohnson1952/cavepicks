@@ -186,3 +186,20 @@ export async function unlockPick(slug: string, pickId: string) {
   revalidatePath(`/pick/${slug}`);
   return { error: null };
 }
+
+// Deletes an unlocked pick entirely, since radio buttons can't be "unselected"
+// on their own. Locked picks can't be cleared - unlock first.
+export async function clearPick(slug: string, gameId: string, pickType: "SPREAD" | "TOTAL" | "DOG") {
+  const user = await prisma.user.findUnique({ where: { pickSlug: slug } });
+  if (!user) return { error: "Player not found" };
+
+  const pick = await prisma.pick.findFirst({
+    where: { userId: user.id, gameId, pickType },
+  });
+  if (!pick) return { error: null }; // nothing to clear
+  if (pick.locked) return { error: "Can't clear a locked pick - unlock it first" };
+
+  await prisma.pick.delete({ where: { id: pick.id } });
+  revalidatePath(`/pick/${slug}`);
+  return { error: null };
+}

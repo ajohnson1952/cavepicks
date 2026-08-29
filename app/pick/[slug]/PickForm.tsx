@@ -1,7 +1,7 @@
 "use client";
 
 import { useFormState } from "react-dom";
-import { submitPicks, lockPick, unlockPick } from "./actions";
+import { submitPicks, lockPick, unlockPick, clearPick } from "./actions";
 
 type Snap = {
   spreadHome: number | null;
@@ -126,7 +126,8 @@ export default function PickForm({
                         <div>
                           <button formAction={lockPick.bind(null, slug, g.spread.pickId)}>
                             Lock In spread pick
-                          </button>
+                          </button>{" "}
+                          <button formAction={clearPick.bind(null, slug, g.id, "SPREAD")}>Clear</button>
                         </div>
                       )}
                     </>
@@ -171,7 +172,8 @@ export default function PickForm({
                         <div>
                           <button formAction={lockPick.bind(null, slug, g.total.pickId)}>
                             Lock In total pick
-                          </button>
+                          </button>{" "}
+                          <button formAction={clearPick.bind(null, slug, g.id, "TOTAL")}>Clear</button>
                         </div>
                       )}
                     </>
@@ -209,7 +211,8 @@ export default function PickForm({
                           <div>
                             <button formAction={lockPick.bind(null, slug, g.dog.pickId)}>
                               Lock In dog pick
-                            </button>
+                            </button>{" "}
+                            <button formAction={clearPick.bind(null, slug, g.id, "DOG")}>Clear</button>
                           </div>
                         )}
                       </>
