@@ -32,6 +32,7 @@ export async function GET() {
 
   let gamesGraded = 0;
   let picksGraded = 0;
+  const unmatched: { ourGame: string; date: string; espnGamesThatDay: string[] }[] = [];
 
   for (const game of games) {
     const match = allResults.find(
@@ -40,7 +41,17 @@ export async function GET() {
         teamNamesMatch(game.homeTeam, r.homeTeam) &&
         teamNamesMatch(game.awayTeam, r.awayTeam)
     );
-    if (!match) continue;
+    if (!match) {
+      const gameDate = toYyyymmdd(game.commenceTime);
+      unmatched.push({
+        ourGame: `${game.awayTeam} @ ${game.homeTeam}`,
+        date: gameDate,
+        espnGamesThatDay: allResults
+          .filter((r) => toYyyymmdd(new Date(r.dateISO)) === gameDate)
+          .map((r) => `${r.awayTeam} @ ${r.homeTeam}${r.completed ? "" : " (not final yet)"}`),
+      });
+      continue;
+    }
 
     await prisma.game.update({
       where: { id: game.id },
@@ -92,5 +103,5 @@ export async function GET() {
     }
   }
 
-  return NextResponse.json({ ok: true, gamesGraded, picksGraded });
+  return NextResponse.json({ ok: true, gamesGraded, picksGraded, unmatched });
 }
