@@ -37,6 +37,10 @@ model Game {
   espnEventId   String?        @unique // for matching ESPN scoreboard results later
   homeTeam      String
   awayTeam      String
+  homeAbbr      String?
+  awayAbbr      String?
+  homeLogo      String?
+  awayLogo      String?
   commenceTime  DateTime
   homeScore     Int?
   awayScore     Int?
