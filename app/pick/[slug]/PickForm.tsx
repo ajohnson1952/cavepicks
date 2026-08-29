@@ -36,6 +36,10 @@ type GameView = {
   id: string;
   homeTeam: string;
   awayTeam: string;
+  homeAbbr: string | null;
+  awayAbbr: string | null;
+  homeLogo: string | null;
+  awayLogo: string | null;
   kickoffDisplay: string;
   autoLockDisplay: string;
   pastAutoLock: boolean;
@@ -62,6 +66,17 @@ function computeInitialState(games: GameView[]) {
     }
   }
   return { spread, total, dog };
+}
+
+function TeamLogo({ src, alt }: { src: string | null; alt: string }) {
+  if (!src) return null;
+  return (
+    <img
+      src={src}
+      alt={alt}
+      style={{ width: "16px", height: "16px", objectFit: "contain", verticalAlign: "-3px", marginRight: "5px" }}
+    />
+  );
 }
 
 function MoveIndicator({ delta }: { delta: number | null }) {
@@ -148,7 +163,9 @@ export default function PickForm({
           <div key={g.id} className="card">
             <div className="row-between">
               <div className="matchup">
-                {g.awayTeam} @ {g.homeTeam}
+                <TeamLogo src={g.awayLogo} alt={g.awayTeam} />
+                {g.awayAbbr ?? g.awayTeam} @ <TeamLogo src={g.homeLogo} alt={g.homeTeam} />
+                {g.homeAbbr ?? g.homeTeam}
               </div>
               <div className="meta">{g.kickoffDisplay}</div>
             </div>
@@ -178,7 +195,7 @@ export default function PickForm({
                       <span className="locked-dot" />
                       <span className="locked-text">LOCKED</span>
                     </span>{" "}
-                    Spread: {g.spread.selection ?? "no pick"}
+                    Spread: {g.spread.selection === g.homeTeam ? g.homeAbbr ?? g.spread.selection : g.spread.selection === g.awayTeam ? g.awayAbbr ?? g.spread.selection : g.spread.selection ?? "no pick"}
                     {g.spread.lockedLine != null ? ` (${g.spread.lockedLine})` : ""}
                     {!gameFullyLocked && g.spread.pickId && (
                       <button className="btn btn-ghost" onClick={() => unlockPick(slug, g.spread.pickId!)}>
@@ -194,7 +211,10 @@ export default function PickForm({
                         className={`pill-btn${spreadChoice[g.id] === "away" ? " selected" : ""}`}
                         onClick={() => pickSpread(g, "away")}
                       >
-                        <div className="pill-label">{g.awayTeam}</div>
+                        <div className="pill-label">
+                          <TeamLogo src={g.awayLogo} alt={g.awayTeam} />
+                          {g.awayAbbr ?? g.awayTeam}
+                        </div>
                         <div className="pill-value">
                           {g.snap.spreadAway != null && g.snap.spreadAway > 0 ? "+" : ""}
                           {g.snap.spreadAway}
@@ -206,7 +226,10 @@ export default function PickForm({
                         className={`pill-btn${spreadChoice[g.id] === "home" ? " selected" : ""}`}
                         onClick={() => pickSpread(g, "home")}
                       >
-                        <div className="pill-label">{g.homeTeam}</div>
+                        <div className="pill-label">
+                          <TeamLogo src={g.homeLogo} alt={g.homeTeam} />
+                          {g.homeAbbr ?? g.homeTeam}
+                        </div>
                         <div className="pill-value">
                           {g.snap.spreadHome != null && g.snap.spreadHome > 0 ? "+" : ""}
                           {g.snap.spreadHome}
@@ -326,7 +349,7 @@ export default function PickForm({
                             <span className="locked-dot" />
                             <span className="locked-text">LOCKED</span>
                           </span>{" "}
-                          Dog: {dog.selection}
+                          Dog: {dog.selection === g.homeTeam ? g.homeAbbr ?? dog.selection : dog.selection === g.awayTeam ? g.awayAbbr ?? dog.selection : dog.selection}
                           {dog.dogSpreadValue != null ? ` (worth ${dog.dogSpreadValue} pts)` : ""}
                           {!gameFullyLocked && dog.pickId && (
                             <button className="btn btn-ghost" onClick={() => unlockPick(slug, dog.pickId!)}>
@@ -345,7 +368,11 @@ export default function PickForm({
                           onClick={() => pickDog(g)}
                         >
                           <div className="pill-label">Dog pick</div>
-                          <div className="pill-value">{g.snap?.underdogTeam}</div>
+                          <div className="pill-value">
+                            {g.snap?.underdogTeam === g.homeTeam
+                              ? g.homeAbbr ?? g.snap?.underdogTeam
+                              : g.awayAbbr ?? g.snap?.underdogTeam}
+                          </div>
                         </button>
                         {dogChoice === `${g.id}|${g.snap?.underdogTeam}` && (
                           <div style={{ display: "flex", gap: "10px", alignItems: "center", marginTop: "8px" }}>
