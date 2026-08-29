@@ -145,6 +145,8 @@ export default async function PickPage({ params }: { params: { slug: string } })
           : "never yet"}
         {" · "}
         <a href="/board">See everyone&apos;s picks</a>
+        {" · "}
+        <a href="/standings">Standings</a>
       </p>
       <PickForm slug={params.slug} games={gameViews} hasLockedDog={!!lockedDogPick} />
     </main>
