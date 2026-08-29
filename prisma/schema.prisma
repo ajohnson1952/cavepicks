@@ -1,0 +1,110 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  pickSlug  String   @unique // long random token, e.g. "x7v9qz3m2k4p" - this is their private link, not guessable
+  createdAt DateTime @default(now())
+  picks     Pick[]
+  potWins   WeeklyPot[]
+}
+
+model Week {
+  id         String   @id @default(cuid())
+  seasonYear Int
+  weekNumber Int
+  // No single lockTime anymore - each Game locks individually,
+  // LOCK_OFFSET_MINUTES before that game's own commenceTime (see lib/lock.ts)
+  games      Game[]
+  picks      Pick[]
+  pot        WeeklyPot?
+
+  @@unique([seasonYear, weekNumber])
+}
+
+model Game {
+  id            String         @id @default(cuid())
+  weekId        String
+  week          Week           @relation(fields: [weekId], references: [id])
+  oddsApiEventId String?       @unique // The Odds API's own game id, used to match early/lock pulls
+  espnEventId   String?        @unique // for matching ESPN scoreboard results later
+  homeTeam      String
+  awayTeam      String
+  commenceTime  DateTime
+  homeScore     Int?
+  awayScore     Int?
+  isFinal       Boolean        @default(false)
+  oddsSnapshots OddsSnapshot[]
+  picks         Pick[]
+}
+
+// Captured twice per game: once "early" (informational), once "lock" (what actually counts)
+model OddsSnapshot {
+  id           String   @id @default(cuid())
+  gameId       String
+  game         Game     @relation(fields: [gameId], references: [id])
+  snapshotType String   // "early" | "lock"
+  spreadHome   Float?
+  spreadAway   Float?
+  total        Float?
+  mlHome       Int?
+  mlAway       Int?
+  favoriteTeam String?
+  underdogTeam String?
+  capturedAt   DateTime @default(now())
+}
+
+enum PickType {
+  SPREAD
+  TOTAL
+  DOG
+}
+
+model Pick {
+  id     String   @id @default(cuid())
+  userId String
+  user   User     @relation(fields: [userId], references: [id])
+  weekId String
+  week   Week     @relation(fields: [weekId], references: [id])
+  gameId String
+  game   Game     @relation(fields: [gameId], references: [id])
+
+  pickType  PickType
+  selection String   // team name, or "over"/"under" for totals
+
+  lockedLine     Float? // spread or total number frozen when this pick was locked
+  lockedOdds     Int?   // ML price frozen (used for DOG picks)
+  dogSpreadValue Float? // underdog's spread magnitude at lock -> point value if DOG wins
+  locked         Boolean   @default(false) // true once manually locked or auto-locked
+  lockedAt       DateTime?
+
+  graded       Boolean @default(false)
+  isWin        Boolean? // SPREAD/TOTAL: covered or not. DOG: won outright or not.
+  isPush       Boolean? // SPREAD/TOTAL only
+  pointsEarned Float    @default(0) // only nonzero for DOG picks; feeds season-long dog race
+
+  createdAt DateTime @default(now())
+
+  @@unique([userId, weekId, gameId, pickType])
+}
+
+// One row per week. amount starts at WEEKLY_BUYIN * playerCount and absorbs
+// any carried-over amount from prior unresolved (tied) weeks.
+// winnerId is null until resolved; stays null forever on a tied week (rollover).
+model WeeklyPot {
+  id        String   @id @default(cuid())
+  weekId    String   @unique
+  week      Week     @relation(fields: [weekId], references: [id])
+  amount    Float
+  winnerId  String?
+  winner    User?    @relation(fields: [winnerId], references: [id])
+  resolved  Boolean  @default(false) // true once that week's games are all graded and tallied
+  createdAt DateTime @default(now())
+}

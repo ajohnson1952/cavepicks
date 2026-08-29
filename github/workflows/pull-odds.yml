@@ -1,0 +1,37 @@
+name: Pull Odds
+
+on:
+  schedule:
+    # Monday - 1 pull
+    - cron: "0 13 * * 1"
+    # Tuesday - 2 pulls
+    - cron: "0 13 * * 2"
+    - cron: "0 22 * * 2"
+    # Wednesday - 3 pulls
+    - cron: "0 13 * * 3"
+    - cron: "0 18 * * 3"
+    - cron: "0 23 * * 3"
+    # Thursday - 3 pulls
+    - cron: "0 13 * * 4"
+    - cron: "0 18 * * 4"
+    - cron: "0 23 * * 4"
+    # Friday - 3 pulls
+    - cron: "0 13 * * 5"
+    - cron: "0 18 * * 5"
+    - cron: "0 23 * * 5"
+    # Saturday - 6 pulls (game day)
+    - cron: "0 12 * * 6"
+    - cron: "0 14 * * 6"
+    - cron: "0 16 * * 6"
+    - cron: "0 18 * * 6"
+    - cron: "0 20 * * 6"
+    - cron: "0 23 * * 6"
+    # No Sunday pulls at all
+  workflow_dispatch: {} # lets you trigger a pull manually from the Actions tab anytime
+
+jobs:
+  pull-odds:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Hit the odds pull endpoint
+        run: curl -sf "https://cavepicks.onrender.com/api/pull-odds?type=market"
