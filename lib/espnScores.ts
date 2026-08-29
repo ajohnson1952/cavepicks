@@ -37,25 +37,31 @@ const NAME_ALIASES: Record<string, string> = {
   "ut rio grande valley": "utrgv",
 };
 
-// Aliases apply as substring substitution (with word boundaries), not exact
-// full-string match - a team name like "UConn Huskies" needs the "uconn"
-// portion swapped, not the whole phrase matched verbatim.
-function normalize(name: string): string {
-  let cleaned = name
+function cleanBase(name: string): string {
+  return name
     .toLowerCase()
     .trim()
-    .replace(/['\u2019]/g, "") // strip apostrophes: Hawai'i -> hawaii
-    .replace(/\./g, "") // strip periods: St. -> st
+    .replace(/['\u2019]/g, "")
+    .replace(/\./g, "")
     .replace(/\s+/g, " ");
+}
 
+// Aliases only ever apply to the odds API side of the comparison - applying
+// them to both sides caused double-replacement bugs (e.g. "the citadel"
+// getting the "citadel" alias re-applied to become "the the citadel").
+function applyAliases(cleaned: string): string {
   for (const [key, value] of Object.entries(NAME_ALIASES)) {
     const pattern = new RegExp(`\\b${key}\\b`);
-    if (pattern.test(cleaned)) {
-      cleaned = cleaned.replace(pattern, value);
-      break;
-    }
+    if (pattern.test(cleaned)) return cleaned.replace(pattern, value);
   }
   return cleaned;
+}
+
+export function teamNamesMatch(oddsApiName: string, espnName: string): boolean {
+  const a = applyAliases(cleanBase(oddsApiName));
+  const b = cleanBase(espnName);
+  if (!a || !b) return false;
+  return a.includes(b) || b.includes(a);
 }
 
 export async function fetchEspnScoreboard(yyyymmdd: string): Promise<EspnResult[]> {
@@ -87,16 +93,6 @@ export async function fetchEspnScoreboard(yyyymmdd: string): Promise<EspnResult[
     });
   }
   return results;
-}
-
-// Fuzzy match: does the (alias-normalized) ESPN school name appear inside
-// our stored team name (from the odds API), or vice versa. Good enough for
-// the vast majority of FBS matchups; case-insensitive.
-export function teamNamesMatch(oddsApiName: string, espnName: string): boolean {
-  const a = normalize(oddsApiName);
-  const b = normalize(espnName);
-  if (!a || !b) return false;
-  return a.includes(b) || b.includes(a);
 }
 
 export function toYyyymmdd(date: Date): string {
