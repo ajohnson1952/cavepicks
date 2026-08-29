@@ -190,6 +190,7 @@ export default function PickForm({
                             <input
                               type="radio"
                               name={`spread_${g.id}`}
+                              value="away"
                               checked={spreadChoice[g.id] === "away"}
                               onChange={() => pickSpread(g, "away")}
                             />{" "}
@@ -201,6 +202,7 @@ export default function PickForm({
                             <input
                               type="radio"
                               name={`spread_${g.id}`}
+                              value="home"
                               checked={spreadChoice[g.id] === "home"}
                               onChange={() => pickSpread(g, "home")}
                             />{" "}
@@ -250,6 +252,7 @@ export default function PickForm({
                             <input
                               type="radio"
                               name={`total_${g.id}`}
+                              value="over"
                               checked={totalChoice[g.id] === "over"}
                               onChange={() => pickTotal(g, "over")}
                             />{" "}
@@ -260,6 +263,7 @@ export default function PickForm({
                             <input
                               type="radio"
                               name={`total_${g.id}`}
+                              value="under"
                               checked={totalChoice[g.id] === "under"}
                               onChange={() => pickTotal(g, "under")}
                             />{" "}
@@ -313,6 +317,7 @@ export default function PickForm({
                               <input
                                 type="radio"
                                 name="dogPick"
+                                value={`${g.id}|${g.snap.underdogTeam}`}
                                 checked={dogChoice === `${g.id}|${g.snap.underdogTeam}`}
                                 onChange={() => pickDog(g)}
                               />{" "}
