@@ -1,7 +1,7 @@
 "use client";
 
 import { useFormState } from "react-dom";
-import { submitPicks, lockPick } from "./actions";
+import { submitPicks, lockPick, unlockPick } from "./actions";
 
 type Snap = {
   spreadHome: number | null;
@@ -24,6 +24,8 @@ type DogSlot = {
   dogSpreadValue: number | null;
 };
 
+type LockedByOther = { name: string; pickType: string; selection: string };
+
 type GameView = {
   id: string;
   homeTeam: string;
@@ -34,6 +36,7 @@ type GameView = {
   spread: PickSlot;
   total: PickSlot;
   dog: DogSlot | null;
+  lockedByOthers: LockedByOther[];
 };
 
 export default function PickForm({
@@ -70,6 +73,15 @@ export default function PickForm({
               Auto-locks {g.autoLockDisplay} if you haven&apos;t locked it yourself
             </div>
 
+            {g.lockedByOthers.length > 0 && (
+              <div style={{ fontSize: "0.8em", color: "#8a5a00", marginTop: "0.25rem" }}>
+                🔒 Already locked by:{" "}
+                {g.lockedByOthers
+                  .map((o) => `${o.name} (${o.pickType.toLowerCase()}: ${o.selection})`)
+                  .join(", ")}
+              </div>
+            )}
+
             {!g.snap && <p>Odds not posted yet for this game.</p>}
 
             {g.snap && (
@@ -80,6 +92,12 @@ export default function PickForm({
                     <div>
                       <strong>Spread locked:</strong> {g.spread.selection ?? "no pick made"}
                       {g.spread.lockedLine != null ? ` (${g.spread.lockedLine})` : ""}
+                      {!gameFullyLocked && g.spread.pickId && (
+                        <>
+                          {" "}
+                          <button formAction={unlockPick.bind(null, slug, g.spread.pickId)}>Unlock</button>
+                        </>
+                      )}
                     </div>
                   ) : (
                     <>
@@ -121,6 +139,12 @@ export default function PickForm({
                     <div>
                       <strong>Total locked:</strong> {g.total.selection ?? "no pick made"}
                       {g.total.lockedLine != null ? ` (${g.total.lockedLine})` : ""}
+                      {!gameFullyLocked && g.total.pickId && (
+                        <>
+                          {" "}
+                          <button formAction={unlockPick.bind(null, slug, g.total.pickId)}>Unlock</button>
+                        </>
+                      )}
                     </div>
                   ) : (
                     <>
@@ -162,6 +186,12 @@ export default function PickForm({
                         <div>
                           <strong>Dog pick locked:</strong> {g.dog.selection}
                           {g.dog.dogSpreadValue != null ? ` (worth ${g.dog.dogSpreadValue} pts if it hits)` : ""}
+                          {!gameFullyLocked && g.dog.pickId && (
+                            <>
+                              {" "}
+                              <button formAction={unlockPick.bind(null, slug, g.dog.pickId)}>Unlock</button>
+                            </>
+                          )}
                         </div>
                       ) : null
                     ) : hasLockedDog ? null : (

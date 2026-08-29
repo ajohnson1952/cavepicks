@@ -1,0 +1,13 @@
+name: Auto-Lock Sweep
+
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch: {}
+
+jobs:
+  sweep:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Hit the auto-lock sweep endpoint
+        run: curl -sf "https://cavepicks.onrender.com/api/auto-lock-sweep"

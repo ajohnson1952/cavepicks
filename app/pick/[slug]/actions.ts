@@ -162,3 +162,27 @@ export async function lockPick(slug: string, pickId: string) {
   revalidatePath(`/pick/${slug}`);
   return { error: null };
 }
+
+// Undoes a manual lock - only allowed if the game hasn't hit its 30-min
+// auto-lock deadline yet. Past that point, locks are final either way.
+export async function unlockPick(slug: string, pickId: string) {
+  const user = await prisma.user.findUnique({ where: { pickSlug: slug } });
+  if (!user) return { error: "Player not found" };
+
+  const pick = await prisma.pick.findUnique({
+    where: { id: pickId },
+    include: { game: true },
+  });
+  if (!pick || pick.userId !== user.id) return { error: "Pick not found" };
+  if (!pick.locked) return { error: "Not locked" };
+  if (isPastAutoLock(pick.game.commenceTime)) {
+    return { error: "Can't unlock - this game already passed its auto-lock deadline" };
+  }
+
+  await prisma.pick.update({
+    where: { id: pickId },
+    data: { locked: false, lockedAt: null, lockedLine: null, dogSpreadValue: null },
+  });
+  revalidatePath(`/pick/${slug}`);
+  return { error: null };
+}
