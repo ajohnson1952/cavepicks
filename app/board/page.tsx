@@ -1,5 +1,7 @@
 import { prisma } from "@/lib/db";
 
+export const dynamic = "force-dynamic";
+
 export default async function BoardPage() {
   const week = await prisma.week.findUnique({
     where: { seasonYear_weekNumber: { seasonYear: 2026, weekNumber: 1 } },
