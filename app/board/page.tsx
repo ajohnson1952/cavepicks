@@ -30,11 +30,9 @@ export default async function BoardPage() {
   }
 
   return (
-    <main style={{ maxWidth: 900 }}>
-      <h1>Everyone&apos;s Picks &mdash; Week {week.weekNumber}</h1>
-      <p style={{ fontSize: "0.85em", color: "#666" }}>
-        Anyone with the site link can see this page &mdash; it&apos;s the shared board, not a private pick sheet.
-      </p>
+    <main>
+      <h1>The board</h1>
+      <p className="subtext">Week {week.weekNumber} &middot; everyone&apos;s picks, live.</p>
 
       {users.map((u) => {
         const userPicks = picksByUser.get(u.id) ?? [];
@@ -43,31 +41,46 @@ export default async function BoardPage() {
         const lockedSideCount = sidePicks.filter((p) => p.locked).length;
 
         return (
-          <div key={u.id} style={{ border: "1px solid #ddd", padding: "0.75rem", marginBottom: "0.75rem" }}>
-            <strong>{u.name}</strong>
-            <span style={{ color: "#666", fontSize: "0.85em" }}>
-              {" "}
-              &middot; {lockedSideCount}/5 locked &middot; dog{" "}
-              {dogPick ? (dogPick.locked ? "locked" : "picked, not locked") : "not picked"}
-            </span>
-            <ul style={{ marginTop: "0.4rem", marginBottom: 0 }}>
-              {sidePicks.length === 0 && <li style={{ color: "#999" }}>No side picks yet</li>}
-              {sidePicks.map((p) => (
-                <li key={p.id}>
-                  {p.pickType === "SPREAD" ? "Spread" : "Total"}: {p.game.awayTeam} @ {p.game.homeTeam} &mdash;{" "}
-                  {p.selection}
-                  {p.locked ? ` 🔒 (${p.lockedLine ?? "?"})` : " (not locked)"}
-                </li>
-              ))}
-              {dogPick && (
-                <li>
-                  Dog: {dogPick.game.awayTeam} @ {dogPick.game.homeTeam} &mdash; {dogPick.selection}
-                  {dogPick.locked
-                    ? ` 🔒 (worth ${dogPick.dogSpreadValue ?? "?"} pts if it hits)`
-                    : " (not locked)"}
-                </li>
-              )}
-            </ul>
+          <div key={u.id} className="card">
+            <div className="row-between">
+              <div className="matchup">{u.name}</div>
+              <div className="meta">
+                {lockedSideCount}/5 locked &middot; dog{" "}
+                {dogPick ? (dogPick.locked ? "locked" : "picked") : "\u2014"}
+              </div>
+            </div>
+            <div className="divider" />
+            {sidePicks.length === 0 && <p className="subtext" style={{ margin: 0 }}>No side picks yet</p>}
+            {sidePicks.map((p) => (
+              <div key={p.id} style={{ fontSize: "13px", marginBottom: "4px" }}>
+                <span className="mono" style={{ color: "var(--dim)" }}>
+                  {p.pickType === "SPREAD" ? "SPRD" : "TOTL"}
+                </span>{" "}
+                {p.game.awayTeam} @ {p.game.homeTeam} &mdash; {p.selection}
+                {p.locked ? (
+                  <span className="locked-badge" style={{ marginLeft: "6px" }}>
+                    <span className="locked-dot" />
+                    <span className="locked-text mono">{p.lockedLine ?? "?"}</span>
+                  </span>
+                ) : (
+                  <span className="meta"> (open)</span>
+                )}
+              </div>
+            ))}
+            {dogPick && (
+              <div style={{ fontSize: "13px", marginTop: "6px" }}>
+                <span className="mono" style={{ color: "var(--dim)" }}>DOG</span>{" "}
+                {dogPick.game.awayTeam} @ {dogPick.game.homeTeam} &mdash; {dogPick.selection}
+                {dogPick.locked ? (
+                  <span className="locked-badge" style={{ marginLeft: "6px" }}>
+                    <span className="locked-dot" />
+                    <span className="locked-text mono">{dogPick.dogSpreadValue ?? "?"} pts</span>
+                  </span>
+                ) : (
+                  <span className="meta"> (open)</span>
+                )}
+              </div>
+            )}
           </div>
         );
       })}
