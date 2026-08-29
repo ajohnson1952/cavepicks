@@ -35,6 +35,34 @@ main {
   margin: 0 auto;
 }
 
+.nav-bar {
+  display: flex;
+  gap: 4px;
+  background: var(--panel);
+  border-bottom: 1px solid var(--border);
+  padding: 10px 12px;
+  margin: -1.5rem -1rem 1.5rem;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.nav-link {
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  padding: 6px 10px;
+  border-radius: 6px;
+  color: var(--dim);
+  text-decoration: none;
+}
+
+.nav-link.active {
+  color: var(--action-soft);
+  background: rgba(47, 107, 255, 0.12);
+}
+
 a {
   color: var(--action-soft);
 }

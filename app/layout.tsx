@@ -1,4 +1,5 @@
 import { Manrope, Roboto_Mono } from "next/font/google";
+import Nav from "./Nav";
 import "./globals.css";
 
 const manrope = Manrope({
@@ -25,7 +26,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className={`${manrope.variable} ${robotoMono.variable}`}>
-      <body>{children}</body>
+      <body>
+        <Nav />
+        {children}
+      </body>
     </html>
   );
 }
