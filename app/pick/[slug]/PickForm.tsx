@@ -101,27 +101,29 @@ export default function PickForm({
                     </div>
                   ) : (
                     <>
-                      <label>
-                        <input
-                          type="radio"
-                          name={`spread_${g.id}`}
-                          value="away"
-                          defaultChecked={g.spread.selection === g.awayTeam}
-                        />{" "}
-                        {g.awayTeam} {g.snap.spreadAway != null && g.snap.spreadAway > 0 ? "+" : ""}
-                        {g.snap.spreadAway}
-                      </label>
-                      <br />
-                      <label>
-                        <input
-                          type="radio"
-                          name={`spread_${g.id}`}
-                          value="home"
-                          defaultChecked={g.spread.selection === g.homeTeam}
-                        />{" "}
-                        {g.homeTeam} {g.snap.spreadHome != null && g.snap.spreadHome > 0 ? "+" : ""}
-                        {g.snap.spreadHome}
-                      </label>
+                      <div key={`spread-${g.id}-${g.spread.selection ?? "none"}`}>
+                        <label>
+                          <input
+                            type="radio"
+                            name={`spread_${g.id}`}
+                            value="away"
+                            defaultChecked={g.spread.selection === g.awayTeam}
+                          />{" "}
+                          {g.awayTeam} {g.snap.spreadAway != null && g.snap.spreadAway > 0 ? "+" : ""}
+                          {g.snap.spreadAway}
+                        </label>
+                        <br />
+                        <label>
+                          <input
+                            type="radio"
+                            name={`spread_${g.id}`}
+                            value="home"
+                            defaultChecked={g.spread.selection === g.homeTeam}
+                          />{" "}
+                          {g.homeTeam} {g.snap.spreadHome != null && g.snap.spreadHome > 0 ? "+" : ""}
+                          {g.snap.spreadHome}
+                        </label>
+                      </div>
                       {g.spread.pickId && (
                         <div>
                           <button formAction={lockPick.bind(null, slug, g.spread.pickId)}>
@@ -149,25 +151,27 @@ export default function PickForm({
                     </div>
                   ) : (
                     <>
-                      <label>
-                        <input
-                          type="radio"
-                          name={`total_${g.id}`}
-                          value="over"
-                          defaultChecked={g.total.selection === "over"}
-                        />{" "}
-                        Over {g.snap.total}
-                      </label>
-                      <br />
-                      <label>
-                        <input
-                          type="radio"
-                          name={`total_${g.id}`}
-                          value="under"
-                          defaultChecked={g.total.selection === "under"}
-                        />{" "}
-                        Under {g.snap.total}
-                      </label>
+                      <div key={`total-${g.id}-${g.total.selection ?? "none"}`}>
+                        <label>
+                          <input
+                            type="radio"
+                            name={`total_${g.id}`}
+                            value="over"
+                            defaultChecked={g.total.selection === "over"}
+                          />{" "}
+                          Over {g.snap.total}
+                        </label>
+                        <br />
+                        <label>
+                          <input
+                            type="radio"
+                            name={`total_${g.id}`}
+                            value="under"
+                            defaultChecked={g.total.selection === "under"}
+                          />{" "}
+                          Under {g.snap.total}
+                        </label>
+                      </div>
                       {g.total.pickId && (
                         <div>
                           <button formAction={lockPick.bind(null, slug, g.total.pickId)}>
@@ -198,15 +202,17 @@ export default function PickForm({
                       ) : null
                     ) : hasLockedDog ? null : (
                       <>
-                        <label>
-                          <input
-                            type="radio"
-                            name="dogPick"
-                            value={`${g.id}|${g.snap.underdogTeam}`}
-                            defaultChecked={g.dog.selection === g.snap.underdogTeam}
-                          />{" "}
-                          Make {g.snap.underdogTeam} my dog pick
-                        </label>
+                        <div key={`dog-${g.id}-${g.dog.selection ?? "none"}`}>
+                          <label>
+                            <input
+                              type="radio"
+                              name="dogPick"
+                              value={`${g.id}|${g.snap.underdogTeam}`}
+                              defaultChecked={g.dog.selection === g.snap.underdogTeam}
+                            />{" "}
+                            Make {g.snap.underdogTeam} my dog pick
+                          </label>
+                        </div>
                         {g.dog.pickId && (
                           <div>
                             <button formAction={lockPick.bind(null, slug, g.dog.pickId)}>

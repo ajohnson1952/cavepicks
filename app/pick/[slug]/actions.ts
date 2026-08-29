@@ -121,6 +121,7 @@ export async function submitPicks(
   }
 
   revalidatePath(`/pick/${slug}`);
+  revalidatePath("/board");
   return { error: null };
 }
 
@@ -160,6 +161,7 @@ export async function lockPick(slug: string, pickId: string) {
 
   await prisma.pick.update({ where: { id: pickId }, data });
   revalidatePath(`/pick/${slug}`);
+  revalidatePath("/board");
   return { error: null };
 }
 
@@ -184,6 +186,7 @@ export async function unlockPick(slug: string, pickId: string) {
     data: { locked: false, lockedAt: null, lockedLine: null, dogSpreadValue: null },
   });
   revalidatePath(`/pick/${slug}`);
+  revalidatePath("/board");
   return { error: null };
 }
 
@@ -201,5 +204,6 @@ export async function clearPick(slug: string, gameId: string, pickType: "SPREAD"
 
   await prisma.pick.delete({ where: { id: pick.id } });
   revalidatePath(`/pick/${slug}`);
+  revalidatePath("/board");
   return { error: null };
 }

@@ -64,7 +64,11 @@ export default async function PickPage({ params }: { params: { slug: string } })
       id: g.id,
       homeTeam: g.homeTeam,
       awayTeam: g.awayTeam,
-      autoLockDisplay: new Date(g.commenceTime.getTime() - 30 * 60_000).toLocaleString(),
+      autoLockDisplay: new Date(g.commenceTime.getTime() - 30 * 60_000).toLocaleString("en-US", {
+        timeZone: "America/Chicago",
+        dateStyle: "medium",
+        timeStyle: "short",
+      }) + " CT",
       pastAutoLock: isPastAutoLock(g.commenceTime),
       snap: snap
         ? {
@@ -106,7 +110,14 @@ export default async function PickPage({ params }: { params: { slug: string } })
         {lockedDogPick ? "locked in" : "not locked yet"}
       </p>
       <p style={{ fontSize: "0.85em", color: "#666" }}>
-        Odds last updated: {lastUpdated ? lastUpdated.toLocaleString() : "never yet"}
+        Odds last updated:{" "}
+        {lastUpdated
+          ? lastUpdated.toLocaleString("en-US", {
+              timeZone: "America/Chicago",
+              dateStyle: "medium",
+              timeStyle: "short",
+            }) + " CT"
+          : "never yet"}
       </p>
       <p style={{ fontSize: "0.85em" }}>
         <a href="/board">See everyone&apos;s picks &rarr;</a>
