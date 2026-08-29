@@ -207,3 +207,90 @@ export async function clearPick(slug: string, gameId: string, pickType: "SPREAD"
   revalidatePath("/board");
   return { error: null };
 }
+
+// Locks a pick directly from whatever's currently selected in the form -
+// no separate Save step needed first. Creates the pick if it doesn't exist yet.
+export async function lockSelection(
+  slug: string,
+  gameId: string,
+  pickType: "SPREAD" | "TOTAL" | "DOG",
+  formData: FormData
+) {
+  const user = await prisma.user.findUnique({ where: { pickSlug: slug } });
+  if (!user) return { error: "Player not found" };
+
+  const week = await prisma.week.findUnique({
+    where: { seasonYear_weekNumber: { seasonYear: 2026, weekNumber: 1 } },
+  });
+  if (!week) return { error: "No active week found" };
+
+  const game = await prisma.game.findUnique({
+    where: { id: gameId },
+    include: { oddsSnapshots: { orderBy: { capturedAt: "desc" }, take: 1 } },
+  });
+  if (!game) return { error: "Game not found" };
+  if (isPastAutoLock(game.commenceTime)) return { error: "This game already auto-locked" };
+
+  const snap = game.oddsSnapshots[0];
+  if (!snap) return { error: "No odds available yet to lock against" };
+
+  let selection: string | null = null;
+
+  if (pickType === "SPREAD") {
+    const val = formData.get(`spread_${gameId}`);
+    if (val === "home") selection = game.homeTeam;
+    else if (val === "away") selection = game.awayTeam;
+  } else if (pickType === "TOTAL") {
+    const val = formData.get(`total_${gameId}`);
+    if (val === "over" || val === "under") selection = val;
+  } else if (pickType === "DOG") {
+    const dogRaw = formData.get("dogPick");
+    if (typeof dogRaw === "string" && dogRaw.includes("|")) {
+      const [gId, team] = dogRaw.split("|");
+      if (gId === gameId) selection = team;
+    }
+  }
+
+  if (!selection) return { error: "Select a pick first, then lock it in." };
+
+  const existingPicks = await prisma.pick.findMany({ where: { userId: user.id, weekId: week.id } });
+  const alreadyExists = existingPicks.some((p) => p.gameId === gameId && p.pickType === pickType);
+
+  if (!alreadyExists) {
+    if (pickType === "DOG") {
+      if (existingPicks.some((p) => p.pickType === "DOG")) {
+        return { error: "Only one dog pick allowed per week." };
+      }
+    } else {
+      const sideCount = existingPicks.filter((p) => p.pickType === "SPREAD" || p.pickType === "TOTAL").length;
+      if (sideCount >= 5) return { error: "You already have 5 side/total picks - clear one first." };
+    }
+  }
+
+  const data: {
+    selection: string;
+    locked: boolean;
+    lockedAt: Date;
+    lockedLine?: number | null;
+    dogSpreadValue?: number | null;
+  } = { selection, locked: true, lockedAt: new Date() };
+
+  if (pickType === "SPREAD") {
+    data.lockedLine = selection === game.homeTeam ? snap.spreadHome : snap.spreadAway;
+  } else if (pickType === "TOTAL") {
+    data.lockedLine = snap.total;
+  } else if (pickType === "DOG") {
+    data.dogSpreadValue =
+      selection === game.homeTeam ? Math.abs(snap.spreadHome ?? 0) : Math.abs(snap.spreadAway ?? 0);
+  }
+
+  await prisma.pick.upsert({
+    where: { userId_weekId_gameId_pickType: { userId: user.id, weekId: week.id, gameId, pickType } },
+    update: data,
+    create: { userId: user.id, weekId: week.id, gameId, pickType, ...data },
+  });
+
+  revalidatePath(`/pick/${slug}`);
+  revalidatePath("/board");
+  return { error: null };
+}

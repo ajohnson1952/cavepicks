@@ -64,6 +64,12 @@ export default async function PickPage({ params }: { params: { slug: string } })
       id: g.id,
       homeTeam: g.homeTeam,
       awayTeam: g.awayTeam,
+      kickoffDisplay:
+        g.commenceTime.toLocaleString("en-US", {
+          timeZone: "America/Chicago",
+          dateStyle: "medium",
+          timeStyle: "short",
+        }) + " CT",
       autoLockDisplay: new Date(g.commenceTime.getTime() - 30 * 60_000).toLocaleString("en-US", {
         timeZone: "America/Chicago",
         dateStyle: "medium",

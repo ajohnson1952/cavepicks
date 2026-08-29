@@ -1,7 +1,7 @@
 "use client";
 
 import { useFormState } from "react-dom";
-import { submitPicks, lockPick, unlockPick, clearPick } from "./actions";
+import { submitPicks, lockPick, unlockPick, clearPick, lockSelection } from "./actions";
 
 type Snap = {
   spreadHome: number | null;
@@ -30,6 +30,7 @@ type GameView = {
   id: string;
   homeTeam: string;
   awayTeam: string;
+  kickoffDisplay: string;
   autoLockDisplay: string;
   pastAutoLock: boolean;
   snap: Snap | null;
@@ -69,6 +70,7 @@ export default function PickForm({
             <strong>
               {g.awayTeam} @ {g.homeTeam}
             </strong>
+            <div style={{ fontSize: "0.85em", color: "#444" }}>Kickoff: {g.kickoffDisplay}</div>
             <div style={{ fontSize: "0.85em", color: "#666" }}>
               Auto-locks {g.autoLockDisplay} if you haven&apos;t locked it yourself
             </div>
@@ -124,14 +126,14 @@ export default function PickForm({
                           {g.snap.spreadHome}
                         </label>
                       </div>
-                      {g.spread.pickId && (
-                        <div>
-                          <button formAction={lockPick.bind(null, slug, g.spread.pickId)}>
-                            Lock In spread pick
-                          </button>{" "}
+                      <div>
+                        <button formAction={lockSelection.bind(null, slug, g.id, "SPREAD")}>
+                          Lock In spread pick
+                        </button>{" "}
+                        {g.spread.pickId && (
                           <button formAction={clearPick.bind(null, slug, g.id, "SPREAD")}>Clear</button>
-                        </div>
-                      )}
+                        )}
+                      </div>
                     </>
                   )}
                 </div>
@@ -172,14 +174,14 @@ export default function PickForm({
                           Under {g.snap.total}
                         </label>
                       </div>
-                      {g.total.pickId && (
-                        <div>
-                          <button formAction={lockPick.bind(null, slug, g.total.pickId)}>
-                            Lock In total pick
-                          </button>{" "}
+                      <div>
+                        <button formAction={lockSelection.bind(null, slug, g.id, "TOTAL")}>
+                          Lock In total pick
+                        </button>{" "}
+                        {g.total.pickId && (
                           <button formAction={clearPick.bind(null, slug, g.id, "TOTAL")}>Clear</button>
-                        </div>
-                      )}
+                        )}
+                      </div>
                     </>
                   )}
                 </div>
@@ -213,14 +215,14 @@ export default function PickForm({
                             Make {g.snap.underdogTeam} my dog pick
                           </label>
                         </div>
-                        {g.dog.pickId && (
-                          <div>
-                            <button formAction={lockPick.bind(null, slug, g.dog.pickId)}>
-                              Lock In dog pick
-                            </button>{" "}
+                        <div>
+                          <button formAction={lockSelection.bind(null, slug, g.id, "DOG")}>
+                            Lock In dog pick
+                          </button>{" "}
+                          {g.dog.pickId && (
                             <button formAction={clearPick.bind(null, slug, g.id, "DOG")}>Clear</button>
-                          </div>
-                        )}
+                          )}
+                        </div>
                       </>
                     )}
                   </div>
