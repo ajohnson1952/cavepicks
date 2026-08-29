@@ -294,3 +294,50 @@ export async function lockSelection(
   revalidatePath("/board");
   return { error: null };
 }
+
+// Saves a pick the instant it's selected - unlocked, fully editable still.
+// Called directly from the radio's onChange, not via form submission.
+export async function autosaveSelection(
+  slug: string,
+  gameId: string,
+  pickType: "SPREAD" | "TOTAL" | "DOG",
+  selection: string
+) {
+  const user = await prisma.user.findUnique({ where: { pickSlug: slug } });
+  if (!user) return { error: "Player not found" };
+
+  const week = await prisma.week.findUnique({
+    where: { seasonYear_weekNumber: { seasonYear: 2026, weekNumber: 1 } },
+  });
+  if (!week) return { error: "No active week found" };
+
+  const game = await prisma.game.findUnique({ where: { id: gameId } });
+  if (!game) return { error: "Game not found" };
+  if (isPastAutoLock(game.commenceTime)) return { error: "This game already auto-locked" };
+
+  const existingPicks = await prisma.pick.findMany({ where: { userId: user.id, weekId: week.id } });
+  const existingForSlot = existingPicks.find((p) => p.gameId === gameId && p.pickType === pickType);
+
+  if (existingForSlot?.locked) return { error: "Already locked" };
+
+  if (!existingForSlot) {
+    if (pickType === "DOG") {
+      if (existingPicks.some((p) => p.pickType === "DOG")) {
+        return { error: "Only one dog pick allowed per week." };
+      }
+    } else {
+      const sideCount = existingPicks.filter((p) => p.pickType === "SPREAD" || p.pickType === "TOTAL").length;
+      if (sideCount >= 5) return { error: "You already have 5 side/total picks - clear one first." };
+    }
+  }
+
+  await prisma.pick.upsert({
+    where: { userId_weekId_gameId_pickType: { userId: user.id, weekId: week.id, gameId, pickType } },
+    update: { selection },
+    create: { userId: user.id, weekId: week.id, gameId, pickType, selection },
+  });
+
+  revalidatePath(`/pick/${slug}`);
+  revalidatePath("/board");
+  return { error: null };
+}
