@@ -108,8 +108,12 @@ export default async function BoardPage() {
                   : p.selection;
               const rClass = resultClass(p.graded, p.isWin, p.isPush);
               const isLive = liveGameIds.has(p.game.id);
-              const spreadNumber =
-                p.pickType === "SPREAD" && p.lockedLine != null ? ` (${formatSpread(p.lockedLine)})` : "";
+              const lineNumber =
+                p.lockedLine != null
+                  ? p.pickType === "SPREAD"
+                    ? ` (${formatSpread(p.lockedLine)})`
+                    : ` (${p.lockedLine})`
+                  : "";
 
               return (
                 <div key={p.id} className={rClass} style={{ fontSize: "13px", marginBottom: "4px" }}>
@@ -120,10 +124,11 @@ export default async function BoardPage() {
                   {p.game.awayAbbr ?? p.game.awayTeam} @{" "}
                   <Logo src={p.game.homeLogo} alt={p.game.homeTeam} />
                   {p.game.homeAbbr ?? p.game.homeTeam} &mdash; {pickLabel}
-                  {spreadNumber}
+                  {lineNumber}
                   {p.locked && !p.graded && (
                     <span className="locked-badge" style={{ marginLeft: "6px" }}>
                       <span className="locked-dot" />
+                      <span className="locked-text mono">LOCKED</span>
                     </span>
                   )}
                   {!p.locked && !p.graded && <span className="meta"> (open)</span>}
