@@ -195,19 +195,23 @@ export default function PickForm({
 
                 {/* Spread */}
                 {gameFullyLocked || g.spread.locked ? (
-                  <div className="locked-detail">
-                    <span className="locked-badge">
-                      <span className="locked-dot" />
-                      <span className="locked-text">LOCKED</span>
-                    </span>{" "}
-                    Spread: {g.spread.selection === g.homeTeam ? g.homeAbbr ?? g.spread.selection : g.spread.selection === g.awayTeam ? g.awayAbbr ?? g.spread.selection : g.spread.selection ?? "no pick"}
-                    {g.spread.lockedLine != null ? ` (${formatSpread(g.spread.lockedLine)})` : ""}
-                    {!gameFullyLocked && g.spread.pickId && (
-                      <button className="btn btn-ghost" onClick={() => unlockPick(slug, g.spread.pickId!)}>
-                        unlock
-                      </button>
-                    )}
-                  </div>
+                  g.spread.selection ? (
+                    <div className="locked-detail">
+                      <span className="locked-badge">
+                        <span className="locked-dot" />
+                        <span className="locked-text">LOCKED</span>
+                      </span>{" "}
+                      Spread: {g.spread.selection === g.homeTeam ? g.homeAbbr ?? g.spread.selection : g.spread.selection === g.awayTeam ? g.awayAbbr ?? g.spread.selection : g.spread.selection}
+                      {g.spread.lockedLine != null ? ` (${formatSpread(g.spread.lockedLine)})` : ""}
+                      {!gameFullyLocked && g.spread.pickId && (
+                        <button className="btn btn-ghost" onClick={() => unlockPick(slug, g.spread.pickId!)}>
+                          unlock
+                        </button>
+                      )}
+                    </div>
+                  ) : (
+                    <p className="subtext" style={{ margin: "4px 0" }}>Spread: no pick made</p>
+                  )
                 ) : (
                   <>
                     <div className="pill-grid">
@@ -271,19 +275,23 @@ export default function PickForm({
 
                 {/* Total */}
                 {gameFullyLocked || g.total.locked ? (
-                  <div className="locked-detail">
-                    <span className="locked-badge">
-                      <span className="locked-dot" />
-                      <span className="locked-text">LOCKED</span>
-                    </span>{" "}
-                    Total: {g.total.selection ?? "no pick"}
-                    {g.total.lockedLine != null ? ` (${g.total.lockedLine})` : ""}
-                    {!gameFullyLocked && g.total.pickId && (
-                      <button className="btn btn-ghost" onClick={() => unlockPick(slug, g.total.pickId!)}>
-                        unlock
-                      </button>
-                    )}
-                  </div>
+                  g.total.selection ? (
+                    <div className="locked-detail">
+                      <span className="locked-badge">
+                        <span className="locked-dot" />
+                        <span className="locked-text">LOCKED</span>
+                      </span>{" "}
+                      Total: {g.total.selection}
+                      {g.total.lockedLine != null ? ` (${g.total.lockedLine})` : ""}
+                      {!gameFullyLocked && g.total.pickId && (
+                        <button className="btn btn-ghost" onClick={() => unlockPick(slug, g.total.pickId!)}>
+                          unlock
+                        </button>
+                      )}
+                    </div>
+                  ) : (
+                    <p className="subtext" style={{ margin: "4px 0" }}>Total: no pick made</p>
+                  )
                 ) : (
                   <>
                     <div className="pill-grid">
