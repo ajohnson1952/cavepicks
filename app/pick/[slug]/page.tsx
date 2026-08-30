@@ -27,10 +27,19 @@ export default async function PickPage({ params }: { params: { slug: string } })
     where: { gameId: { in: gameIds }, locked: true, userId: { not: user.id } },
     include: { user: true },
   });
-  const lockedByOthersByGame = new Map<string, { name: string; pickType: string; selection: string }[]>();
+  const lockedByOthersByGame = new Map<
+    string,
+    { name: string; pickType: string; selection: string; lockedLine: number | null; dogSpreadValue: number | null }[]
+  >();
   for (const p of lockedPicksEveryone) {
     const list = lockedByOthersByGame.get(p.gameId) ?? [];
-    list.push({ name: p.user.name, pickType: p.pickType, selection: p.selection });
+    list.push({
+      name: p.user.name,
+      pickType: p.pickType,
+      selection: p.selection,
+      lockedLine: p.lockedLine,
+      dogSpreadValue: p.dogSpreadValue,
+    });
     lockedByOthersByGame.set(p.gameId, list);
   }
 

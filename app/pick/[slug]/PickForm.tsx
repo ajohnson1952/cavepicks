@@ -31,7 +31,13 @@ type DogSlot = {
   dogSpreadValue: number | null;
 };
 
-type LockedByOther = { name: string; pickType: string; selection: string };
+type LockedByOther = {
+  name: string;
+  pickType: string;
+  selection: string;
+  lockedLine: number | null;
+  dogSpreadValue: number | null;
+};
 
 type GameView = {
   id: string;
@@ -179,11 +185,23 @@ export default function PickForm({
             </div>
 
             {g.lockedByOthers.length > 0 && (
-              <div className="banner-note">
-                Locked by:{" "}
-                {g.lockedByOthers
-                  .map((o) => `${o.name} (${o.pickType.toLowerCase()}: ${o.selection})`)
-                  .join(", ")}
+              <div style={{ marginTop: "6px" }}>
+                {g.lockedByOthers.map((o, i) => {
+                  const num =
+                    o.pickType === "DOG"
+                      ? o.dogSpreadValue != null
+                        ? ` (worth ${o.dogSpreadValue} pts)`
+                        : ""
+                      : o.lockedLine != null
+                      ? ` (${o.pickType === "SPREAD" ? formatSpread(o.lockedLine) : o.lockedLine})`
+                      : "";
+                  return (
+                    <div key={i} className="banner-note" style={{ marginTop: i === 0 ? 0 : "4px" }}>
+                      {o.name} locked {o.pickType.toLowerCase()}: {o.selection}
+                      {num}
+                    </div>
+                  );
+                })}
               </div>
             )}
 
@@ -196,13 +214,22 @@ export default function PickForm({
                 {/* Spread */}
                 {gameFullyLocked || g.spread.locked ? (
                   g.spread.selection ? (
-                    <div className="locked-detail">
-                      <span className="locked-badge">
-                        <span className="locked-dot" />
-                        <span className="locked-text">LOCKED</span>
-                      </span>{" "}
-                      Spread: {g.spread.selection === g.homeTeam ? g.homeAbbr ?? g.spread.selection : g.spread.selection === g.awayTeam ? g.awayAbbr ?? g.spread.selection : g.spread.selection}
-                      {g.spread.lockedLine != null ? ` (${formatSpread(g.spread.lockedLine)})` : ""}
+                    <div style={{ marginTop: "4px" }}>
+                      <div className="row-between">
+                        <span>
+                          Spread:{" "}
+                          {g.spread.selection === g.homeTeam
+                            ? g.homeAbbr ?? g.spread.selection
+                            : g.spread.selection === g.awayTeam
+                            ? g.awayAbbr ?? g.spread.selection
+                            : g.spread.selection}
+                          {g.spread.lockedLine != null ? ` (${formatSpread(g.spread.lockedLine)})` : ""}
+                        </span>
+                        <span className="locked-badge">
+                          <span className="locked-dot" />
+                          <span className="locked-text">LOCKED</span>
+                        </span>
+                      </div>
                       {!gameFullyLocked && g.spread.pickId && (
                         <button className="btn btn-ghost" onClick={() => unlockPick(slug, g.spread.pickId!)}>
                           unlock
@@ -276,13 +303,17 @@ export default function PickForm({
                 {/* Total */}
                 {gameFullyLocked || g.total.locked ? (
                   g.total.selection ? (
-                    <div className="locked-detail">
-                      <span className="locked-badge">
-                        <span className="locked-dot" />
-                        <span className="locked-text">LOCKED</span>
-                      </span>{" "}
-                      Total: {g.total.selection}
-                      {g.total.lockedLine != null ? ` (${g.total.lockedLine})` : ""}
+                    <div style={{ marginTop: "4px" }}>
+                      <div className="row-between">
+                        <span>
+                          Total: {g.total.selection}
+                          {g.total.lockedLine != null ? ` (${g.total.lockedLine})` : ""}
+                        </span>
+                        <span className="locked-badge">
+                          <span className="locked-dot" />
+                          <span className="locked-text">LOCKED</span>
+                        </span>
+                      </div>
                       {!gameFullyLocked && g.total.pickId && (
                         <button className="btn btn-ghost" onClick={() => unlockPick(slug, g.total.pickId!)}>
                           unlock
@@ -355,13 +386,22 @@ export default function PickForm({
                   <div className="pill-single">
                     {gameFullyLocked || dog.locked ? (
                       dog.selection ? (
-                        <div className="locked-detail">
-                          <span className="locked-badge">
-                            <span className="locked-dot" />
-                            <span className="locked-text">LOCKED</span>
-                          </span>{" "}
-                          Dog: {dog.selection === g.homeTeam ? g.homeAbbr ?? dog.selection : dog.selection === g.awayTeam ? g.awayAbbr ?? dog.selection : dog.selection}
-                          {dog.dogSpreadValue != null ? ` (worth ${dog.dogSpreadValue} pts)` : ""}
+                        <div style={{ marginTop: "4px" }}>
+                          <div className="row-between">
+                            <span>
+                              Dog:{" "}
+                              {dog.selection === g.homeTeam
+                                ? g.homeAbbr ?? dog.selection
+                                : dog.selection === g.awayTeam
+                                ? g.awayAbbr ?? dog.selection
+                                : dog.selection}
+                              {dog.dogSpreadValue != null ? ` (worth ${dog.dogSpreadValue} pts)` : ""}
+                            </span>
+                            <span className="locked-badge">
+                              <span className="locked-dot" />
+                              <span className="locked-text">LOCKED</span>
+                            </span>
+                          </div>
                           {!gameFullyLocked && dog.pickId && (
                             <button className="btn btn-ghost" onClick={() => unlockPick(slug, dog.pickId!)}>
                               unlock
