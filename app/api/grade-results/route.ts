@@ -29,15 +29,14 @@ export async function GET() {
   let gamesGraded = 0;
   let picksGraded = 0;
   const unmatched: { ourGame: string; date: string; espnGamesThatDay: string[] }[] = [];
+  const stillInProgress: string[] = [];
 
   for (const game of games) {
-    const match = allResults.find(
-      (r) =>
-        r.completed &&
-        teamNamesMatch(game.homeTeam, r.homeTeam) &&
-        teamNamesMatch(game.awayTeam, r.awayTeam)
+    const nameMatch = allResults.find(
+      (r) => teamNamesMatch(game.homeTeam, r.homeTeam) && teamNamesMatch(game.awayTeam, r.awayTeam)
     );
-    if (!match) {
+
+    if (!nameMatch) {
       const gameDate = toYyyymmdd(game.commenceTime);
       unmatched.push({
         ourGame: `${game.awayTeam} @ ${game.homeTeam}`,
@@ -48,6 +47,14 @@ export async function GET() {
       });
       continue;
     }
+
+    if (!nameMatch.completed) {
+      // Found the right game, it just hasn't finished playing - not a problem
+      stillInProgress.push(`${game.awayTeam} @ ${game.homeTeam}`);
+      continue;
+    }
+
+    const match = nameMatch;
 
     await prisma.game.update({
       where: { id: game.id },
@@ -99,5 +106,5 @@ export async function GET() {
     }
   }
 
-  return NextResponse.json({ ok: true, gamesGraded, picksGraded, unmatched });
+  return NextResponse.json({ ok: true, gamesGraded, picksGraded, stillInProgress, unmatched });
 }
