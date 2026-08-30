@@ -1,5 +1,5 @@
 // lib/espnTeams.ts
-import { teamNamesMatch } from "./espnScores";
+import { bestNameMatch } from "./espnScores";
 
 export type EspnTeamInfo = {
   location: string; // e.g. "Ohio State"
@@ -28,5 +28,5 @@ export async function fetchEspnTeams(): Promise<EspnTeamInfo[]> {
 }
 
 export function findEspnTeamInfo(oddsApiTeamName: string, teams: EspnTeamInfo[]): EspnTeamInfo | null {
-  return teams.find((t) => teamNamesMatch(oddsApiTeamName, t.location)) ?? null;
+  return bestNameMatch(oddsApiTeamName, teams, (t) => t.location);
 }

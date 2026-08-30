@@ -4,16 +4,13 @@ import { prisma } from "@/lib/db";
 import { fetchEspnTeams, findEspnTeamInfo } from "@/lib/espnTeams";
 import { fetchEspnScoreboard, teamNamesMatch, toYyyymmdd, EspnResult } from "@/lib/espnScores";
 
-// Games whose kickoff has passed drop out of the live odds feed entirely, so
-// the normal pull-and-enrich loop never revisits them. This walks every game
-// still missing an abbreviation or broadcast and fixes it directly. Safe to
-// re-run anytime - it only touches games missing data.
+// Re-checks EVERY game (not just ones with empty fields) - a fixed matcher
+// can correct previously-wrong data, not just fill in missing data. Safe to
+// re-run anytime.
 export async function GET() {
   const espnTeams = await fetchEspnTeams();
 
-  const games = await prisma.game.findMany({
-    where: { OR: [{ homeAbbr: null }, { awayAbbr: null }, { broadcast: null }] },
-  });
+  const games = await prisma.game.findMany();
 
   const dates = new Set(games.map((g) => toYyyymmdd(g.commenceTime)));
   const scoreboardResults: EspnResult[] = [];

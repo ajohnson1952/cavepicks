@@ -13,6 +13,7 @@ export type EspnResult = {
   completed: boolean;
   dateISO: string;
   broadcast: string | null;
+  state: "pre" | "in" | "post" | string;
 };
 
 // The Odds API and ESPN are two separate vendors with their own internal
@@ -65,6 +66,32 @@ export function teamNamesMatch(oddsApiName: string, espnName: string): boolean {
   return a.includes(b) || b.includes(a);
 }
 
+// Generic "find the right one" matcher: an exact name match always wins over
+// a mere substring match. This matters because plain substring matching lets
+// a short name (e.g. "Florida") wrongly win against a longer, more specific
+// one (e.g. "Florida State") just because it's a substring of it. When no
+// exact match exists, prefer the longest (most specific) substring match.
+export function bestNameMatch<T>(
+  oddsApiName: string,
+  candidates: T[],
+  getName: (item: T) => string
+): T | null {
+  const a = applyAliases(cleanBase(oddsApiName));
+  if (!a) return null;
+
+  const exact = candidates.find((c) => cleanBase(getName(c)) === a);
+  if (exact) return exact;
+
+  const substringMatches = candidates.filter((c) => {
+    const b = cleanBase(getName(c));
+    return !!b && (a.includes(b) || b.includes(a));
+  });
+  if (substringMatches.length === 0) return null;
+
+  substringMatches.sort((x, y) => getName(y).length - getName(x).length);
+  return substringMatches[0];
+}
+
 export async function fetchEspnScoreboard(yyyymmdd: string): Promise<EspnResult[]> {
   const url = `https://site.api.espn.com/apis/site/v2/sports/football/college-football/scoreboard?dates=${yyyymmdd}`;
   const res = await fetch(url, { cache: "no-store" });
@@ -92,6 +119,7 @@ export async function fetchEspnScoreboard(yyyymmdd: string): Promise<EspnResult[
       completed: competition.status?.type?.completed === true,
       dateISO: event.date,
       broadcast: competition.broadcasts?.[0]?.names?.join("/") ?? competition.broadcast ?? null,
+      state: competition.status?.type?.state ?? "pre",
     });
   }
   return results;
