@@ -92,12 +92,10 @@ export default async function BoardPage() {
 
         return (
           <div key={u.id} className="card">
-            <div className="row-between">
-              <div className="matchup">{u.name}</div>
-              <div className="meta">
-                {lockedSideCount}/5 locked &middot; dog{" "}
-                {dogPick ? (dogPick.locked ? "locked" : "picked") : "\u2014"}
-              </div>
+            <div className="matchup">{u.name}</div>
+            <div className="meta" style={{ marginTop: "2px" }}>
+              {lockedSideCount}/5 locked &middot; dog{" "}
+              {dogPick ? (dogPick.locked ? "locked" : "picked") : "\u2014"}
             </div>
             <div className="divider" />
             {sidePicks.length === 0 && <p className="subtext" style={{ margin: 0 }}>No side picks yet</p>}

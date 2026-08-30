@@ -95,9 +95,10 @@ h1 {
 
 .row-between {
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
   align-items: baseline;
-  gap: 8px;
+  gap: 4px 8px;
 }
 
 .matchup {

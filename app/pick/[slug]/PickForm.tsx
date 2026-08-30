@@ -168,16 +168,14 @@ export default function PickForm({
 
         return (
           <div key={g.id} className="card">
-            <div className="row-between">
-              <div className="matchup">
-                <TeamLogo src={g.awayLogo} alt={g.awayTeam} />
-                {g.awayAbbr ?? g.awayTeam} @ <TeamLogo src={g.homeLogo} alt={g.homeTeam} />
-                {g.homeAbbr ?? g.homeTeam}
-              </div>
-              <div className="meta">
-                {g.kickoffDisplay}
-                {g.broadcast ? ` \u00b7 ${g.broadcast}` : ""}
-              </div>
+            <div className="matchup">
+              <TeamLogo src={g.awayLogo} alt={g.awayTeam} />
+              {g.awayAbbr ?? g.awayTeam} @ <TeamLogo src={g.homeLogo} alt={g.homeTeam} />
+              {g.homeAbbr ?? g.homeTeam}
+            </div>
+            <div className="meta" style={{ marginTop: "2px" }}>
+              {g.kickoffDisplay}
+              {g.broadcast ? ` \u00b7 ${g.broadcast}` : ""}
             </div>
 
             {g.lockedByOthers.length > 0 && (
