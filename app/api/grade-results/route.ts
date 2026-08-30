@@ -1,20 +1,16 @@
 // app/api/grade-results/route.ts
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { getCurrentWeekBounds } from "@/lib/lock";
 import { fetchEspnScoreboard, teamNamesMatch, toYyyymmdd, EspnResult } from "@/lib/espnScores";
 import { gradePick } from "@/lib/scoring";
 
 export async function GET() {
-  const week = await prisma.week.findUnique({
-    where: { seasonYear_weekNumber: { seasonYear: 2026, weekNumber: 1 } },
-  });
-  if (!week) return NextResponse.json({ ok: true, gamesGraded: 0, picksGraded: 0, note: "no active week" });
-
-  const { start, end } = getCurrentWeekBounds();
-
+  // Any game that's already kicked off but isn't marked final yet - across
+  // ALL weeks, not just "this week". Using each game's own clock instead of
+  // week boundaries means a late Monday-night game from last week still gets
+  // graded even after the calendar has already rolled into a new week.
   const games = await prisma.game.findMany({
-    where: { weekId: week.id, commenceTime: { gte: start, lte: end }, isFinal: false },
+    where: { isFinal: false, commenceTime: { lte: new Date() } },
     include: { oddsSnapshots: { orderBy: { capturedAt: "desc" }, take: 1 } },
   });
 

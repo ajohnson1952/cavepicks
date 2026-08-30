@@ -2,6 +2,7 @@
 
 import { prisma } from "@/lib/db";
 import { isPastAutoLock, getCurrentWeekBounds } from "@/lib/lock";
+import { getOrCreateCurrentWeek } from "@/lib/currentWeek";
 import { revalidatePath } from "next/cache";
 
 export async function submitPicks(
@@ -12,10 +13,7 @@ export async function submitPicks(
   const user = await prisma.user.findUnique({ where: { pickSlug: slug } });
   if (!user) return { error: "Player not found" };
 
-  const week = await prisma.week.findUnique({
-    where: { seasonYear_weekNumber: { seasonYear: 2026, weekNumber: 1 } },
-  });
-  if (!week) return { error: "No active week found" };
+  const week = await getOrCreateCurrentWeek();
 
   const { start, end } = getCurrentWeekBounds();
   const games = await prisma.game.findMany({
@@ -219,10 +217,7 @@ export async function lockSelection(
   const user = await prisma.user.findUnique({ where: { pickSlug: slug } });
   if (!user) return { error: "Player not found" };
 
-  const week = await prisma.week.findUnique({
-    where: { seasonYear_weekNumber: { seasonYear: 2026, weekNumber: 1 } },
-  });
-  if (!week) return { error: "No active week found" };
+  const week = await getOrCreateCurrentWeek();
 
   const game = await prisma.game.findUnique({
     where: { id: gameId },
@@ -306,10 +301,7 @@ export async function autosaveSelection(
   const user = await prisma.user.findUnique({ where: { pickSlug: slug } });
   if (!user) return { error: "Player not found" };
 
-  const week = await prisma.week.findUnique({
-    where: { seasonYear_weekNumber: { seasonYear: 2026, weekNumber: 1 } },
-  });
-  if (!week) return { error: "No active week found" };
+  const week = await getOrCreateCurrentWeek();
 
   const game = await prisma.game.findUnique({ where: { id: gameId } });
   if (!game) return { error: "Game not found" };
@@ -353,10 +345,7 @@ export async function lockValue(
   const user = await prisma.user.findUnique({ where: { pickSlug: slug } });
   if (!user) return { error: "Player not found" };
 
-  const week = await prisma.week.findUnique({
-    where: { seasonYear_weekNumber: { seasonYear: 2026, weekNumber: 1 } },
-  });
-  if (!week) return { error: "No active week found" };
+  const week = await getOrCreateCurrentWeek();
 
   const game = await prisma.game.findUnique({
     where: { id: gameId },

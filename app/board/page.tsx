@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db";
 import { formatSpread } from "@/lib/format";
+import { getOrCreateCurrentWeek } from "@/lib/currentWeek";
 
 export const dynamic = "force-dynamic";
 
@@ -21,17 +22,7 @@ function Logo({ src, alt }: { src: string | null; alt: string }) {
 }
 
 export default async function BoardPage() {
-  const week = await prisma.week.findUnique({
-    where: { seasonYear_weekNumber: { seasonYear: 2026, weekNumber: 1 } },
-  });
-
-  if (!week) {
-    return (
-      <main>
-        <h1>No active week yet</h1>
-      </main>
-    );
-  }
+  const week = await getOrCreateCurrentWeek();
 
   const users = await prisma.user.findMany({ orderBy: { name: "asc" } });
   const picks = await prisma.pick.findMany({

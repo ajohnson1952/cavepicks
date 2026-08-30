@@ -1,17 +1,17 @@
 // app/api/auto-lock-sweep/route.ts
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { isPastAutoLock, getCurrentWeekBounds } from "@/lib/lock";
+import { isPastAutoLock } from "@/lib/lock";
 
 export async function GET() {
-  const week = await prisma.week.findUnique({
-    where: { seasonYear_weekNumber: { seasonYear: 2026, weekNumber: 1 } },
-  });
-  if (!week) return NextResponse.json({ ok: true, lockedCount: 0, note: "no active week" });
-
-  const { start, end } = getCurrentWeekBounds();
+  // Any game not yet final, whose auto-lock window could plausibly have
+  // opened - scoped to "kicks off within the next day or already started"
+  // rather than "this week", so nothing near a week-boundary gets skipped.
   const games = await prisma.game.findMany({
-    where: { weekId: week.id, commenceTime: { gte: start, lte: end } },
+    where: {
+      isFinal: false,
+      commenceTime: { lte: new Date(Date.now() + 24 * 60 * 60 * 1000) },
+    },
     include: { oddsSnapshots: { orderBy: { capturedAt: "desc" }, take: 1 } },
   });
 

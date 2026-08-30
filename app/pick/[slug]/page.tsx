@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db";
 import { isPastAutoLock, getCurrentWeekBounds } from "@/lib/lock";
+import { getOrCreateCurrentWeek } from "@/lib/currentWeek";
 import PickForm from "./PickForm";
 import { notFound } from "next/navigation";
 
@@ -7,17 +8,7 @@ export default async function PickPage({ params }: { params: { slug: string } })
   const user = await prisma.user.findUnique({ where: { pickSlug: params.slug } });
   if (!user) return notFound();
 
-  const week = await prisma.week.findUnique({
-    where: { seasonYear_weekNumber: { seasonYear: 2026, weekNumber: 1 } },
-  });
-  if (!week) {
-    return (
-      <main>
-        <h1>No active week yet</h1>
-        <p className="subtext">Ask the commissioner to pull odds first.</p>
-      </main>
-    );
-  }
+  const week = await getOrCreateCurrentWeek();
 
   const { start, end } = getCurrentWeekBounds();
 
