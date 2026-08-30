@@ -72,26 +72,47 @@ export default async function StandingsPage() {
 
   const currentWeek = weekResults[weekResults.length - 1] ?? null;
 
-  // --- Season-long dog race ---
-  const dogPicks = allPicks.filter((p) => p.pickType === "DOG");
-  const dogPointsByUser = new Map<string, number>();
-  for (const u of users) dogPointsByUser.set(u.id, 0);
-  for (const p of dogPicks) {
-    if (p.graded) dogPointsByUser.set(p.userId, (dogPointsByUser.get(p.userId) ?? 0) + p.pointsEarned);
-  }
-  const dogStandings = users
-    .map((u) => ({ name: u.name, points: dogPointsByUser.get(u.id) ?? 0 }))
+  // --- Cavepicks Leaderboard: season-long spread/total record ---
+  const sideTotalPicks = allPicks.filter(
+    (p) => (p.pickType === "SPREAD" || p.pickType === "TOTAL") && p.graded
+  );
+  const cavepicksStats = users
+    .map((u) => {
+      const userPicks = sideTotalPicks.filter((p) => p.userId === u.id);
+      const wins = userPicks.filter((p) => p.isWin === true).length;
+      const pushes = userPicks.filter((p) => p.isPush === true).length;
+      const losses = userPicks.filter((p) => p.isWin === false && !p.isPush).length;
+      const weeksWon = weekResults.filter((w) => w.leader === u.name).length;
+      const denom = wins + losses;
+      const pct = denom > 0 ? (wins / denom) * 100 : 0;
+      return { name: u.name, weeksWon, wins, pushes, losses, pct };
+    })
+    .sort((a, b) => b.pct - a.pct);
+
+  // --- Cavedogs Leaderboard: season-long dog pick record ---
+  const dogPicksGraded = allPicks.filter((p) => p.pickType === "DOG" && p.graded);
+  const cavedogsStats = users
+    .map((u) => {
+      const userDogPicks = dogPicksGraded.filter((p) => p.userId === u.id);
+      const wins = userDogPicks.filter((p) => p.isWin === true).length;
+      const losses = userDogPicks.filter((p) => p.isWin === false).length;
+      const points = userDogPicks.reduce((sum, p) => sum + (p.isWin ? p.pointsEarned : 0), 0);
+      const denom = wins + losses;
+      const pct = denom > 0 ? (wins / denom) * 100 : 0;
+      return { name: u.name, points, wins, losses, pct };
+    })
     .sort((a, b) => b.points - a.points);
+
   const dogPotTotal = DOG_BUYIN * users.length;
 
   return (
     <main>
       <h1>Standings</h1>
-      <p className="subtext">Weekly pot and the season-long dog race.</p>
+      <p className="subtext">Weekly pot, season records, and the dog race.</p>
 
       <div className="card">
         <div className="row-between">
-          <div className="matchup">Weekly pot</div>
+          <div className="matchup">Weekly Pot</div>
           <div className="meta mono">${currentWeek?.potAmount ?? 0}</div>
         </div>
         {currentWeek && (
@@ -112,9 +133,38 @@ export default async function StandingsPage() {
         ))}
       </div>
 
+      <div className="card">
+        <div className="matchup">Cavepicks Leaderboard</div>
+        <p className="subtext" style={{ margin: "4px 0 0" }}>Season record, spread &amp; total picks</p>
+        <table className="stat-table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Weeks Won</th>
+              <th>Wins</th>
+              <th>Pushes</th>
+              <th>Losses</th>
+              <th>%</th>
+            </tr>
+          </thead>
+          <tbody>
+            {cavepicksStats.map((s) => (
+              <tr key={s.name}>
+                <td>{s.name}</td>
+                <td>{s.weeksWon}</td>
+                <td>{s.wins}</td>
+                <td>{s.pushes}</td>
+                <td>{s.losses}</td>
+                <td>{s.pct.toFixed(2)}%</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
       {weekResults.length > 1 && (
         <div className="card">
-          <div className="matchup">Pot history</div>
+          <div className="matchup">Pot History</div>
           <div className="divider" />
           {weekResults
             .slice(0, -1)
@@ -138,25 +188,36 @@ export default async function StandingsPage() {
       )}
 
       <div className="card">
-        <div className="row-between">
-          <div className="matchup">Dog race</div>
-          <div className="meta mono">${dogPotTotal} pot</div>
-        </div>
+        <div className="matchup">Cavedogs Leaderboard</div>
         <p className="subtext" style={{ margin: "4px 0 0" }}>
-          Season-long &middot; paid to the leader at year&apos;s end
+          Season-long &middot; ${dogPotTotal} pot paid to the leader at year&apos;s end
         </p>
-        <div className="divider" />
-        {dogStandings.map((s, i) => (
-          <div key={s.name} className="row-between" style={{ fontSize: "13px", marginBottom: "4px" }}>
-            <span>
-              {i === 0 && s.points > 0 ? "🏆 " : ""}
-              {s.name}
-            </span>
-            <span className="mono">{s.points} pts</span>
-          </div>
-        ))}
+        <table className="stat-table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Points</th>
+              <th>Wins</th>
+              <th>Losses</th>
+              <th>%</th>
+            </tr>
+          </thead>
+          <tbody>
+            {cavedogsStats.map((s, i) => (
+              <tr key={s.name}>
+                <td>
+                  {i === 0 && s.points > 0 ? "\ud83c\udfc6 " : ""}
+                  {s.name}
+                </td>
+                <td>{s.points}</td>
+                <td>{s.wins}</td>
+                <td>{s.losses}</td>
+                <td>{s.pct.toFixed(2)}%</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
-
     </main>
   );
 }

@@ -22,7 +22,7 @@ export default function Nav() {
   return (
     <nav className="nav-bar">
       <a href={mySlug ? `/pick/${mySlug}` : "/"} className={`nav-link${isActive("/pick") ? " active" : ""}`}>
-        My picks
+        My Picks
       </a>
       <a href="/board" className={`nav-link${isActive("/board") ? " active" : ""}`}>
         Board

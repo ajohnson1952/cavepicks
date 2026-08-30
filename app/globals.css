@@ -302,3 +302,37 @@ h1 {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.35; }
 }
+
+.stat-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  margin-top: 8px;
+}
+
+.stat-table th {
+  text-align: right;
+  font-weight: 700;
+  color: var(--dim);
+  padding: 4px 6px;
+  border-bottom: 1px solid var(--border);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.stat-table th:first-child,
+.stat-table td:first-child {
+  text-align: left;
+}
+
+.stat-table td {
+  text-align: right;
+  padding: 5px 6px;
+  border-bottom: 1px solid var(--border);
+  font-family: var(--font-mono), ui-monospace, monospace;
+}
+
+.stat-table tr:last-child td {
+  border-bottom: none;
+}

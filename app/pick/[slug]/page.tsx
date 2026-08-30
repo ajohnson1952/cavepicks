@@ -126,7 +126,7 @@ export default async function PickPage({ params }: { params: { slug: string } })
 
   return (
     <main>
-      <h1>{user.name}&apos;s picks</h1>
+      <h1>{user.name}&apos;s Picks</h1>
       <p className="subtext">
         {lockedSideCount}/5 picks locked &middot; dog pick {lockedDogPick ? "locked" : "not locked"}
         <br />

@@ -81,7 +81,7 @@ export default async function BoardPage() {
 
   return (
     <main>
-      <h1>The board</h1>
+      <h1>The Board</h1>
       <p className="subtext">Week {week.weekNumber} &middot; everyone&apos;s picks, live.</p>
 
       {users.map((u) => {
