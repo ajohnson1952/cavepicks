@@ -2,6 +2,12 @@
 
 All notable changes to Cavepicks, newest first.
 
+## 2026-08-30 (afternoon)
+- Fixed three real bugs on the standings page, found via a live page fetch that caught a literal blank ("Week 1:  won $350" with no name) proving future/unplayed weeks were being misread as "someone won":
+  1. Pot History now correctly distinguishes "hasn't happened yet" from "tied" from "someone won" - previously any ungraded future week silently fell through to the "won" branch with a null winner
+  2. The "current week" card now finds the week matching today's actual date, instead of assuming whichever week happened to be last in the list (broke once future placeholder weeks existed)
+  3. Week 0 is now fully excluded from all pot and leaderboard math - it was test/setup data, not a real played week; Week 1 is the true start of the season
+
 ## 2026-08-30 (way too late night, cont.)
 - Added a "Refresh lines" button to the pick sheet - does a soft refresh of just the data (no full page reload, no lost scroll position), so you can deliberately check for line movement before locking without needing to reload the whole page
 

@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db";
 import { WEEKLY_BUYIN, DOG_BUYIN, DOG_PAYOUTS } from "@/lib/pot";
+import { getWeekNumberForDate } from "@/lib/currentWeek";
 
 export const dynamic = "force-dynamic";
 
@@ -11,13 +12,20 @@ function rankLabel(i: number): string {
 }
 
 export default async function StandingsPage() {
-  const weeks = await prisma.week.findMany({
+  const allWeeks = await prisma.week.findMany({
     where: { seasonYear: 2026 },
     orderBy: { weekNumber: "asc" },
   });
   const users = await prisma.user.findMany({ orderBy: { name: "asc" } });
   const allPicks = await prisma.pick.findMany({ where: { week: { seasonYear: 2026 } } });
   const allGames = await prisma.game.findMany({ where: { week: { seasonYear: 2026 } } });
+
+  // Week 1 is the real start of the season - Week 0 was test/setup data and
+  // never counted for money. Future weeks that already have a placeholder
+  // row (because a marquee game's line posted early) don't count as "real"
+  // yet either - only weeks up through the actual current week matter here.
+  const currentWeekNumber = getWeekNumberForDate();
+  const weeks = allWeeks.filter((w) => w.weekNumber >= 1 && w.weekNumber <= currentWeekNumber);
 
   // --- Weekly pot, week by week, carrying the pot forward through ties ---
   type WeekResult = {
@@ -66,6 +74,8 @@ export default async function StandingsPage() {
         potCarry = potAmount;
       }
     }
+    // If the week isn't fully graded yet, potCarry is left untouched -
+    // there's nothing to resolve yet, so nothing should roll forward.
 
     weekResults.push({
       weekNumber: week.weekNumber,
@@ -77,11 +87,18 @@ export default async function StandingsPage() {
     });
   }
 
-  const currentWeek = weekResults[weekResults.length - 1] ?? null;
+  // The "current" week is the one matching today's actual date - not just
+  // whichever week happens to be last in the list (that assumption broke
+  // once future placeholder weeks started existing in the database).
+  const currentWeek = weekResults.find((w) => w.weekNumber === currentWeekNumber) ?? null;
+  const pastWeeks = weekResults.filter((w) => w.weekNumber !== currentWeekNumber);
 
-  // --- Cavepicks Leaderboard: season-long spread/total record ---
+  // --- Cavepicks Leaderboard: season-long spread/total record (Week 1+ only) ---
   const sideTotalPicks = allPicks.filter(
-    (p) => (p.pickType === "SPREAD" || p.pickType === "TOTAL") && p.graded
+    (p) =>
+      (p.pickType === "SPREAD" || p.pickType === "TOTAL") &&
+      p.graded &&
+      weeks.some((w) => w.id === p.weekId)
   );
   const cavepicksStats = users
     .map((u) => {
@@ -96,8 +113,10 @@ export default async function StandingsPage() {
     })
     .sort((a, b) => b.pct - a.pct);
 
-  // --- Cavedogs Leaderboard: season-long dog pick record ---
-  const dogPicksGraded = allPicks.filter((p) => p.pickType === "DOG" && p.graded);
+  // --- Cavedogs Leaderboard: season-long dog pick record (Week 1+ only) ---
+  const dogPicksGraded = allPicks.filter(
+    (p) => p.pickType === "DOG" && p.graded && weeks.some((w) => w.id === p.weekId)
+  );
   const cavedogsStats = users
     .map((u) => {
       const userDogPicks = dogPicksGraded.filter((p) => p.userId === u.id);
@@ -119,30 +138,32 @@ export default async function StandingsPage() {
 
       <div className="card card-accent-money">
         <div className="matchup">💰 Weekly Pot</div>
-        <div className="stat-hero">${currentWeek?.potAmount ?? 0}</div>
-        {currentWeek && (
-          <p className="subtext" style={{ margin: "0 0 0" }}>
-            Week {currentWeek.weekNumber} &middot;{" "}
-            {currentWeek.inProgress
-              ? "in progress"
-              : currentWeek.rollover
-              ? "tied - rolled over to next week"
-              : `won by ${currentWeek.leader}`}
+        {currentWeek ? (
+          <>
+            <div className="stat-hero">${currentWeek.potAmount}</div>
+            <p className="subtext" style={{ margin: "0 0 0" }}>
+              Week {currentWeek.weekNumber} &middot;{" "}
+              {currentWeek.inProgress
+                ? "in progress"
+                : currentWeek.rollover
+                ? "tied - rolled over to next week"
+                : `won by ${currentWeek.leader}`}
+            </p>
+            <div className="divider" />
+            {currentWeek.standings.map((s, i) => (
+              <div key={s.name} className="row-between" style={{ fontSize: "13px", marginBottom: "4px" }}>
+                <span>{s.name}</span>
+                <span className="mono" style={{ color: i === 0 && s.correct > 0 ? "var(--up)" : "var(--dim)" }}>
+                  {s.correct}/5
+                </span>
+              </div>
+            ))}
+          </>
+        ) : (
+          <p className="subtext" style={{ margin: "4px 0 0" }}>
+            Season hasn&apos;t started yet &mdash; Week 1 begins Tuesday.
           </p>
         )}
-        <div className="divider" />
-        {currentWeek?.standings.map((s, i) => (
-          <div
-            key={s.name}
-            className="row-between"
-            style={{ fontSize: "13px", marginBottom: "4px" }}
-          >
-            <span>{s.name}</span>
-            <span className="mono" style={{ color: i === 0 && s.correct > 0 ? "var(--up)" : "var(--dim)" }}>
-              {s.correct}/5
-            </span>
-          </div>
-        ))}
       </div>
 
       <div className="card">
@@ -176,17 +197,19 @@ export default async function StandingsPage() {
         </table>
       </div>
 
-      {weekResults.length > 1 && (
+      {pastWeeks.length > 0 && (
         <div className="card">
           <div className="matchup">📜 Pot History</div>
           <div className="divider" />
-          {weekResults
-            .slice(0, -1)
+          {pastWeeks
+            .slice()
             .reverse()
             .map((w) => (
               <div key={w.weekNumber} style={{ fontSize: "13px", marginBottom: "4px" }}>
                 Week {w.weekNumber}:{" "}
-                {w.rollover ? (
+                {w.inProgress ? (
+                  <span className="meta">in progress</span>
+                ) : w.rollover ? (
                   <span className="meta">tied, rolled over</span>
                 ) : (
                   <span>
