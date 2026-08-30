@@ -125,12 +125,6 @@ export default async function BoardPage() {
                   <Logo src={p.game.homeLogo} alt={p.game.homeTeam} />
                   {p.game.homeAbbr ?? p.game.homeTeam} &mdash; {pickLabel}
                   {lineNumber}
-                  {p.locked && !p.graded && (
-                    <span className="locked-badge" style={{ marginLeft: "6px" }}>
-                      <span className="locked-dot" />
-                      <span className="locked-text mono">LOCKED</span>
-                    </span>
-                  )}
                   {!p.locked && !p.graded && <span className="meta"> (open)</span>}
                   {isLive && !p.graded && (
                     <span className="live-badge" style={{ marginLeft: "6px" }}>
@@ -161,10 +155,7 @@ export default async function BoardPage() {
                     {dogPick.isWin ? `hit \u2014 +${dogPick.pointsEarned} pts` : "missed \u2014 0 pts"}
                   </span>
                 ) : dogPick.locked ? (
-                  <span className="locked-badge" style={{ marginLeft: "6px" }}>
-                    <span className="locked-dot" />
-                    <span className="locked-text mono">{dogPick.dogSpreadValue ?? "?"} pts</span>
-                  </span>
+                  <span>{` (worth ${dogPick.dogSpreadValue ?? "?"} pts)`}</span>
                 ) : (
                   <span className="meta"> (open)</span>
                 )}
