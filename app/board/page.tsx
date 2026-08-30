@@ -8,6 +8,17 @@ function abbr(selection: string, homeTeam: string, homeAbbr: string | null, away
   return selection;
 }
 
+function Logo({ src, alt }: { src: string | null; alt: string }) {
+  if (!src) return null;
+  return (
+    <img
+      src={src}
+      alt={alt}
+      style={{ width: "14px", height: "14px", objectFit: "contain", verticalAlign: "-2px", marginRight: "4px" }}
+    />
+  );
+}
+
 export default async function BoardPage() {
   const week = await prisma.week.findUnique({
     where: { seasonYear_weekNumber: { seasonYear: 2026, weekNumber: 1 } },
@@ -58,7 +69,6 @@ export default async function BoardPage() {
             <div className="divider" />
             {sidePicks.length === 0 && <p className="subtext" style={{ margin: 0 }}>No side picks yet</p>}
             {sidePicks.map((p) => {
-              const matchupAbbr = `${p.game.awayAbbr ?? p.game.awayTeam} @ ${p.game.homeAbbr ?? p.game.homeTeam}`;
               const pickLabel =
                 p.pickType === "SPREAD"
                   ? abbr(p.selection, p.game.homeTeam, p.game.homeAbbr, p.game.awayTeam, p.game.awayAbbr)
@@ -68,7 +78,10 @@ export default async function BoardPage() {
                   <span className="mono" style={{ color: "var(--dim)" }}>
                     {p.pickType === "SPREAD" ? "SPRD" : "TOTL"}
                   </span>{" "}
-                  {matchupAbbr} &mdash; {pickLabel}
+                  <Logo src={p.game.awayLogo} alt={p.game.awayTeam} />
+                  {p.game.awayAbbr ?? p.game.awayTeam} @{" "}
+                  <Logo src={p.game.homeLogo} alt={p.game.homeTeam} />
+                  {p.game.homeAbbr ?? p.game.homeTeam} &mdash; {pickLabel}
                   {p.locked ? (
                     <span className="locked-badge" style={{ marginLeft: "6px" }}>
                       <span className="locked-dot" />
@@ -83,7 +96,10 @@ export default async function BoardPage() {
             {dogPick && (
               <div style={{ fontSize: "13px", marginTop: "6px" }}>
                 <span className="mono" style={{ color: "var(--dim)" }}>DOG</span>{" "}
-                {dogPick.game.awayAbbr ?? dogPick.game.awayTeam} @ {dogPick.game.homeAbbr ?? dogPick.game.homeTeam}
+                <Logo src={dogPick.game.awayLogo} alt={dogPick.game.awayTeam} />
+                {dogPick.game.awayAbbr ?? dogPick.game.awayTeam} @{" "}
+                <Logo src={dogPick.game.homeLogo} alt={dogPick.game.homeTeam} />
+                {dogPick.game.homeAbbr ?? dogPick.game.homeTeam}
                 {" \u2014 "}
                 {abbr(dogPick.selection, dogPick.game.homeTeam, dogPick.game.homeAbbr, dogPick.game.awayTeam, dogPick.game.awayAbbr)}
                 {dogPick.locked ? (
