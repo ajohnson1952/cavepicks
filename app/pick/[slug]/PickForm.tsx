@@ -188,10 +188,16 @@ export default function PickForm({
 
       {games.map((g) => {
         const gameFullyLocked = g.pastAutoLock;
-        // A snapshot row can exist with all-null values for a far-future
-        // game before DraftKings has posted real lines - checking g.snap
-        // truthiness alone isn't enough, since that snapshot still exists.
-        const hasOdds = !!g.snap && g.snap.spreadHome != null && g.snap.spreadAway != null && g.snap.total != null;
+        // A snapshot row can exist with all-null values (or only partially
+        // filled) for a game before DraftKings has posted a full line -
+        // checking g.snap truthiness alone isn't enough, since that snapshot
+        // still exists. Spread and total post independently, so gate each
+        // one on its own rather than hiding the whole game until both land.
+        const hasSpread = !!g.snap && g.snap.spreadHome != null && g.snap.spreadAway != null;
+        const hasTotal = !!g.snap && g.snap.total != null;
+        const showSpread = hasSpread || g.spread.locked;
+        const showTotal = hasTotal || g.total.locked;
+        const hasOdds = showSpread || showTotal || !!g.dog;
 
         return (
           <div key={g.id} className="card">
@@ -239,7 +245,7 @@ export default function PickForm({
                 <div className="divider" />
 
                 {/* Spread */}
-                {gameFullyLocked || g.spread.locked ? (
+                {showSpread && (gameFullyLocked || g.spread.locked ? (
                   g.spread.selection ? (
                     <div style={{ marginTop: "4px" }}>
                       <div className="row-between">
@@ -340,10 +346,10 @@ export default function PickForm({
                       </div>
                     )}
                   </>
-                )}
+                ))}
 
                 {/* Total */}
-                {gameFullyLocked || g.total.locked ? (
+                {showTotal && (gameFullyLocked || g.total.locked ? (
                   g.total.selection ? (
                     <div style={{ marginTop: "4px" }}>
                       <div className="row-between">
@@ -432,7 +438,7 @@ export default function PickForm({
                       </div>
                     )}
                   </>
-                )}
+                ))}
 
                 {/* Dog */}
                 {g.dog && (() => {

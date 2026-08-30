@@ -2,6 +2,10 @@
 
 All notable changes to Cavepicks, newest first.
 
+## 2026-08-30 (partial lines)
+- **Fix**: the pick sheet hid a game entirely ("Odds not posted yet") unless DraftKings had posted the spread *and* the total. Early in the week DK routinely posts one before the other, so plenty of Week 1 games looked like the line "wasn't pulling in" when half of it actually was. The spread and total sections are now gated independently - whichever side has a line shows and is pickable, the other shows nothing until it posts
+- Added `/api/debug-odds?week=N` (add `&live=1`) to inspect, per game, how many snapshots exist, the latest spread/total/ML values, and - live - which games The Odds API is and isn't returning DraftKings lines for right now
+
 ## 2026-08-30 (night, matching overhaul)
 - **Real fix**: replaced substring-containment team matching with word-overlap matching - a candidate now only counts as a match if EVERY one of its words appears as a whole word in the odds API name, not just any character-level substring. This structurally fixes the whole class of "short name wins over longer specific name" bugs: Albany vs Albany State, Arkansas vs Arkansas Pine Bluff, Houston vs Houston Christian, and more, tested against 8 cases before shipping
 - **Real fix**: the `"louisiana"` alias was matching inside ANY team name containing that word - including "Louisiana Tech Bulldogs," silently corrupting it to redirect toward Louisiana-Lafayette. Narrowed to the exact phrase that actually needed it
