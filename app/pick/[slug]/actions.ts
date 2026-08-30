@@ -336,26 +336,28 @@ export async function autosaveSelection(
 
 // Locks a pick using a value passed directly from client state - no <form>
 // or FormData needed, called as a plain function from a button's onClick.
+// Locks a pick using the exact line/odds the player is currently looking
+// at on screen - passed in directly rather than fetched fresh from the
+// database. This matters: if a background odds pull updates the line while
+// someone has the page open, we want Lock In to freeze what they actually
+// saw and decided on, not silently swap in a newer number behind their back.
 export async function lockValue(
   slug: string,
   gameId: string,
   pickType: "SPREAD" | "TOTAL" | "DOG",
-  selection: string
+  selection: string,
+  lockedLine: number | null,
+  lockedOdds: number | null,
+  dogSpreadValue: number | null
 ) {
   const user = await prisma.user.findUnique({ where: { pickSlug: slug } });
   if (!user) return { error: "Player not found" };
 
   const week = await getOrCreateCurrentWeek();
 
-  const game = await prisma.game.findUnique({
-    where: { id: gameId },
-    include: { oddsSnapshots: { orderBy: { capturedAt: "desc" }, take: 1 } },
-  });
+  const game = await prisma.game.findUnique({ where: { id: gameId } });
   if (!game) return { error: "Game not found" };
   if (isPastAutoLock(game.commenceTime)) return { error: "This game already auto-locked" };
-
-  const snap = game.oddsSnapshots[0];
-  if (!snap) return { error: "No odds available yet to lock against" };
 
   const existingPicks = await prisma.pick.findMany({ where: { userId: user.id, weekId: week.id } });
   const alreadyExists = existingPicks.some((p) => p.gameId === gameId && p.pickType === pickType);
@@ -371,27 +373,14 @@ export async function lockValue(
     }
   }
 
-  const data: {
-    selection: string;
-    locked: boolean;
-    lockedAt: Date;
-    lockedLine?: number | null;
-    lockedOdds?: number | null;
-    dogSpreadValue?: number | null;
-  } = { selection, locked: true, lockedAt: new Date() };
-
-  if (pickType === "SPREAD") {
-    const isHome = selection === game.homeTeam;
-    data.lockedLine = isHome ? snap.spreadHome : snap.spreadAway;
-    data.lockedOdds = isHome ? snap.spreadHomePrice : snap.spreadAwayPrice;
-  } else if (pickType === "TOTAL") {
-    data.lockedLine = snap.total;
-    data.lockedOdds = selection === "over" ? snap.totalOverPrice : snap.totalUnderPrice;
-  } else if (pickType === "DOG") {
-    const isHome = selection === game.homeTeam;
-    data.dogSpreadValue = Math.abs((isHome ? snap.spreadHome : snap.spreadAway) ?? 0);
-    data.lockedOdds = isHome ? snap.mlHome : snap.mlAway;
-  }
+  const data = {
+    selection,
+    locked: true,
+    lockedAt: new Date(),
+    lockedLine,
+    lockedOdds,
+    dogSpreadValue,
+  };
 
   await prisma.pick.upsert({
     where: { userId_weekId_gameId_pickType: { userId: user.id, weekId: week.id, gameId, pickType } },
