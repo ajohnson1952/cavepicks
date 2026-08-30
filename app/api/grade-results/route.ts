@@ -18,8 +18,17 @@ export async function GET() {
     return NextResponse.json({ ok: true, gamesGraded: 0, picksGraded: 0, note: "nothing left to grade" });
   }
 
-  // Only fetch ESPN for the specific dates our ungraded games actually fall on
-  const dates = Array.from(new Set(games.map((g) => toYyyymmdd(g.commenceTime))));
+  // Fetch each ungraded game's date, plus the day before/after as a safety
+  // net - ESPN's date-bucketing can behave oddly right at midnight boundaries,
+  // and this costs nothing since it's a free, unlimited public endpoint.
+  const dates = new Set<string>();
+  for (const g of games) {
+    const base = g.commenceTime;
+    for (const offsetDays of [-1, 0, 1]) {
+      const shifted = new Date(base.getTime() + offsetDays * 24 * 60 * 60 * 1000);
+      dates.add(toYyyymmdd(shifted));
+    }
+  }
   const allResults: EspnResult[] = [];
   for (const d of dates) {
     const results = await fetchEspnScoreboard(d);
@@ -32,9 +41,12 @@ export async function GET() {
   const stillInProgress: string[] = [];
 
   for (const game of games) {
-    const nameMatch = allResults.find(
+    const nameMatches = allResults.filter(
       (r) => teamNamesMatch(game.homeTeam, r.homeTeam) && teamNamesMatch(game.awayTeam, r.awayTeam)
     );
+    // If the widened date net returned this game under more than one date
+    // bucket, prefer any copy that's actually marked completed over a stale one.
+    const nameMatch = nameMatches.find((r) => r.completed) ?? nameMatches[0];
 
     if (!nameMatch) {
       const gameDate = toYyyymmdd(game.commenceTime);
