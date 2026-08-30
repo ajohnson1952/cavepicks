@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { unlockPick, clearPick, lockValue, autosaveSelection } from "./actions";
+import { formatSpread } from "@/lib/format";
 
 type Snap = {
   spreadHome: number | null;
@@ -196,7 +197,7 @@ export default function PickForm({
                       <span className="locked-text">LOCKED</span>
                     </span>{" "}
                     Spread: {g.spread.selection === g.homeTeam ? g.homeAbbr ?? g.spread.selection : g.spread.selection === g.awayTeam ? g.awayAbbr ?? g.spread.selection : g.spread.selection ?? "no pick"}
-                    {g.spread.lockedLine != null ? ` (${g.spread.lockedLine})` : ""}
+                    {g.spread.lockedLine != null ? ` (${formatSpread(g.spread.lockedLine)})` : ""}
                     {!gameFullyLocked && g.spread.pickId && (
                       <button className="btn btn-ghost" onClick={() => unlockPick(slug, g.spread.pickId!)}>
                         unlock
@@ -216,8 +217,7 @@ export default function PickForm({
                           {g.awayAbbr ?? g.awayTeam}
                         </div>
                         <div className="pill-value">
-                          {g.snap.spreadAway != null && g.snap.spreadAway > 0 ? "+" : ""}
-                          {g.snap.spreadAway}
+                          {formatSpread(g.snap.spreadAway)}
                           <MoveIndicator delta={g.movement.spreadAway} />
                         </div>
                       </button>
@@ -231,8 +231,7 @@ export default function PickForm({
                           {g.homeAbbr ?? g.homeTeam}
                         </div>
                         <div className="pill-value">
-                          {g.snap.spreadHome != null && g.snap.spreadHome > 0 ? "+" : ""}
-                          {g.snap.spreadHome}
+                          {formatSpread(g.snap.spreadHome)}
                           <MoveIndicator delta={g.movement.spreadHome} />
                         </div>
                       </button>
