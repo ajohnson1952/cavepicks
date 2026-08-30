@@ -41,6 +41,7 @@ model Game {
   awayAbbr      String?
   homeLogo      String?
   awayLogo      String?
+  broadcast     String?
   commenceTime  DateTime
   homeScore     Int?
   awayScore     Int?

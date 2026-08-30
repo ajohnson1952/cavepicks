@@ -74,6 +74,7 @@ export default async function PickPage({ params }: { params: { slug: string } })
       awayAbbr: g.awayAbbr,
       homeLogo: g.homeLogo,
       awayLogo: g.awayLogo,
+      broadcast: g.broadcast,
       kickoffDisplay:
         g.commenceTime.toLocaleString("en-US", {
           timeZone: "America/Chicago",

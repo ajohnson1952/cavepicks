@@ -10,6 +10,13 @@ function abbr(selection: string, homeTeam: string, homeAbbr: string | null, away
   return selection;
 }
 
+function resultClass(graded: boolean, isWin: boolean | null, isPush: boolean | null): string {
+  if (!graded) return "";
+  if (isPush) return "pick-push";
+  if (isWin) return "pick-win";
+  return "pick-loss";
+}
+
 function Logo({ src, alt }: { src: string | null; alt: string }) {
   if (!src) return null;
   return (
@@ -19,6 +26,10 @@ function Logo({ src, alt }: { src: string | null; alt: string }) {
       style={{ width: "14px", height: "14px", objectFit: "contain", verticalAlign: "-2px", marginRight: "4px" }}
     />
   );
+}
+
+function kickoffDisplay(date: Date) {
+  return date.toLocaleString("en-US", { timeZone: "America/Chicago", weekday: "short", hour: "numeric", minute: "2-digit" }) + " CT";
 }
 
 export default async function BoardPage() {
@@ -65,30 +76,32 @@ export default async function BoardPage() {
                 p.pickType === "SPREAD"
                   ? abbr(p.selection, p.game.homeTeam, p.game.homeAbbr, p.game.awayTeam, p.game.awayAbbr)
                   : p.selection;
+              const rClass = resultClass(p.graded, p.isWin, p.isPush);
               return (
-                <div key={p.id} style={{ fontSize: "13px", marginBottom: "4px" }}>
-                  <span className="mono" style={{ color: "var(--dim)" }}>
+                <div key={p.id} className={rClass} style={{ fontSize: "13px", marginBottom: "4px" }}>
+                  <span className="mono" style={{ color: rClass ? "inherit" : "var(--dim)" }}>
                     {p.pickType === "SPREAD" ? "SPRD" : "TOTL"}
                   </span>{" "}
                   <Logo src={p.game.awayLogo} alt={p.game.awayTeam} />
                   {p.game.awayAbbr ?? p.game.awayTeam} @{" "}
                   <Logo src={p.game.homeLogo} alt={p.game.homeTeam} />
                   {p.game.homeAbbr ?? p.game.homeTeam} &mdash; {pickLabel}
-                  {p.locked ? (
+                  {p.pickType === "SPREAD" && p.lockedLine != null ? ` (${formatSpread(p.lockedLine)})` : ""}
+                  {p.locked && !p.graded && (
                     <span className="locked-badge" style={{ marginLeft: "6px" }}>
                       <span className="locked-dot" />
-                      <span className="locked-text mono">
-                        {p.pickType === "SPREAD" ? formatSpread(p.lockedLine) : p.lockedLine ?? "?"}
-                      </span>
                     </span>
-                  ) : (
-                    <span className="meta"> (open)</span>
                   )}
+                  {!p.locked && !p.graded && <span className="meta"> (open)</span>}
+                  <div className="meta" style={{ marginTop: "1px" }}>
+                    {kickoffDisplay(p.game.commenceTime)}
+                    {p.game.broadcast ? ` \u00b7 ${p.game.broadcast}` : ""}
+                  </div>
                 </div>
               );
             })}
             {dogPick && (
-              <div style={{ fontSize: "13px", marginTop: "6px" }}>
+              <div className={resultClass(dogPick.graded, dogPick.isWin, dogPick.isPush)} style={{ fontSize: "13px", marginTop: "6px" }}>
                 <span className="mono" style={{ color: "var(--dim)" }}>DOG</span>{" "}
                 <Logo src={dogPick.game.awayLogo} alt={dogPick.game.awayTeam} />
                 {dogPick.game.awayAbbr ?? dogPick.game.awayTeam} @{" "}
@@ -96,7 +109,11 @@ export default async function BoardPage() {
                 {dogPick.game.homeAbbr ?? dogPick.game.homeTeam}
                 {" \u2014 "}
                 {abbr(dogPick.selection, dogPick.game.homeTeam, dogPick.game.homeAbbr, dogPick.game.awayTeam, dogPick.game.awayAbbr)}
-                {dogPick.locked ? (
+                {dogPick.graded ? (
+                  <span style={{ marginLeft: "6px" }}>
+                    {dogPick.isWin ? `hit \u2014 +${dogPick.pointsEarned} pts` : "missed \u2014 0 pts"}
+                  </span>
+                ) : dogPick.locked ? (
                   <span className="locked-badge" style={{ marginLeft: "6px" }}>
                     <span className="locked-dot" />
                     <span className="locked-text mono">{dogPick.dogSpreadValue ?? "?"} pts</span>
@@ -104,6 +121,10 @@ export default async function BoardPage() {
                 ) : (
                   <span className="meta"> (open)</span>
                 )}
+                <div className="meta" style={{ marginTop: "1px" }}>
+                  {kickoffDisplay(dogPick.game.commenceTime)}
+                  {dogPick.game.broadcast ? ` \u00b7 ${dogPick.game.broadcast}` : ""}
+                </div>
               </div>
             )}
           </div>

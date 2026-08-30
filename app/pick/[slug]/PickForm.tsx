@@ -41,6 +41,7 @@ type GameView = {
   awayAbbr: string | null;
   homeLogo: string | null;
   awayLogo: string | null;
+  broadcast: string | null;
   kickoffDisplay: string;
   autoLockDisplay: string;
   pastAutoLock: boolean;
@@ -168,7 +169,10 @@ export default function PickForm({
                 {g.awayAbbr ?? g.awayTeam} @ <TeamLogo src={g.homeLogo} alt={g.homeTeam} />
                 {g.homeAbbr ?? g.homeTeam}
               </div>
-              <div className="meta">{g.kickoffDisplay}</div>
+              <div className="meta">
+                {g.kickoffDisplay}
+                {g.broadcast ? ` \u00b7 ${g.broadcast}` : ""}
+              </div>
             </div>
             <div className="meta" style={{ marginTop: "2px" }}>
               Auto-locks {g.autoLockDisplay}

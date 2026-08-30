@@ -12,6 +12,7 @@ export type EspnResult = {
   awayScore: number;
   completed: boolean;
   dateISO: string;
+  broadcast: string | null;
 };
 
 // The Odds API and ESPN are two separate vendors with their own internal
@@ -90,6 +91,7 @@ export async function fetchEspnScoreboard(yyyymmdd: string): Promise<EspnResult[
       awayScore: Number(away.score ?? 0),
       completed: competition.status?.type?.completed === true,
       dateISO: event.date,
+      broadcast: competition.broadcasts?.[0]?.names?.join("/") ?? competition.broadcast ?? null,
     });
   }
   return results;

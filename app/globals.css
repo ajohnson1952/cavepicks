@@ -265,3 +265,18 @@ h1 {
   padding: 6px 10px;
   margin-top: 6px;
 }
+
+/* Graded pick results */
+.pick-win {
+  color: var(--up);
+}
+
+.pick-loss {
+  color: var(--down);
+  text-decoration: line-through;
+  opacity: 0.75;
+}
+
+.pick-push {
+  color: var(--dim);
+}

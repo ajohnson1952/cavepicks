@@ -2,6 +2,7 @@
 import { prisma } from "./db";
 import { fetchDraftKingsOdds } from "./oddsApi";
 import { fetchEspnTeams, findEspnTeamInfo } from "./espnTeams";
+import { fetchEspnScoreboard, teamNamesMatch, toYyyymmdd, EspnResult } from "./espnScores";
 
 export async function pullOdds(snapshotType: "early" | "lock", weekId: string) {
   const games = await fetchDraftKingsOdds();
@@ -9,21 +10,32 @@ export async function pullOdds(snapshotType: "early" | "lock", weekId: string) {
   const results = [];
   const unmatchedTeams = new Set<string>();
 
+  // Fetch broadcast/schedule info for every distinct date in this pull -
+  // same scoreboard endpoint grading uses, just for channel info this time.
+  const dates = new Set(games.map((g) => toYyyymmdd(new Date(g.commenceTime))));
+  const scoreboardResults: EspnResult[] = [];
+  for (const d of dates) {
+    scoreboardResults.push(...(await fetchEspnScoreboard(d)));
+  }
+
   for (const g of games) {
     const homeInfo = findEspnTeamInfo(g.homeTeam, espnTeams);
     const awayInfo = findEspnTeamInfo(g.awayTeam, espnTeams);
     if (!homeInfo) unmatchedTeams.add(g.homeTeam);
     if (!awayInfo) unmatchedTeams.add(g.awayTeam);
 
+    const scoreboardMatch = scoreboardResults.find(
+      (r) => teamNamesMatch(g.homeTeam, r.homeTeam) && teamNamesMatch(g.awayTeam, r.awayTeam)
+    );
+    const broadcast = scoreboardMatch?.broadcast ?? null;
+
     const game = await prisma.game.upsert({
       where: { oddsApiEventId: g.id },
       update: {
         commenceTime: new Date(g.commenceTime),
-        // Only fill these in if we don't already have them, or if a match
-        // now succeeds where it didn't before - never overwrite good data
-        // with a failed lookup.
         ...(homeInfo && { homeAbbr: homeInfo.abbreviation, homeLogo: homeInfo.logo }),
         ...(awayInfo && { awayAbbr: awayInfo.abbreviation, awayLogo: awayInfo.logo }),
+        ...(broadcast && { broadcast }),
       },
       create: {
         weekId,
@@ -34,6 +46,7 @@ export async function pullOdds(snapshotType: "early" | "lock", weekId: string) {
         awayAbbr: awayInfo?.abbreviation ?? null,
         homeLogo: homeInfo?.logo ?? null,
         awayLogo: awayInfo?.logo ?? null,
+        broadcast,
         commenceTime: new Date(g.commenceTime),
       },
     });
