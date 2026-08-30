@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { unlockPick, clearPick, lockValue, autosaveSelection } from "./actions";
 import { formatSpread, formatOdds } from "@/lib/format";
 
@@ -120,6 +121,8 @@ export default function PickForm({
   );
   const [dogChoice, setDogChoice] = useState<string | undefined>(() => computeInitialState(games).dog);
   const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
+  const [isRefreshing, startRefresh] = useTransition();
 
   useEffect(() => {
     const init = computeInitialState(games);
@@ -167,6 +170,16 @@ export default function PickForm({
 
   return (
     <div>
+      <button
+        type="button"
+        className="btn"
+        disabled={isRefreshing}
+        onClick={() => startRefresh(() => router.refresh())}
+        style={{ marginBottom: "12px" }}
+      >
+        {isRefreshing ? "Refreshing\u2026" : "\ud83d\udd04 Refresh lines"}
+      </button>
+
       {error && <div className="banner-error">{error}</div>}
 
       {games.length === 0 && <p className="subtext">No games in this week&apos;s slate yet.</p>}
@@ -291,8 +304,13 @@ export default function PickForm({
                           className="btn btn-lock"
                           style={{ width: "auto", flex: 1 }}
                           onClick={async () => {
-                            const value = spreadChoice[g.id] === "home" ? g.homeTeam : g.awayTeam;
-                            const res = await lockValue(slug, g.id, "SPREAD", value);
+                            const isHome = spreadChoice[g.id] === "home";
+                            const value = isHome ? g.homeTeam : g.awayTeam;
+                            const lockedLine = isHome ? g.snap?.spreadHome ?? null : g.snap?.spreadAway ?? null;
+                            const lockedOdds = isHome
+                              ? g.snap?.spreadHomePrice ?? null
+                              : g.snap?.spreadAwayPrice ?? null;
+                            const res = await lockValue(slug, g.id, "SPREAD", value, lockedLine, lockedOdds, null);
                             if (res.error) setError(res.error);
                             else setError(null);
                           }}
@@ -377,7 +395,10 @@ export default function PickForm({
                           onClick={async () => {
                             const value = totalChoice[g.id];
                             if (!value) return;
-                            const res = await lockValue(slug, g.id, "TOTAL", value);
+                            const lockedLine = g.snap?.total ?? null;
+                            const lockedOdds =
+                              value === "over" ? g.snap?.totalOverPrice ?? null : g.snap?.totalUnderPrice ?? null;
+                            const res = await lockValue(slug, g.id, "TOTAL", value, lockedLine, lockedOdds, null);
                             if (res.error) setError(res.error);
                             else setError(null);
                           }}
@@ -457,7 +478,20 @@ export default function PickForm({
                               style={{ width: "auto", flex: 1 }}
                               onClick={async () => {
                                 if (!g.snap?.underdogTeam) return;
-                                const res = await lockValue(slug, g.id, "DOG", g.snap.underdogTeam);
+                                const isHome = g.snap.underdogTeam === g.homeTeam;
+                                const dogSpreadValue = Math.abs(
+                                  (isHome ? g.snap.spreadHome : g.snap.spreadAway) ?? 0
+                                );
+                                const lockedOdds = isHome ? g.snap.mlHome ?? null : g.snap.mlAway ?? null;
+                                const res = await lockValue(
+                                  slug,
+                                  g.id,
+                                  "DOG",
+                                  g.snap.underdogTeam,
+                                  null,
+                                  lockedOdds,
+                                  dogSpreadValue
+                                );
                                 if (res.error) setError(res.error);
                                 else setError(null);
                               }}

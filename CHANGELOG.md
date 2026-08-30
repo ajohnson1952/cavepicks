@@ -2,6 +2,12 @@
 
 All notable changes to Cavepicks, newest first.
 
+## 2026-08-30 (way too late night, cont.)
+- Added a "Refresh lines" button to the pick sheet - does a soft refresh of just the data (no full page reload, no lost scroll position), so you can deliberately check for line movement before locking without needing to reload the whole page
+
+## 2026-08-30 (way too late night)
+- Fixed a real correctness bug: clicking Lock In was re-fetching whatever the *newest* odds snapshot happened to be in the database at that moment, not the line actually shown on screen. If a background pull updated a line while someone had the page open, locking would silently grab the new number instead of the one they were looking at. Lock In now always freezes exactly the value displayed on screen at the moment of the click.
+
 ## 2026-08-30 (very late night, cont.)
 - Rules page now explains exactly when a new week's slate appears (midnight Tuesday Central) and that some lines may still be filling in early in the week
 
