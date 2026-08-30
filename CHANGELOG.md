@@ -2,6 +2,9 @@
 
 All notable changes to Cavepicks, newest first.
 
+## 2026-08-30 (late night)
+- Fixed a serious bug: none of the 10 API routes were marked as dynamic, meaning Next.js could silently cache a route's entire response and keep replaying the same frozen snapshot forever, never actually re-running the code. Confirmed on `debug-weeks` (identical timestamp on repeat calls) and fixed everywhere at once by adding `export const dynamic = "force-dynamic"` to all 10 routes, removing any ambiguity about which ones Next.js's caching heuristics would or wouldn't affect
+
 ## 2026-08-30 (evening)
 - Fixed a real bug: games were being filed under whatever week was "current" at pull time, instead of the week matching their own kickoff date. This meant any game whose odds got posted early (next week's games, for example) would get permanently stuck under the wrong week forever, even after the calendar rolled over
 - Every odds pull now assigns each game to its own correct week, and self-corrects any previously-misfiled game on every subsequent pull

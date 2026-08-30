@@ -5,6 +5,8 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   const result = await prisma.week.updateMany({
     where: { seasonYear: 2026, weekNumber: 1 },

@@ -2,6 +2,8 @@
 import { NextResponse } from "next/server";
 import { pullOdds } from "@/lib/pullOdds";
 
+export const dynamic = "force-dynamic";
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const type = (searchParams.get("type") as "early" | "lock") || "early";

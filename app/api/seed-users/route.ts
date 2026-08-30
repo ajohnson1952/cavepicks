@@ -3,6 +3,8 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import crypto from "crypto";
 
+export const dynamic = "force-dynamic";
+
 // Visit /api/seed-users?names=Jake,Mike,Tom,Alex,Sam,Chris,Pat
 // Creates any names that don't already exist yet, leaves existing ones alone,
 // and returns everyone's private pick link.

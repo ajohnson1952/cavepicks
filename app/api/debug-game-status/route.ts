@@ -3,6 +3,8 @@
 // raw status fields for a specific game - useful when "completed" seems wrong.
 import { NextResponse } from "next/server";
 
+export const dynamic = "force-dynamic";
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const date = searchParams.get("date");

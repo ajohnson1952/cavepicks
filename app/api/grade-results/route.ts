@@ -4,6 +4,8 @@ import { prisma } from "@/lib/db";
 import { fetchEspnScoreboard, teamNamesMatch, toYyyymmdd, EspnResult } from "@/lib/espnScores";
 import { gradePick } from "@/lib/scoring";
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   // Any game that's already kicked off but isn't marked final yet - across
   // ALL weeks, not just "this week". Using each game's own clock instead of

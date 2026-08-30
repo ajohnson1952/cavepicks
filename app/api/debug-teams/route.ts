@@ -4,6 +4,8 @@
 import { NextResponse } from "next/server";
 import { fetchEspnTeams } from "@/lib/espnTeams";
 
+export const dynamic = "force-dynamic";
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const q = (searchParams.get("q") ?? "").toLowerCase().trim();

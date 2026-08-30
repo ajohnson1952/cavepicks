@@ -4,6 +4,8 @@ import { prisma } from "@/lib/db";
 import { fetchEspnTeams, findEspnTeamInfo } from "@/lib/espnTeams";
 import { fetchEspnScoreboard, teamNamesMatch, toYyyymmdd, EspnResult } from "@/lib/espnScores";
 
+export const dynamic = "force-dynamic";
+
 // Re-checks EVERY game (not just ones with empty fields) - a fixed matcher
 // can correct previously-wrong data, not just fill in missing data. Safe to
 // re-run anytime.

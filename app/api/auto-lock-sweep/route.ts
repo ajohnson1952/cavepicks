@@ -3,6 +3,8 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { isPastAutoLock } from "@/lib/lock";
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   // Any game not yet final, whose auto-lock window could plausibly have
   // opened - scoped to "kicks off within the next day or already started"
