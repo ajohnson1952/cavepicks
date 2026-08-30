@@ -1,47 +1,5 @@
 import { prisma } from "@/lib/db";
 import { formatSpread, formatOdds } from "@/lib/format";
-import { getOrCreateCurrentWeek } from "@/lib/currentWeek";
-import { fetchEspnScoreboard, teamNamesMatch, toYyyymmdd } from "@/lib/espnScores";
-
-export const dynamic = "force-dynamic";
-
-function abbr(selection: string, homeTeam: string, homeAbbr: string | null, awayTeam: string, awayAbbr: string | null) {
-  if (selection === homeTeam) return homeAbbr ?? selection;
-  if (selection === awayTeam) return awayAbbr ?? selection;
-  return selection;
-}
-
-function resultClass(graded: boolean, isWin: boolean | null, isPush: boolean | null): string {
-  if (!graded) return "";
-  if (isPush) return "pick-push";
-  if (isWin) return "pick-win";
-  return "pick-loss";
-}
-
-function Logo({ src, alt }: { src: string | null; alt: string }) {
-  if (!src) return null;
-  return (
-    <img
-      src={src}
-      alt={alt}
-      style={{ width: "14px", height: "14px", objectFit: "contain", verticalAlign: "-2px", marginRight: "4px" }}
-    />
-  );
-}
-
-function kickoffDisplay(date: Date) {
-  return (
-    date.toLocaleString("en-US", {
-      timeZone: "America/Chicago",
-      weekday: "short",
-      hour: "numeric",
-      minute: "2-digit",
-    }) + " CT"
-  );
-}
-
-import { prisma } from "@/lib/db";
-import { formatSpread, formatOdds } from "@/lib/format";
 import { getOrCreateCurrentWeek, getWeekNumberForDate } from "@/lib/currentWeek";
 import { fetchEspnScoreboard, teamNamesMatch, toYyyymmdd } from "@/lib/espnScores";
 import WeekNav from "../WeekNav";
