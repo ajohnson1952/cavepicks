@@ -15,7 +15,15 @@ export function getWeekNumberForDate(date: Date = new Date()): number {
 // Auto-creates the week row the first time anything touches a new week -
 // odds pulls, page loads, whatever hits it first.
 export async function getOrCreateCurrentWeek() {
-  const weekNumber = getWeekNumberForDate();
+  return getOrCreateWeekForDate(new Date());
+}
+
+// Same idea, but for an arbitrary date rather than "now" - used when pulling
+// odds, since the API can return games from next week too (if lines are
+// posted early), and each game needs to land in the week it actually
+// belongs to, not just whatever week happens to be current at pull time.
+export async function getOrCreateWeekForDate(date: Date) {
+  const weekNumber = getWeekNumberForDate(date);
   return prisma.week.upsert({
     where: { seasonYear_weekNumber: { seasonYear: SEASON_YEAR, weekNumber } },
     update: {},

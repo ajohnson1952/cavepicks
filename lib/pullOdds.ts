@@ -3,8 +3,9 @@ import { prisma } from "./db";
 import { fetchDraftKingsOdds } from "./oddsApi";
 import { fetchEspnTeams, findEspnTeamInfo } from "./espnTeams";
 import { fetchEspnScoreboard, teamNamesMatch, toYyyymmdd, EspnResult } from "./espnScores";
+import { getOrCreateWeekForDate } from "./currentWeek";
 
-export async function pullOdds(snapshotType: "early" | "lock", weekId: string) {
+export async function pullOdds(snapshotType: "early" | "lock") {
   const games = await fetchDraftKingsOdds();
   const espnTeams = await fetchEspnTeams(); // one call, reused for every game below
   const results = [];
@@ -29,16 +30,23 @@ export async function pullOdds(snapshotType: "early" | "lock", weekId: string) {
     );
     const broadcast = scoreboardMatch?.broadcast ?? null;
 
+    // Each game lands in the week that matches ITS OWN kickoff date - not
+    // whatever week happens to be "current" right now. This matters because
+    // the odds API can return next week's games early if lines are already
+    // posted, and this also self-corrects any past misfiling on every pull.
+    const gameWeek = await getOrCreateWeekForDate(new Date(g.commenceTime));
+
     const game = await prisma.game.upsert({
       where: { oddsApiEventId: g.id },
       update: {
+        weekId: gameWeek.id,
         commenceTime: new Date(g.commenceTime),
         ...(homeInfo && { homeAbbr: homeInfo.abbreviation, homeLogo: homeInfo.logo }),
         ...(awayInfo && { awayAbbr: awayInfo.abbreviation, awayLogo: awayInfo.logo }),
         ...(broadcast && { broadcast }),
       },
       create: {
-        weekId,
+        weekId: gameWeek.id,
         oddsApiEventId: g.id,
         homeTeam: g.homeTeam,
         awayTeam: g.awayTeam,
@@ -71,6 +79,7 @@ export async function pullOdds(snapshotType: "early" | "lock", weekId: string) {
 
     results.push({
       game: `${g.awayTeam} @ ${g.homeTeam}`,
+      week: gameWeek.weekNumber,
       spreadHome: g.spreadHome,
       total: g.total,
     });

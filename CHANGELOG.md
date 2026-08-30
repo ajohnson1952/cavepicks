@@ -2,6 +2,13 @@
 
 All notable changes to Cavepicks, newest first.
 
+## 2026-08-30 (evening)
+- Fixed a real bug: games were being filed under whatever week was "current" at pull time, instead of the week matching their own kickoff date. This meant any game whose odds got posted early (next week's games, for example) would get permanently stuck under the wrong week forever, even after the calendar rolled over
+- Every odds pull now assigns each game to its own correct week, and self-corrects any previously-misfiled game on every subsequent pull
+- Hardened `wipe-week-zero` to require an explicit `?confirm=yes-wipe-week-0` - a plain visit or link-preview fetch can no longer trigger it
+- Added `debug-weeks` diagnostic endpoint to inspect data counts per week
+- Removed remaining "side picks" wording from the rules page
+
 ## 2026-08-30 (later)
 - **New: Rules / How This Works page** at `/rules`, linked in nav - combines game rules, lock timing, money structure, and a site navigation guide in one place
 - **New: odds/juice display** - spreads, totals, and dog picks now show their price (e.g. `-110`) both live and once locked, on the pick sheet and the board, so lines can be eyeballed for being "too juiced"

@@ -1,16 +1,13 @@
 // app/api/pull-odds/route.ts
 import { NextResponse } from "next/server";
 import { pullOdds } from "@/lib/pullOdds";
-import { getOrCreateCurrentWeek } from "@/lib/currentWeek";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const type = (searchParams.get("type") as "early" | "lock") || "early";
 
-  const week = await getOrCreateCurrentWeek();
-
   try {
-    const { results, unmatchedTeams, espnTeamsFetched } = await pullOdds(type, week.id);
+    const { results, unmatchedTeams, espnTeamsFetched } = await pullOdds(type);
     return NextResponse.json({
       ok: true,
       snapshotType: type,
