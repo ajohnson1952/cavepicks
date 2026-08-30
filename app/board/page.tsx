@@ -98,7 +98,7 @@ export default async function BoardPage() {
               {dogPick ? (dogPick.locked ? "locked" : "picked") : "\u2014"}
             </div>
             <div className="divider" />
-            {sidePicks.length === 0 && <p className="subtext" style={{ margin: 0 }}>No side picks yet</p>}
+            {sidePicks.length === 0 && <p className="subtext" style={{ margin: 0 }}>No picks yet</p>}
             {sidePicks.map((p) => {
               const pickLabel =
                 p.pickType === "SPREAD"
