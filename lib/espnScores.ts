@@ -96,8 +96,18 @@ export async function fetchEspnScoreboard(yyyymmdd: string): Promise<EspnResult[
 }
 
 export function toYyyymmdd(date: Date): string {
-  const y = date.getUTCFullYear();
-  const m = String(date.getUTCMonth() + 1).padStart(2, "0");
-  const d = String(date.getUTCDate()).padStart(2, "0");
+  // Use Central time (matching the rest of the app) rather than raw UTC -
+  // a late West Coast kickoff can land on a different UTC calendar day than
+  // its actual US game date, which caused ESPN to be queried under the
+  // wrong date bucket and return a stale "completed" status for that game.
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/Chicago",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(date);
+  const y = parts.find((p) => p.type === "year")?.value;
+  const m = parts.find((p) => p.type === "month")?.value;
+  const d = parts.find((p) => p.type === "day")?.value;
   return `${y}${m}${d}`;
 }
