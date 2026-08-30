@@ -79,24 +79,27 @@ export async function GET() {
 
     for (const pick of picks) {
       let lockedLine = pick.lockedLine;
+      let lockedOdds = pick.lockedOdds;
       let dogSpreadValue = pick.dogSpreadValue;
 
       // Safety net: if a pick somehow never got locked (sweep missed it),
       // force-lock it now using the last cached line before grading.
       if (!pick.locked && snap) {
         if (pick.pickType === "SPREAD") {
-          lockedLine = pick.selection === game.homeTeam ? snap.spreadHome : snap.spreadAway;
+          const isHome = pick.selection === game.homeTeam;
+          lockedLine = isHome ? snap.spreadHome : snap.spreadAway;
+          lockedOdds = isHome ? snap.spreadHomePrice : snap.spreadAwayPrice;
         } else if (pick.pickType === "TOTAL") {
           lockedLine = snap.total;
+          lockedOdds = pick.selection === "over" ? snap.totalOverPrice : snap.totalUnderPrice;
         } else if (pick.pickType === "DOG") {
-          dogSpreadValue =
-            pick.selection === game.homeTeam
-              ? Math.abs(snap.spreadHome ?? 0)
-              : Math.abs(snap.spreadAway ?? 0);
+          const isHome = pick.selection === game.homeTeam;
+          dogSpreadValue = Math.abs((isHome ? snap.spreadHome : snap.spreadAway) ?? 0);
+          lockedOdds = isHome ? snap.mlHome : snap.mlAway;
         }
         await prisma.pick.update({
           where: { id: pick.id },
-          data: { locked: true, lockedAt: new Date(), lockedLine, dogSpreadValue },
+          data: { locked: true, lockedAt: new Date(), lockedLine, lockedOdds, dogSpreadValue },
         });
       }
 

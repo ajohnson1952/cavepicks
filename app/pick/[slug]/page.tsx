@@ -95,7 +95,13 @@ export default async function PickPage({ params }: { params: { slug: string } })
         ? {
             spreadHome: latest.spreadHome,
             spreadAway: latest.spreadAway,
+            spreadHomePrice: latest.spreadHomePrice,
+            spreadAwayPrice: latest.spreadAwayPrice,
             total: latest.total,
+            totalOverPrice: latest.totalOverPrice,
+            totalUnderPrice: latest.totalUnderPrice,
+            mlHome: latest.mlHome,
+            mlAway: latest.mlAway,
             underdogTeam: latest.underdogTeam,
           }
         : null,
@@ -105,12 +111,14 @@ export default async function PickPage({ params }: { params: { slug: string } })
         selection: spreadPick?.selection ?? null,
         locked: !!spreadPick?.locked,
         lockedLine: spreadPick?.lockedLine ?? null,
+        lockedOdds: spreadPick?.lockedOdds ?? null,
       },
       total: {
         pickId: totalPick?.id ?? null,
         selection: totalPick?.selection ?? null,
         locked: !!totalPick?.locked,
         lockedLine: totalPick?.lockedLine ?? null,
+        lockedOdds: totalPick?.lockedOdds ?? null,
       },
       dog: latest?.underdogTeam
         ? {
@@ -118,6 +126,7 @@ export default async function PickPage({ params }: { params: { slug: string } })
             selection: dogPick?.selection ?? null,
             locked: !!dogPick?.locked,
             dogSpreadValue: dogPick?.dogSpreadValue ?? null,
+            lockedOdds: dogPick?.lockedOdds ?? null,
           }
         : null,
       lockedByOthers: lockedByOthersByGame.get(g.id) ?? [],

@@ -2,12 +2,18 @@
 
 import { useEffect, useState } from "react";
 import { unlockPick, clearPick, lockValue, autosaveSelection } from "./actions";
-import { formatSpread } from "@/lib/format";
+import { formatSpread, formatOdds } from "@/lib/format";
 
 type Snap = {
   spreadHome: number | null;
   spreadAway: number | null;
+  spreadHomePrice: number | null;
+  spreadAwayPrice: number | null;
   total: number | null;
+  totalOverPrice: number | null;
+  totalUnderPrice: number | null;
+  mlHome: number | null;
+  mlAway: number | null;
   underdogTeam: string | null;
 };
 
@@ -22,6 +28,7 @@ type PickSlot = {
   selection: string | null;
   locked: boolean;
   lockedLine: number | null;
+  lockedOdds: number | null;
 };
 
 type DogSlot = {
@@ -29,6 +36,7 @@ type DogSlot = {
   selection: string | null;
   locked: boolean;
   dogSpreadValue: number | null;
+  lockedOdds: number | null;
 };
 
 type LockedByOther = {
@@ -223,7 +231,7 @@ export default function PickForm({
                             : g.spread.selection === g.awayTeam
                             ? g.awayAbbr ?? g.spread.selection
                             : g.spread.selection}
-                          {g.spread.lockedLine != null ? ` (${formatSpread(g.spread.lockedLine)})` : ""}
+                          {g.spread.lockedLine != null ? ` (${formatSpread(g.spread.lockedLine)}${g.spread.lockedOdds != null ? ` ${formatOdds(g.spread.lockedOdds)}` : ""})` : ""}
                         </span>
                         <span className="locked-badge">
                           <span className="locked-dot" />
@@ -255,6 +263,9 @@ export default function PickForm({
                           {formatSpread(g.snap.spreadAway)}
                           <MoveIndicator delta={g.movement.spreadAway} />
                         </div>
+                        {g.snap.spreadAwayPrice != null && (
+                          <div className="pill-juice">{formatOdds(g.snap.spreadAwayPrice)}</div>
+                        )}
                       </button>
                       <button
                         type="button"
@@ -269,6 +280,9 @@ export default function PickForm({
                           {formatSpread(g.snap.spreadHome)}
                           <MoveIndicator delta={g.movement.spreadHome} />
                         </div>
+                        {g.snap.spreadHomePrice != null && (
+                          <div className="pill-juice">{formatOdds(g.snap.spreadHomePrice)}</div>
+                        )}
                       </button>
                     </div>
                     {spreadChoice[g.id] && (
@@ -307,7 +321,7 @@ export default function PickForm({
                       <div className="row-between">
                         <span>
                           Total: {g.total.selection}
-                          {g.total.lockedLine != null ? ` (${g.total.lockedLine})` : ""}
+                          {g.total.lockedLine != null ? ` (${g.total.lockedLine}${g.total.lockedOdds != null ? ` ${formatOdds(g.total.lockedOdds)}` : ""})` : ""}
                         </span>
                         <span className="locked-badge">
                           <span className="locked-dot" />
@@ -336,6 +350,9 @@ export default function PickForm({
                           {g.snap.total}
                           <MoveIndicator delta={g.movement.total} />
                         </div>
+                        {g.snap.totalOverPrice != null && (
+                          <div className="pill-juice">{formatOdds(g.snap.totalOverPrice)}</div>
+                        )}
                       </button>
                       <button
                         type="button"
@@ -347,6 +364,9 @@ export default function PickForm({
                           {g.snap.total}
                           <MoveIndicator delta={g.movement.total !== null ? -g.movement.total : null} />
                         </div>
+                        {g.snap.totalUnderPrice != null && (
+                          <div className="pill-juice">{formatOdds(g.snap.totalUnderPrice)}</div>
+                        )}
                       </button>
                     </div>
                     {totalChoice[g.id] && (
@@ -395,7 +415,7 @@ export default function PickForm({
                                 : dog.selection === g.awayTeam
                                 ? g.awayAbbr ?? dog.selection
                                 : dog.selection}
-                              {dog.dogSpreadValue != null ? ` (worth ${dog.dogSpreadValue} pts)` : ""}
+                              {dog.dogSpreadValue != null ? ` (worth ${dog.dogSpreadValue} pts, ${formatOdds(dog.lockedOdds)} ML)` : ""}
                             </span>
                             <span className="locked-badge">
                               <span className="locked-dot" />
@@ -424,6 +444,11 @@ export default function PickForm({
                               ? g.homeAbbr ?? g.snap?.underdogTeam
                               : g.awayAbbr ?? g.snap?.underdogTeam}
                           </div>
+                          {(g.snap?.underdogTeam === g.homeTeam ? g.snap?.mlHome : g.snap?.mlAway) != null && (
+                            <div className="pill-juice">
+                              {formatOdds(g.snap?.underdogTeam === g.homeTeam ? g.snap?.mlHome : g.snap?.mlAway)} ML
+                            </div>
+                          )}
                         </button>
                         {dogChoice === `${g.id}|${g.snap?.underdogTeam}` && (
                           <div style={{ display: "flex", gap: "10px", alignItems: "center", marginTop: "8px" }}>

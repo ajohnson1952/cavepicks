@@ -8,7 +8,11 @@ export type OddsGame = {
   commenceTime: string;
   spreadHome: number | null;
   spreadAway: number | null;
+  spreadHomePrice: number | null;
+  spreadAwayPrice: number | null;
   total: number | null;
+  totalOverPrice: number | null;
+  totalUnderPrice: number | null;
   mlHome: number | null;
   mlAway: number | null;
   favoriteTeam: string | null;
@@ -40,7 +44,12 @@ export async function fetchDraftKingsOdds(): Promise<OddsGame[]> {
     const awaySpread = spreads?.outcomes?.find((o: any) => o.name === g.away_team);
     const homeMl = h2h?.outcomes?.find((o: any) => o.name === g.home_team);
     const awayMl = h2h?.outcomes?.find((o: any) => o.name === g.away_team);
-    const totalOutcome = totals?.outcomes?.[0];
+
+    // Bug fix: totals has TWO outcomes (Over and Under), each with its own
+    // juice - previously we only ever grabbed outcomes[0], silently assuming
+    // both sides carried identical price, which isn't always true.
+    const overOutcome = totals?.outcomes?.find((o: any) => o.name === "Over");
+    const underOutcome = totals?.outcomes?.find((o: any) => o.name === "Under");
 
     let favoriteTeam: string | null = null;
     let underdogTeam: string | null = null;
@@ -56,7 +65,11 @@ export async function fetchDraftKingsOdds(): Promise<OddsGame[]> {
       commenceTime: g.commence_time,
       spreadHome: homeSpread?.point ?? null,
       spreadAway: awaySpread?.point ?? null,
-      total: totalOutcome?.point ?? null,
+      spreadHomePrice: homeSpread?.price ?? null,
+      spreadAwayPrice: awaySpread?.price ?? null,
+      total: overOutcome?.point ?? underOutcome?.point ?? null,
+      totalOverPrice: overOutcome?.price ?? null,
+      totalUnderPrice: underOutcome?.price ?? null,
       mlHome: homeMl?.price ?? null,
       mlAway: awayMl?.price ?? null,
       favoriteTeam,

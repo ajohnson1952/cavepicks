@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/db";
-import { formatSpread } from "@/lib/format";
+import { formatSpread, formatOdds } from "@/lib/format";
 import { getOrCreateCurrentWeek } from "@/lib/currentWeek";
 import { fetchEspnScoreboard, teamNamesMatch, toYyyymmdd } from "@/lib/espnScores";
 
@@ -109,8 +109,8 @@ export default async function BoardPage() {
               const lineNumber =
                 p.lockedLine != null
                   ? p.pickType === "SPREAD"
-                    ? ` (${formatSpread(p.lockedLine)})`
-                    : ` (${p.lockedLine})`
+                    ? ` (${formatSpread(p.lockedLine)}${p.lockedOdds != null ? ` ${formatOdds(p.lockedOdds)}` : ""})`
+                    : ` (${p.lockedLine}${p.lockedOdds != null ? ` ${formatOdds(p.lockedOdds)}` : ""})`
                   : "";
 
               return (
@@ -153,7 +153,7 @@ export default async function BoardPage() {
                     {dogPick.isWin ? `hit \u2014 +${dogPick.pointsEarned} pts` : "missed \u2014 0 pts"}
                   </span>
                 ) : dogPick.locked ? (
-                  <span>{` (worth ${dogPick.dogSpreadValue ?? "?"} pts)`}</span>
+                  <span>{` (worth ${dogPick.dogSpreadValue ?? "?"} pts, ${formatOdds(dogPick.lockedOdds)} ML)`}</span>
                 ) : (
                   <span className="meta"> (open)</span>
                 )}

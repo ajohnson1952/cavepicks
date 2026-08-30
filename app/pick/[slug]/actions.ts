@@ -376,16 +376,21 @@ export async function lockValue(
     locked: boolean;
     lockedAt: Date;
     lockedLine?: number | null;
+    lockedOdds?: number | null;
     dogSpreadValue?: number | null;
   } = { selection, locked: true, lockedAt: new Date() };
 
   if (pickType === "SPREAD") {
-    data.lockedLine = selection === game.homeTeam ? snap.spreadHome : snap.spreadAway;
+    const isHome = selection === game.homeTeam;
+    data.lockedLine = isHome ? snap.spreadHome : snap.spreadAway;
+    data.lockedOdds = isHome ? snap.spreadHomePrice : snap.spreadAwayPrice;
   } else if (pickType === "TOTAL") {
     data.lockedLine = snap.total;
+    data.lockedOdds = selection === "over" ? snap.totalOverPrice : snap.totalUnderPrice;
   } else if (pickType === "DOG") {
-    data.dogSpreadValue =
-      selection === game.homeTeam ? Math.abs(snap.spreadHome ?? 0) : Math.abs(snap.spreadAway ?? 0);
+    const isHome = selection === game.homeTeam;
+    data.dogSpreadValue = Math.abs((isHome ? snap.spreadHome : snap.spreadAway) ?? 0);
+    data.lockedOdds = isHome ? snap.mlHome : snap.mlAway;
   }
 
   await prisma.pick.upsert({
@@ -393,6 +398,7 @@ export async function lockValue(
     update: data,
     create: { userId: user.id, weekId: week.id, gameId, pickType, ...data },
   });
+
 
   revalidatePath(`/pick/${slug}`);
   revalidatePath("/board");

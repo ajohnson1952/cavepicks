@@ -37,6 +37,7 @@ main {
 
 .nav-bar {
   display: flex;
+  flex-wrap: wrap;
   gap: 4px;
   background: var(--panel);
   border-bottom: 1px solid var(--border);
@@ -162,6 +163,13 @@ h1 {
   align-items: center;
   gap: 5px;
   margin-top: 2px;
+}
+
+.pill-juice {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 10px;
+  color: var(--dim);
+  margin-top: 1px;
 }
 
 .pill-btn.selected .pill-value {

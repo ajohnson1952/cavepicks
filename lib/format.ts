@@ -8,3 +8,9 @@ export function formatSpread(value: number | null | undefined): string {
   if (value == null) return "?";
   return value > 0 ? `+${value}` : `${value}`;
 }
+
+// American odds/juice always show an explicit sign - e.g. -110, +150.
+export function formatOdds(value: number | null | undefined): string {
+  if (value == null) return "";
+  return value > 0 ? `+${value}` : `${value}`;
+}

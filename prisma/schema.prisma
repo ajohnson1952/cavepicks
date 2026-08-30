@@ -58,7 +58,11 @@ model OddsSnapshot {
   snapshotType String   // "early" | "lock"
   spreadHome   Float?
   spreadAway   Float?
+  spreadHomePrice Int? // juice on the spread, e.g. -110
+  spreadAwayPrice Int?
   total        Float?
+  totalOverPrice  Int? // juice on the total, e.g. -110
+  totalUnderPrice Int?
   mlHome       Int?
   mlAway       Int?
   favoriteTeam String?
@@ -85,7 +89,7 @@ model Pick {
   selection String   // team name, or "over"/"under" for totals
 
   lockedLine     Float? // spread or total number frozen when this pick was locked
-  lockedOdds     Int?   // ML price frozen (used for DOG picks)
+  lockedOdds     Int?   // juice/ML price frozen at lock time - spread & total juice, or DOG's ML price
   dogSpreadValue Float? // underdog's spread magnitude at lock -> point value if DOG wins
   locked         Boolean   @default(false) // true once manually locked or auto-locked
   lockedAt       DateTime?

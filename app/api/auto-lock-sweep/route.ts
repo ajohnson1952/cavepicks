@@ -31,18 +31,21 @@ export async function GET() {
         locked: boolean;
         lockedAt: Date;
         lockedLine?: number | null;
+        lockedOdds?: number | null;
         dogSpreadValue?: number | null;
       } = { locked: true, lockedAt: new Date() };
 
       if (pick.pickType === "SPREAD") {
-        data.lockedLine = pick.selection === game.homeTeam ? snap.spreadHome : snap.spreadAway;
+        const isHome = pick.selection === game.homeTeam;
+        data.lockedLine = isHome ? snap.spreadHome : snap.spreadAway;
+        data.lockedOdds = isHome ? snap.spreadHomePrice : snap.spreadAwayPrice;
       } else if (pick.pickType === "TOTAL") {
         data.lockedLine = snap.total;
+        data.lockedOdds = pick.selection === "over" ? snap.totalOverPrice : snap.totalUnderPrice;
       } else if (pick.pickType === "DOG") {
-        data.dogSpreadValue =
-          pick.selection === game.homeTeam
-            ? Math.abs(snap.spreadHome ?? 0)
-            : Math.abs(snap.spreadAway ?? 0);
+        const isHome = pick.selection === game.homeTeam;
+        data.dogSpreadValue = Math.abs((isHome ? snap.spreadHome : snap.spreadAway) ?? 0);
+        data.lockedOdds = isHome ? snap.mlHome : snap.mlAway;
       }
 
       await prisma.pick.update({ where: { id: pick.id }, data });

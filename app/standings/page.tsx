@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/db";
-import { WEEKLY_BUYIN, DOG_BUYIN } from "@/lib/pot";
+import { WEEKLY_BUYIN, DOG_BUYIN, DOG_PAYOUTS } from "@/lib/pot";
 
 export const dynamic = "force-dynamic";
 
@@ -205,7 +205,7 @@ export default async function StandingsPage() {
         <div className="matchup">🐕 Cavedogs Leaderboard</div>
         <div className="stat-hero up">${dogPotTotal}</div>
         <p className="subtext" style={{ margin: "0 0 0" }}>
-          Season-long &middot; paid to the leader at year&apos;s end
+          Season-long &middot; ${DOG_PAYOUTS.first}/${DOG_PAYOUTS.second}/${DOG_PAYOUTS.third} to 1st/2nd/3rd at year&apos;s end
         </p>
         <table className="stat-table" style={{ marginTop: "10px" }}>
           <thead>
@@ -216,19 +216,24 @@ export default async function StandingsPage() {
               <th>W</th>
               <th>L</th>
               <th>%</th>
+              <th>Payout</th>
             </tr>
           </thead>
           <tbody>
-            {cavedogsStats.map((s, i) => (
-              <tr key={s.name} className={i === 0 && s.points > 0 ? "rank-first" : undefined}>
-                <td className="rank-cell">{rankLabel(i)}</td>
-                <td>{s.name}</td>
-                <td>{s.points}</td>
-                <td>{s.wins}</td>
-                <td>{s.losses}</td>
-                <td>{s.pct.toFixed(1)}%</td>
-              </tr>
-            ))}
+            {cavedogsStats.map((s, i) => {
+              const payout = i === 0 ? DOG_PAYOUTS.first : i === 1 ? DOG_PAYOUTS.second : i === 2 ? DOG_PAYOUTS.third : 0;
+              return (
+                <tr key={s.name} className={i === 0 && s.points > 0 ? "rank-first" : undefined}>
+                  <td className="rank-cell">{rankLabel(i)}</td>
+                  <td>{s.name}</td>
+                  <td>{s.points}</td>
+                  <td>{s.wins}</td>
+                  <td>{s.losses}</td>
+                  <td>{s.pct.toFixed(1)}%</td>
+                  <td>{payout > 0 && s.points > 0 ? `$${payout}` : "\u2014"}</td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
