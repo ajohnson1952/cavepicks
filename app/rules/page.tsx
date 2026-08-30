@@ -8,7 +8,7 @@ export default function RulesPage() {
         <div className="matchup">The Pick</div>
         <div className="divider" />
         <p style={{ fontSize: "13px", marginBottom: "10px" }}>
-          Each week you make <strong>5 side picks</strong> &mdash; any mix of spread and total picks,
+          Each week you make <strong>5 picks</strong> &mdash; any mix of spread and total picks,
           on any games you want, including doubling up on the same game if you like.
         </p>
         <p style={{ fontSize: "13px", margin: 0 }}>
@@ -55,7 +55,7 @@ export default function RulesPage() {
         <div className="matchup">The Money</div>
         <div className="divider" />
         <p style={{ fontSize: "13px", marginBottom: "10px" }}>
-          <strong>$25/week.</strong> Whoever gets the most of their 5 side picks correct that week
+          <strong>$25/week.</strong> Whoever gets the most of their 5 picks correct that week
           takes the entire pot. Ties don&apos;t split &mdash; the pot rolls into next week and stacks
           with that week&apos;s buy-ins, so a tie week can turn into a bigger pot down the line.
         </p>
