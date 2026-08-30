@@ -450,7 +450,7 @@ export default function PickForm({
                                 : dog.selection === g.awayTeam
                                 ? g.awayAbbr ?? dog.selection
                                 : dog.selection}
-                              {dog.dogSpreadValue != null ? ` (worth ${dog.dogSpreadValue} pts, ${formatOdds(dog.lockedOdds)} ML)` : ""}
+                              {dog.dogSpreadValue != null ? ` (worth ${dog.dogSpreadValue} pts${dog.lockedOdds != null ? `, ${formatOdds(dog.lockedOdds)} ML` : ""})` : ""}
                             </span>
                             <span className="locked-badge">
                               <span className="locked-dot" />

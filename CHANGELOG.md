@@ -2,6 +2,19 @@
 
 All notable changes to Cavepicks, newest first.
 
+## 2026-08-30 (full app review)
+Systematic pass through the entire codebase, checking for structural bugs, dead code, and logic inconsistencies. Found and fixed:
+- **Real bug**: `unlockPick` reset `lockedLine` and `dogSpreadValue` on unlock but forgot `lockedOdds`, leaving stale juice data behind (invisible in the UI currently, but incorrect data hygiene)
+- **Real bug**: if a pick somehow never got a real line locked in (extreme edge case - no odds snapshot ever existed, or even the cached fallback only had null values), grading would silently default to a fake line of 0 instead of excluding the pick fairly. Now skips grading entirely rather than guessing
+- **Display bug**: dog pick locked-detail text showed `", ML"` with an empty gap when odds were unexpectedly null, instead of omitting that part cleanly - fixed on both the pick sheet and board
+- **Dead code removed**: `submitPicks` and `lockSelection` (superseded by `autosaveSelection`/`lockValue`, but never deleted - also carried the old, already-fixed "always use today's calendar week" bug pattern), `lockPick` (superseded by `lockValue`'s exact-on-screen-value locking)
+- **Dead infrastructure removed**: the entire `WeeklyPot` database table and its `resolveWeeklyPot`/`dogPotTotal` helper functions were never actually used anywhere - the pot logic has always been computed fresh from Pick/Game data on every page load instead. Removed the unused model, its relations on User/Week, and the dead functions
+- **Dead CSS removed**: `.locked-detail`, `.pot-amount`, `.status-pill` (+ 3 variants), `.leaderboard-lead` - leftover from earlier iterations of these pages before later refactors, never referenced by any component
+- Verified consistency across all three pick-locking code paths (manual Lock In, auto-lock sweep, grading's safety-net lock) for the `lockedOdds` field
+- Verified the standings page's week-filtering, pot-carry, and current-week-detection logic all still hold correctly given every downstream change (voided games, picking ahead on future weeks, Week 0 exclusion)
+- Verified `WeekNav`, the admin page's own duplicate nav logic, and `Nav.tsx`'s active-path detection are all consistent with each other
+- Confirmed no remaining stale references to any previously-renamed/removed function across the whole app
+
 ## 2026-08-30 (night, cont. 2)
 - Locking is now restricted to the current week only - you can still browse and select picks ahead of time on future weeks, but the Lock In button is hidden (and blocked server-side too, not just in the UI) until that week actually becomes current. Prevents anyone from freezing a line a month out before the market's settled
 - Rules page updated to reflect this

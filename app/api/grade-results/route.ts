@@ -105,6 +105,13 @@ export async function GET() {
         });
       }
 
+      // If there's still no real line to grade against (never locked, and no
+      // usable cached snapshot even as a fallback), don't guess - skip this
+      // pick entirely rather than silently grading it against a fake 0 line.
+      const hasUsableLine =
+        pick.pickType === "DOG" ? dogSpreadValue != null : lockedLine != null;
+      if (!hasUsableLine) continue;
+
       const result = gradePick(
         { homeTeam: game.homeTeam, awayTeam: game.awayTeam, homeScore: match.homeScore, awayScore: match.awayScore },
         { pickType: pick.pickType, selection: pick.selection, lockedLine, dogSpreadValue }

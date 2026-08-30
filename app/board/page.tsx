@@ -181,7 +181,7 @@ export default async function BoardPage({ searchParams }: { searchParams: { week
                     {dogPick.isWin ? `hit \u2014 +${dogPick.pointsEarned} pts` : "missed \u2014 0 pts"}
                   </span>
                 ) : dogPick.locked ? (
-                  <span>{` (worth ${dogPick.dogSpreadValue ?? "?"} pts, ${formatOdds(dogPick.lockedOdds)} ML)`}</span>
+                  <span>{` (worth ${dogPick.dogSpreadValue ?? "?"} pts${dogPick.lockedOdds != null ? `, ${formatOdds(dogPick.lockedOdds)} ML` : ""})`}</span>
                 ) : (
                   <span className="meta"> (open)</span>
                 )}

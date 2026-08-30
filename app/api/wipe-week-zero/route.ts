@@ -41,8 +41,6 @@ export async function GET(request: Request) {
   const snapshotsDeleted = await prisma.oddsSnapshot.deleteMany({ where: { gameId: { in: gameIds } } });
   const gamesDeleted = await prisma.game.deleteMany({ where: { weekId: week.id } });
 
-  await prisma.weeklyPot.deleteMany({ where: { weekId: week.id } }).catch(() => null);
-
   await prisma.week.delete({ where: { id: week.id } });
 
   return NextResponse.json({
