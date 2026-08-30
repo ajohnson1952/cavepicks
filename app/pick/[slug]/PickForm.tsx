@@ -186,6 +186,10 @@ export default function PickForm({
 
       {games.map((g) => {
         const gameFullyLocked = g.pastAutoLock;
+        // A snapshot row can exist with all-null values for a far-future
+        // game before DraftKings has posted real lines - checking g.snap
+        // truthiness alone isn't enough, since that snapshot still exists.
+        const hasOdds = !!g.snap && g.snap.spreadHome != null && g.snap.spreadAway != null && g.snap.total != null;
 
         return (
           <div key={g.id} className="card">
@@ -226,9 +230,9 @@ export default function PickForm({
               </div>
             )}
 
-            {!g.snap && <p className="subtext" style={{ marginTop: "10px" }}>Odds not posted yet.</p>}
+            {!hasOdds && <p className="subtext" style={{ marginTop: "10px" }}>Odds not posted yet for this game.</p>}
 
-            {g.snap && (
+            {hasOdds && g.snap && (
               <>
                 <div className="divider" />
 

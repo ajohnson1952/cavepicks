@@ -2,6 +2,9 @@
 
 All notable changes to Cavepicks, newest first.
 
+## 2026-08-30 (night, cont.)
+- Fixed far-future games showing "?" instead of a clear "odds not posted yet" message. A snapshot row gets created for every game on every pull, even before DraftKings has real numbers - the display was checking whether that snapshot *existed* rather than whether it actually had real values in it
+
 ## 2026-08-30 (night)
 - Players can now pick and lock ahead on future weeks, not just the current one - the per-game auto-lock logic already handled this correctly, so the "current week only" restriction from the last update was unnecessary and has been removed
 - Fixed a real bug this exposed: locking a pick always filed it under today's calendar week regardless of which week the actual game belonged to - now correctly uses the game's own week, so each week's 5 picks + dog pick are tracked independently
