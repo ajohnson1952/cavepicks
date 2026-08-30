@@ -19,14 +19,15 @@ export type EspnResult = {
 // The Odds API and ESPN are two separate vendors with their own internal
 // team IDs - there's no shared standardized identifier between them. This
 // alias table patches known cases where their naming diverges enough that
-// simple substring matching would fail or collide (e.g. two "Miami"s).
-// Add to this as real mismatches turn up - see the unmatched[] diagnostic
-// in the grading route for how to spot them.
+// even the word-overlap matcher below can't bridge them on its own.
+// IMPORTANT: keys should be the FULL distinguishing phrase, not a single
+// generic word - "louisiana" alone previously matched inside "Louisiana
+// Tech Bulldogs" too, silently corrupting an unrelated team's name.
 const NAME_ALIASES: Record<string, string> = {
   "miami (oh)": "miami",
   "miami (fl)": "miami",
   "louisiana-monroe": "ul monroe",
-  "louisiana": "louisiana lafayette",
+  "louisiana ragin cajuns": "louisiana lafayette",
   "appalachian state": "app state",
   "pitt": "pittsburgh",
   "ul lafayette": "louisiana",
@@ -48,6 +49,15 @@ function cleanBase(name: string): string {
     .replace(/\s+/g, " ");
 }
 
+// Splits into words on both spaces AND hyphens, so "Arkansas-Pine Bluff"
+// tokenizes the same way as "Arkansas Pine Bluff" regardless of which
+// punctuation either data source happens to use.
+function tokenize(name: string): string[] {
+  return cleanBase(name)
+    .split(/[\s-]+/)
+    .filter(Boolean);
+}
+
 // Aliases only ever apply to the odds API side of the comparison - applying
 // them to both sides caused double-replacement bugs (e.g. "the citadel"
 // getting the "citadel" alias re-applied to become "the the citadel").
@@ -59,18 +69,31 @@ function applyAliases(cleaned: string): string {
   return cleaned;
 }
 
+// Word-overlap match: a candidate only counts if EVERY one of its words
+// appears as a whole word somewhere in the odds name. This is structurally
+// safer than plain substring containment, which let short names wrongly win
+// against longer, unrelated ones just by being a character-level prefix
+// (e.g. "Arkansas" matching inside "Arkansas Pine Bluff Golden Lions", or
+// "Albany" matching inside the ENTIRELY DIFFERENT school "Albany State").
+function fullWordCoverageScore(oddsTokens: string[], candidateTokens: string[]): number {
+  if (candidateTokens.length === 0) return -1;
+  const allPresent = candidateTokens.every((t) => oddsTokens.includes(t));
+  return allPresent ? candidateTokens.length : -1;
+}
+
 export function teamNamesMatch(oddsApiName: string, espnName: string): boolean {
   const a = applyAliases(cleanBase(oddsApiName));
   const b = cleanBase(espnName);
   if (!a || !b) return false;
-  return a.includes(b) || b.includes(a);
+  if (a === b) return true;
+  const oddsTokens = tokenize(a);
+  const espnTokens = tokenize(b);
+  return fullWordCoverageScore(oddsTokens, espnTokens) > 0 || fullWordCoverageScore(espnTokens, oddsTokens) > 0;
 }
 
-// Generic "find the right one" matcher: an exact name match always wins over
-// a mere substring match. This matters because plain substring matching lets
-// a short name (e.g. "Florida") wrongly win against a longer, more specific
-// one (e.g. "Florida State") just because it's a substring of it. When no
-// exact match exists, prefer the longest (most specific) substring match.
+// Generic "find the right one" matcher: an exact name match always wins.
+// Otherwise, picks whichever candidate has full word coverage AND the most
+// words (most specific) - not just whichever is a character substring.
 export function bestNameMatch<T>(
   oddsApiName: string,
   candidates: T[],
@@ -82,14 +105,20 @@ export function bestNameMatch<T>(
   const exact = candidates.find((c) => cleanBase(getName(c)) === a);
   if (exact) return exact;
 
-  const substringMatches = candidates.filter((c) => {
-    const b = cleanBase(getName(c));
-    return !!b && (a.includes(b) || b.includes(a));
-  });
-  if (substringMatches.length === 0) return null;
+  const oddsTokens = tokenize(a);
+  let best: T | null = null;
+  let bestScore = 0;
 
-  substringMatches.sort((x, y) => getName(y).length - getName(x).length);
-  return substringMatches[0];
+  for (const c of candidates) {
+    const candidateTokens = tokenize(getName(c));
+    const score = fullWordCoverageScore(oddsTokens, candidateTokens);
+    if (score > bestScore) {
+      bestScore = score;
+      best = c;
+    }
+  }
+
+  return best;
 }
 
 export async function fetchEspnScoreboard(yyyymmdd: string): Promise<EspnResult[]> {

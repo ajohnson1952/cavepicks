@@ -92,8 +92,24 @@ export default async function AdminPage({
       {games.map((g) => (
         <div key={g.id} className="card">
           <div className="matchup">
-            {g.awayTeam} @ {g.homeTeam}
+            {g.awayLogo && (
+              <img
+                src={g.awayLogo}
+                alt={g.awayTeam}
+                style={{ width: "16px", height: "16px", objectFit: "contain", verticalAlign: "-3px", marginRight: "5px" }}
+              />
+            )}
+            {g.awayAbbr ?? g.awayTeam} @{" "}
+            {g.homeLogo && (
+              <img
+                src={g.homeLogo}
+                alt={g.homeTeam}
+                style={{ width: "16px", height: "16px", objectFit: "contain", verticalAlign: "-3px", marginRight: "5px" }}
+              />
+            )}
+            {g.homeAbbr ?? g.homeTeam}
           </div>
+          <div className="meta">{g.awayTeam} @ {g.homeTeam}</div>
           <div className="meta">
             {g.commenceTime.toLocaleString("en-US", { timeZone: "America/Chicago", dateStyle: "medium", timeStyle: "short" })}{" "}
             CT

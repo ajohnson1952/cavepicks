@@ -2,6 +2,11 @@
 
 All notable changes to Cavepicks, newest first.
 
+## 2026-08-30 (night, matching overhaul)
+- **Real fix**: replaced substring-containment team matching with word-overlap matching - a candidate now only counts as a match if EVERY one of its words appears as a whole word in the odds API name, not just any character-level substring. This structurally fixes the whole class of "short name wins over longer specific name" bugs: Albany vs Albany State, Arkansas vs Arkansas Pine Bluff, Houston vs Houston Christian, and more, tested against 8 cases before shipping
+- **Real fix**: the `"louisiana"` alias was matching inside ANY team name containing that word - including "Louisiana Tech Bulldogs," silently corrupting it to redirect toward Louisiana-Lafayette. Narrowed to the exact phrase that actually needed it
+- Admin page now shows team logos and abbreviations matching the pick sheet's style, plus the full team names underneath for verification
+
 ## 2026-08-30 (full app review)
 Systematic pass through the entire codebase, checking for structural bugs, dead code, and logic inconsistencies. Found and fixed:
 - **Real bug**: `unlockPick` reset `lockedLine` and `dogSpreadValue` on unlock but forgot `lockedOdds`, leaving stale juice data behind (invisible in the UI currently, but incorrect data hygiene)
