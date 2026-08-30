@@ -46,6 +46,8 @@ model Game {
   homeScore     Int?
   awayScore     Int?
   isFinal       Boolean        @default(false)
+  voided        Boolean        @default(false) // postponed/cancelled - excluded from grading & week completeness
+  voidReason    String?
   oddsSnapshots OddsSnapshot[]
   picks         Pick[]
 }

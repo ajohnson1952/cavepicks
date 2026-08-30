@@ -379,6 +379,16 @@ h1 {
   font-weight: 700;
 }
 
+.admin-input {
+  font-family: inherit;
+  font-size: 13px;
+  background: var(--panel-alt);
+  border: 1px solid var(--border-soft);
+  color: var(--ink);
+  padding: 6px 8px;
+  border-radius: 6px;
+}
+
 .pot-amount {
   font-family: var(--font-mono), ui-monospace, monospace;
   font-size: 34px;

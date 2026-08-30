@@ -40,8 +40,72 @@ function kickoffDisplay(date: Date) {
   );
 }
 
-export default async function BoardPage() {
-  const week = await getOrCreateCurrentWeek();
+import { prisma } from "@/lib/db";
+import { formatSpread, formatOdds } from "@/lib/format";
+import { getOrCreateCurrentWeek, getWeekNumberForDate } from "@/lib/currentWeek";
+import { fetchEspnScoreboard, teamNamesMatch, toYyyymmdd } from "@/lib/espnScores";
+import WeekNav from "../WeekNav";
+
+export const dynamic = "force-dynamic";
+
+function abbr(selection: string, homeTeam: string, homeAbbr: string | null, awayTeam: string, awayAbbr: string | null) {
+  if (selection === homeTeam) return homeAbbr ?? selection;
+  if (selection === awayTeam) return awayAbbr ?? selection;
+  return selection;
+}
+
+function resultClass(graded: boolean, isWin: boolean | null, isPush: boolean | null): string {
+  if (!graded) return "";
+  if (isPush) return "pick-push";
+  if (isWin) return "pick-win";
+  return "pick-loss";
+}
+
+function Logo({ src, alt }: { src: string | null; alt: string }) {
+  if (!src) return null;
+  return (
+    <img
+      src={src}
+      alt={alt}
+      style={{ width: "14px", height: "14px", objectFit: "contain", verticalAlign: "-2px", marginRight: "4px" }}
+    />
+  );
+}
+
+function kickoffDisplay(date: Date) {
+  return (
+    date.toLocaleString("en-US", {
+      timeZone: "America/Chicago",
+      weekday: "short",
+      hour: "numeric",
+      minute: "2-digit",
+    }) + " CT"
+  );
+}
+
+export default async function BoardPage({ searchParams }: { searchParams: { week?: string } }) {
+  await getOrCreateCurrentWeek(); // ensures the current week row exists
+  const currentWeekNumber = getWeekNumberForDate();
+
+  const allWeeksMeta = await prisma.week.findMany({
+    where: { seasonYear: 2026 },
+    orderBy: { weekNumber: "asc" },
+  });
+  const minWeek = allWeeksMeta[0]?.weekNumber ?? currentWeekNumber;
+  const maxWeek = allWeeksMeta[allWeeksMeta.length - 1]?.weekNumber ?? currentWeekNumber;
+  const requestedWeekNumber = searchParams.week ? Number(searchParams.week) : currentWeekNumber;
+  const weekNumber = Math.max(minWeek, Math.min(maxWeek, requestedWeekNumber));
+  const week = allWeeksMeta.find((w) => w.weekNumber === weekNumber);
+
+  if (!week) {
+    return (
+      <main>
+        <h1>The Board</h1>
+        <WeekNav basePath="/board" weekNumber={weekNumber} minWeek={minWeek} maxWeek={maxWeek} isCurrent={weekNumber === currentWeekNumber} />
+        <p className="subtext">No games found for week {weekNumber}.</p>
+      </main>
+    );
+  }
 
   const users = await prisma.user.findMany({ orderBy: { name: "asc" } });
   const picks = await prisma.pick.findMany({
@@ -82,6 +146,7 @@ export default async function BoardPage() {
   return (
     <main>
       <h1>The Board</h1>
+      <WeekNav basePath="/board" weekNumber={weekNumber} minWeek={minWeek} maxWeek={maxWeek} isCurrent={weekNumber === currentWeekNumber} />
       <p className="subtext">Week {week.weekNumber} &middot; everyone&apos;s picks, live.</p>
 
       {users.map((u) => {
@@ -123,8 +188,13 @@ export default async function BoardPage() {
                   <Logo src={p.game.homeLogo} alt={p.game.homeTeam} />
                   {p.game.homeAbbr ?? p.game.homeTeam} &mdash; {pickLabel}
                   {lineNumber}
-                  {!p.locked && !p.graded && <span className="meta"> (open)</span>}
-                  {isLive && !p.graded && (
+                  {p.game.voided && (
+                    <span className="meta" style={{ color: "#b98f42" }}>
+                      {` (voided \u2014 ${p.game.voidReason})`}
+                    </span>
+                  )}
+                  {!p.game.voided && !p.locked && !p.graded && <span className="meta"> (open)</span>}
+                  {!p.game.voided && isLive && !p.graded && (
                     <span className="live-badge" style={{ marginLeft: "6px" }}>
                       <span className="live-dot" /> LIVE
                     </span>

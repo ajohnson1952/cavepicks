@@ -42,7 +42,11 @@ export default async function StandingsPage() {
 
   for (const week of weeks) {
     const weekGames = allGames.filter((g) => g.weekId === week.id);
-    const weekFullyGraded = weekGames.length > 0 && weekGames.every((g) => g.isFinal);
+    // Voided (postponed/cancelled) games don't count toward completeness -
+    // otherwise one postponed game would permanently block that week's pot
+    // from ever resolving.
+    const countableGames = weekGames.filter((g) => !g.voided);
+    const weekFullyGraded = countableGames.length > 0 && countableGames.every((g) => g.isFinal);
 
     const weekPicks = allPicks.filter(
       (p) => p.weekId === week.id && (p.pickType === "SPREAD" || p.pickType === "TOTAL")

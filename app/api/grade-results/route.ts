@@ -12,7 +12,7 @@ export async function GET() {
   // week boundaries means a late Monday-night game from last week still gets
   // graded even after the calendar has already rolled into a new week.
   const games = await prisma.game.findMany({
-    where: { isFinal: false, commenceTime: { lte: new Date() } },
+    where: { isFinal: false, voided: false, commenceTime: { lte: new Date() } },
     include: { oddsSnapshots: { orderBy: { capturedAt: "desc" }, take: 1 } },
   });
 

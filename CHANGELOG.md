@@ -2,6 +2,12 @@
 
 All notable changes to Cavepicks, newest first.
 
+## 2026-08-30 (evening, big update)
+- **New: postponed/cancelled game handling.** Games can be marked "voided" - they no longer block their whole week's pot from resolving, and no picks on them ever get graded (no win/loss/push either way)
+- **New: Admin page** at `/admin`, password-protected (set `ADMIN_PASSWORD` as an env var). Lets you void a postponed game with a reason, un-void it, or manually set a final score (which immediately grades every pick on that game) - for fixing exceptions the automatic pipeline can't handle on its own
+- **New: Week navigation** (&larr; Prev / Week N / Next &rarr;) added to both My Picks and The Board. Past and future weeks show a read-only view; only the actual current week is interactive for picking/locking
+- Fixed 3 more instances of the same JSX-unicode-escape bug from earlier (em-dashes rendering as literal `\u2014` text instead of the actual character) - found via systematic sweep before shipping this time, not by trial and error
+
 ## 2026-08-30 (afternoon)
 - Fixed three real bugs on the standings page, found via a live page fetch that caught a literal blank ("Week 1:  won $350" with no name) proving future/unplayed weeks were being misread as "someone won":
   1. Pot History now correctly distinguishes "hasn't happened yet" from "tied" from "someone won" - previously any ungraded future week silently fell through to the "won" branch with a null winner
