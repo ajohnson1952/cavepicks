@@ -3,6 +3,13 @@ import { WEEKLY_BUYIN, DOG_BUYIN } from "@/lib/pot";
 
 export const dynamic = "force-dynamic";
 
+function rankLabel(i: number): string {
+  if (i === 0) return "🥇";
+  if (i === 1) return "🥈";
+  if (i === 2) return "🥉";
+  return String(i + 1);
+}
+
 export default async function StandingsPage() {
   const weeks = await prisma.week.findMany({
     where: { seasonYear: 2026 },
@@ -110,13 +117,11 @@ export default async function StandingsPage() {
       <h1>Standings</h1>
       <p className="subtext">Weekly pot, season records, and the dog race.</p>
 
-      <div className="card">
-        <div className="row-between">
-          <div className="matchup">Weekly Pot</div>
-          <div className="meta mono">${currentWeek?.potAmount ?? 0}</div>
-        </div>
+      <div className="card card-accent-money">
+        <div className="matchup">💰 Weekly Pot</div>
+        <div className="stat-hero">${currentWeek?.potAmount ?? 0}</div>
         {currentWeek && (
-          <p className="subtext" style={{ margin: "4px 0 0" }}>
+          <p className="subtext" style={{ margin: "0 0 0" }}>
             Week {currentWeek.weekNumber} &middot;{" "}
             {currentWeek.inProgress
               ? "in progress"
@@ -126,36 +131,45 @@ export default async function StandingsPage() {
           </p>
         )}
         <div className="divider" />
-        {currentWeek?.standings.map((s) => (
-          <div key={s.name} style={{ fontSize: "13px", marginBottom: "4px" }}>
-            {s.name} <span className="mono" style={{ color: "var(--dim)" }}>{s.correct}/5</span>
+        {currentWeek?.standings.map((s, i) => (
+          <div
+            key={s.name}
+            className="row-between"
+            style={{ fontSize: "13px", marginBottom: "4px" }}
+          >
+            <span>{s.name}</span>
+            <span className="mono" style={{ color: i === 0 && s.correct > 0 ? "var(--up)" : "var(--dim)" }}>
+              {s.correct}/5
+            </span>
           </div>
         ))}
       </div>
 
       <div className="card">
-        <div className="matchup">Cavepicks Leaderboard</div>
+        <div className="matchup">📊 Cavepicks Leaderboard</div>
         <p className="subtext" style={{ margin: "4px 0 0" }}>Season record, spread &amp; total picks</p>
         <table className="stat-table">
           <thead>
             <tr>
+              <th>#</th>
               <th>Name</th>
-              <th>Weeks Won</th>
-              <th>Wins</th>
-              <th>Pushes</th>
-              <th>Losses</th>
+              <th>Weeks</th>
+              <th>W</th>
+              <th>P</th>
+              <th>L</th>
               <th>%</th>
             </tr>
           </thead>
           <tbody>
-            {cavepicksStats.map((s) => (
-              <tr key={s.name}>
+            {cavepicksStats.map((s, i) => (
+              <tr key={s.name} className={i === 0 && s.pct > 0 ? "rank-first" : undefined}>
+                <td className="rank-cell">{rankLabel(i)}</td>
                 <td>{s.name}</td>
                 <td>{s.weeksWon}</td>
                 <td>{s.wins}</td>
                 <td>{s.pushes}</td>
                 <td>{s.losses}</td>
-                <td>{s.pct.toFixed(2)}%</td>
+                <td>{s.pct.toFixed(1)}%</td>
               </tr>
             ))}
           </tbody>
@@ -164,7 +178,7 @@ export default async function StandingsPage() {
 
       {weekResults.length > 1 && (
         <div className="card">
-          <div className="matchup">Pot History</div>
+          <div className="matchup">📜 Pot History</div>
           <div className="divider" />
           {weekResults
             .slice(0, -1)
@@ -187,32 +201,32 @@ export default async function StandingsPage() {
         </div>
       )}
 
-      <div className="card">
-        <div className="matchup">Cavedogs Leaderboard</div>
-        <p className="subtext" style={{ margin: "4px 0 0" }}>
-          Season-long &middot; ${dogPotTotal} pot paid to the leader at year&apos;s end
+      <div className="card card-accent-dog">
+        <div className="matchup">🐕 Cavedogs Leaderboard</div>
+        <div className="stat-hero up">${dogPotTotal}</div>
+        <p className="subtext" style={{ margin: "0 0 0" }}>
+          Season-long &middot; paid to the leader at year&apos;s end
         </p>
-        <table className="stat-table">
+        <table className="stat-table" style={{ marginTop: "10px" }}>
           <thead>
             <tr>
+              <th>#</th>
               <th>Name</th>
-              <th>Points</th>
-              <th>Wins</th>
-              <th>Losses</th>
+              <th>Pts</th>
+              <th>W</th>
+              <th>L</th>
               <th>%</th>
             </tr>
           </thead>
           <tbody>
             {cavedogsStats.map((s, i) => (
-              <tr key={s.name}>
-                <td>
-                  {i === 0 && s.points > 0 ? "\ud83c\udfc6 " : ""}
-                  {s.name}
-                </td>
+              <tr key={s.name} className={i === 0 && s.points > 0 ? "rank-first" : undefined}>
+                <td className="rank-cell">{rankLabel(i)}</td>
+                <td>{s.name}</td>
                 <td>{s.points}</td>
                 <td>{s.wins}</td>
                 <td>{s.losses}</td>
-                <td>{s.pct.toFixed(2)}%</td>
+                <td>{s.pct.toFixed(1)}%</td>
               </tr>
             ))}
           </tbody>

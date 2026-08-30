@@ -336,3 +336,81 @@ h1 {
 .stat-table tr:last-child td {
   border-bottom: none;
 }
+
+.card-accent-money {
+  border-left: 3px solid var(--action);
+}
+
+.card-accent-dog {
+  border-left: 3px solid var(--up);
+}
+
+.stat-hero {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 34px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--action-soft);
+  margin: 4px 0 2px;
+}
+
+.stat-hero.up {
+  color: var(--up);
+}
+
+.rank-cell {
+  width: 22px;
+  text-align: center !important;
+  font-size: 13px;
+}
+
+.stat-table tr.rank-first td {
+  background: rgba(61, 220, 122, 0.08);
+  color: var(--up);
+  font-weight: 700;
+}
+
+.pot-amount {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 34px;
+  font-weight: 800;
+  color: var(--action-soft);
+  letter-spacing: -0.01em;
+  line-height: 1.1;
+}
+
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  padding: 3px 9px;
+  border-radius: 20px;
+}
+
+.status-pill.won {
+  background: rgba(61, 220, 122, 0.14);
+  color: var(--up);
+}
+
+.status-pill.rollover {
+  background: rgba(198, 150, 60, 0.16);
+  color: #d9a94a;
+}
+
+.status-pill.progress {
+  background: rgba(47, 107, 255, 0.14);
+  color: var(--action-soft);
+}
+
+.leaderboard-lead td {
+  background: rgba(47, 107, 255, 0.07);
+}
+
+.leaderboard-lead td:first-child {
+  font-weight: 700;
+  color: var(--ink);
+}
