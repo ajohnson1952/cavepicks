@@ -90,12 +90,6 @@ export default async function PickPage({ params }: { params: { slug: string } })
           dateStyle: "medium",
           timeStyle: "short",
         }) + " CT",
-      autoLockDisplay:
-        new Date(g.commenceTime.getTime() - 30 * 60_000).toLocaleString("en-US", {
-          timeZone: "America/Chicago",
-          dateStyle: "medium",
-          timeStyle: "short",
-        }) + " CT",
       pastAutoLock: isPastAutoLock(g.commenceTime),
       snap: latest
         ? {
@@ -134,7 +128,9 @@ export default async function PickPage({ params }: { params: { slug: string } })
     <main>
       <h1>{user.name}&apos;s picks</h1>
       <p className="subtext">
-        {lockedSideCount}/5 side picks locked &middot; dog pick {lockedDogPick ? "locked" : "not locked"}
+        {lockedSideCount}/5 picks locked &middot; dog pick {lockedDogPick ? "locked" : "not locked"}
+        <br />
+        Games lock automatically 30 minutes before kickoff if not locked manually.
         <br />
         Last updated:{" "}
         {lastUpdated

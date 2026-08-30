@@ -49,7 +49,6 @@ type GameView = {
   awayLogo: string | null;
   broadcast: string | null;
   kickoffDisplay: string;
-  autoLockDisplay: string;
   pastAutoLock: boolean;
   snap: Snap | null;
   movement: Movement;
@@ -180,9 +179,6 @@ export default function PickForm({
                 {g.broadcast ? ` \u00b7 ${g.broadcast}` : ""}
               </div>
             </div>
-            <div className="meta" style={{ marginTop: "2px" }}>
-              Auto-locks {g.autoLockDisplay}
-            </div>
 
             {g.lockedByOthers.length > 0 && (
               <div style={{ marginTop: "6px" }}>
@@ -195,9 +191,15 @@ export default function PickForm({
                       : o.lockedLine != null
                       ? ` (${o.pickType === "SPREAD" ? formatSpread(o.lockedLine) : o.lockedLine})`
                       : "";
+                  const selectionDisplay =
+                    o.selection === g.homeTeam
+                      ? g.homeAbbr ?? o.selection
+                      : o.selection === g.awayTeam
+                      ? g.awayAbbr ?? o.selection
+                      : o.selection;
                   return (
                     <div key={i} className="banner-note" style={{ marginTop: i === 0 ? 0 : "4px" }}>
-                      {o.name} locked {o.pickType.toLowerCase()}: {o.selection}
+                      {o.name} locked {o.pickType.toLowerCase()}: {selectionDisplay}
                       {num}
                     </div>
                   );
