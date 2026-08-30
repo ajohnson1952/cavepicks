@@ -24,7 +24,7 @@ export async function fetchDraftKingsOdds(): Promise<OddsGame[]> {
     `?regions=us&markets=h2h,spreads,totals&oddsFormat=american` +
     `&bookmakers=${SPORTSBOOK}&apiKey=${apiKey}`;
 
-  const res = await fetch(url);
+  const res = await fetch(url, { cache: "no-store" });
   if (!res.ok) {
     throw new Error(`Odds API error ${res.status}: ${await res.text()}`);
   }

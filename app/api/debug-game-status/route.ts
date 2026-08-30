@@ -13,7 +13,7 @@ export async function GET(request: Request) {
   }
 
   const url = `https://site.api.espn.com/apis/site/v2/sports/football/college-football/scoreboard?dates=${date}`;
-  const res = await fetch(url);
+  const res = await fetch(url, { cache: "no-store" });
   if (!res.ok) {
     return NextResponse.json({ ok: false, error: `ESPN returned ${res.status}` }, { status: 500 });
   }

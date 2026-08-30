@@ -14,7 +14,7 @@ export type EspnTeamInfo = {
 // we pull everyone with a high limit and let name matching do the work.
 export async function fetchEspnTeams(): Promise<EspnTeamInfo[]> {
   const url = "https://site.api.espn.com/apis/site/v2/sports/football/college-football/teams?limit=900";
-  const res = await fetch(url);
+  const res = await fetch(url, { cache: "no-store" });
   if (!res.ok) return [];
 
   const data = await res.json();

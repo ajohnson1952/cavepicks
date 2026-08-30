@@ -66,7 +66,7 @@ export function teamNamesMatch(oddsApiName: string, espnName: string): boolean {
 
 export async function fetchEspnScoreboard(yyyymmdd: string): Promise<EspnResult[]> {
   const url = `https://site.api.espn.com/apis/site/v2/sports/football/college-football/scoreboard?dates=${yyyymmdd}`;
-  const res = await fetch(url);
+  const res = await fetch(url, { cache: "no-store" });
   if (!res.ok) return [];
 
   const data = await res.json();
