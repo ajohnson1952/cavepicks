@@ -2,7 +2,7 @@
 
 import { prisma } from "@/lib/db";
 import { isPastAutoLock, getCurrentWeekBounds } from "@/lib/lock";
-import { getOrCreateCurrentWeek } from "@/lib/currentWeek";
+import { getOrCreateCurrentWeek, getWeekNumberForDate } from "@/lib/currentWeek";
 import { revalidatePath } from "next/cache";
 
 export async function submitPicks(
@@ -356,9 +356,12 @@ export async function lockValue(
   const user = await prisma.user.findUnique({ where: { pickSlug: slug } });
   if (!user) return { error: "Player not found" };
 
-  const game = await prisma.game.findUnique({ where: { id: gameId } });
+  const game = await prisma.game.findUnique({ where: { id: gameId }, include: { week: true } });
   if (!game) return { error: "Game not found" };
   if (isPastAutoLock(game.commenceTime)) return { error: "This game already auto-locked" };
+  if (game.week.weekNumber > getWeekNumberForDate()) {
+    return { error: "Locking isn't open yet for a future week - come back once it's the current week." };
+  }
 
   // The pick belongs to whatever week the GAME is actually in, not
   // whatever week happens to be "current" today - this matters now that

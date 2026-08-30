@@ -2,6 +2,10 @@
 
 All notable changes to Cavepicks, newest first.
 
+## 2026-08-30 (night, cont. 2)
+- Locking is now restricted to the current week only - you can still browse and select picks ahead of time on future weeks, but the Lock In button is hidden (and blocked server-side too, not just in the UI) until that week actually becomes current. Prevents anyone from freezing a line a month out before the market's settled
+- Rules page updated to reflect this
+
 ## 2026-08-30 (night, cont.)
 - Fixed far-future games showing "?" instead of a clear "odds not posted yet" message. A snapshot row gets created for every game on every pull, even before DraftKings has real numbers - the display was checking whether that snapshot *existed* rather than whether it actually had real values in it
 

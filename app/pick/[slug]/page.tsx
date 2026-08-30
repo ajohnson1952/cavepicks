@@ -197,7 +197,7 @@ export default async function PickPage({
           {voidedGames.length > 1 ? "were" : "was"} postponed/cancelled and won&apos;t count.
         </p>
       )}
-      <PickForm slug={params.slug} games={gameViews} hasLockedDog={!!lockedDogPick} />
+      <PickForm slug={params.slug} games={gameViews} hasLockedDog={!!lockedDogPick} isCurrentWeek={isCurrentWeek} />
     </main>
   );
 }

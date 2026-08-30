@@ -47,8 +47,9 @@ export default function RulesPage() {
         <p style={{ fontSize: "13px", margin: 0 }}>
           Use the <strong>&larr; Prev / Next &rarr;</strong> arrows at the top of My Picks or the Board
           to browse any week &mdash; including ones that haven&apos;t started yet, once lines are posted
-          for them. Picking ahead on a future week works exactly the same way and counts as that
-          week&apos;s own separate 5 picks + dog pick, not this week&apos;s.
+          for them. You can select picks ahead of time on a future week, but{" "}
+          <strong>locking only opens once that week actually becomes current</strong> &mdash; this
+          keeps anyone from locking a line a month out before the market&apos;s actually settled.
         </p>
       </div>
 

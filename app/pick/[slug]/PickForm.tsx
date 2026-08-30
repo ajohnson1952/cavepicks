@@ -108,10 +108,12 @@ export default function PickForm({
   slug,
   games,
   hasLockedDog,
+  isCurrentWeek,
 }: {
   slug: string;
   games: GameView[];
   hasLockedDog: boolean;
+  isCurrentWeek: boolean;
 }) {
   const [spreadChoice, setSpreadChoice] = useState<Record<string, "home" | "away" | undefined>>(
     () => computeInitialState(games).spread
@@ -304,23 +306,27 @@ export default function PickForm({
                     </div>
                     {spreadChoice[g.id] && (
                       <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
-                        <button
-                          className="btn btn-lock"
-                          style={{ width: "auto", flex: 1 }}
-                          onClick={async () => {
-                            const isHome = spreadChoice[g.id] === "home";
-                            const value = isHome ? g.homeTeam : g.awayTeam;
-                            const lockedLine = isHome ? g.snap?.spreadHome ?? null : g.snap?.spreadAway ?? null;
-                            const lockedOdds = isHome
-                              ? g.snap?.spreadHomePrice ?? null
-                              : g.snap?.spreadAwayPrice ?? null;
-                            const res = await lockValue(slug, g.id, "SPREAD", value, lockedLine, lockedOdds, null);
-                            if (res.error) setError(res.error);
-                            else setError(null);
-                          }}
-                        >
-                          Lock in
-                        </button>
+                        {isCurrentWeek ? (
+                          <button
+                            className="btn btn-lock"
+                            style={{ width: "auto", flex: 1 }}
+                            onClick={async () => {
+                              const isHome = spreadChoice[g.id] === "home";
+                              const value = isHome ? g.homeTeam : g.awayTeam;
+                              const lockedLine = isHome ? g.snap?.spreadHome ?? null : g.snap?.spreadAway ?? null;
+                              const lockedOdds = isHome
+                                ? g.snap?.spreadHomePrice ?? null
+                                : g.snap?.spreadAwayPrice ?? null;
+                              const res = await lockValue(slug, g.id, "SPREAD", value, lockedLine, lockedOdds, null);
+                              if (res.error) setError(res.error);
+                              else setError(null);
+                            }}
+                          >
+                            Lock in
+                          </button>
+                        ) : (
+                          <span className="meta">Locking opens once this is the current week</span>
+                        )}
                         <button
                           type="button"
                           className="btn btn-ghost"
@@ -393,22 +399,26 @@ export default function PickForm({
                     </div>
                     {totalChoice[g.id] && (
                       <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
-                        <button
-                          className="btn btn-lock"
-                          style={{ width: "auto", flex: 1 }}
-                          onClick={async () => {
-                            const value = totalChoice[g.id];
-                            if (!value) return;
-                            const lockedLine = g.snap?.total ?? null;
-                            const lockedOdds =
-                              value === "over" ? g.snap?.totalOverPrice ?? null : g.snap?.totalUnderPrice ?? null;
-                            const res = await lockValue(slug, g.id, "TOTAL", value, lockedLine, lockedOdds, null);
-                            if (res.error) setError(res.error);
-                            else setError(null);
-                          }}
-                        >
-                          Lock in
-                        </button>
+                        {isCurrentWeek ? (
+                          <button
+                            className="btn btn-lock"
+                            style={{ width: "auto", flex: 1 }}
+                            onClick={async () => {
+                              const value = totalChoice[g.id];
+                              if (!value) return;
+                              const lockedLine = g.snap?.total ?? null;
+                              const lockedOdds =
+                                value === "over" ? g.snap?.totalOverPrice ?? null : g.snap?.totalUnderPrice ?? null;
+                              const res = await lockValue(slug, g.id, "TOTAL", value, lockedLine, lockedOdds, null);
+                              if (res.error) setError(res.error);
+                              else setError(null);
+                            }}
+                          >
+                            Lock in
+                          </button>
+                        ) : (
+                          <span className="meta">Locking opens once this is the current week</span>
+                        )}
                         <button
                           type="button"
                           className="btn btn-ghost"
@@ -477,31 +487,35 @@ export default function PickForm({
                         </button>
                         {dogChoice === `${g.id}|${g.snap?.underdogTeam}` && (
                           <div style={{ display: "flex", gap: "10px", alignItems: "center", marginTop: "8px" }}>
-                            <button
-                              className="btn btn-lock"
-                              style={{ width: "auto", flex: 1 }}
-                              onClick={async () => {
-                                if (!g.snap?.underdogTeam) return;
-                                const isHome = g.snap.underdogTeam === g.homeTeam;
-                                const dogSpreadValue = Math.abs(
-                                  (isHome ? g.snap.spreadHome : g.snap.spreadAway) ?? 0
-                                );
-                                const lockedOdds = isHome ? g.snap.mlHome ?? null : g.snap.mlAway ?? null;
-                                const res = await lockValue(
-                                  slug,
-                                  g.id,
-                                  "DOG",
-                                  g.snap.underdogTeam,
-                                  null,
-                                  lockedOdds,
-                                  dogSpreadValue
-                                );
-                                if (res.error) setError(res.error);
-                                else setError(null);
-                              }}
-                            >
-                              Lock in
-                            </button>
+                            {isCurrentWeek ? (
+                              <button
+                                className="btn btn-lock"
+                                style={{ width: "auto", flex: 1 }}
+                                onClick={async () => {
+                                  if (!g.snap?.underdogTeam) return;
+                                  const isHome = g.snap.underdogTeam === g.homeTeam;
+                                  const dogSpreadValue = Math.abs(
+                                    (isHome ? g.snap.spreadHome : g.snap.spreadAway) ?? 0
+                                  );
+                                  const lockedOdds = isHome ? g.snap.mlHome ?? null : g.snap.mlAway ?? null;
+                                  const res = await lockValue(
+                                    slug,
+                                    g.id,
+                                    "DOG",
+                                    g.snap.underdogTeam,
+                                    null,
+                                    lockedOdds,
+                                    dogSpreadValue
+                                  );
+                                  if (res.error) setError(res.error);
+                                  else setError(null);
+                                }}
+                              >
+                                Lock in
+                              </button>
+                            ) : (
+                              <span className="meta">Locking opens once this is the current week</span>
+                            )}
                             <button
                               type="button"
                               className="btn btn-ghost"
