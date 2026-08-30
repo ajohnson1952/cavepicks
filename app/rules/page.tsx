@@ -39,10 +39,16 @@ export default function RulesPage() {
           later. Different people can end up with different numbers on the same game depending on when
           each of you locked, and that&apos;s expected.
         </p>
-        <p style={{ fontSize: "13px", margin: 0 }}>
+        <p style={{ fontSize: "13px", marginBottom: "10px" }}>
           If you never lock a pick yourself, it <strong>auto-locks 30 minutes before kickoff</strong> at
           whatever the line is at that point. Once a game locks &mdash; by you or automatically &mdash;
           it&apos;s final for that pick.
+        </p>
+        <p style={{ fontSize: "13px", margin: 0 }}>
+          Use the <strong>&larr; Prev / Next &rarr;</strong> arrows at the top of My Picks or the Board
+          to browse any week &mdash; including ones that haven&apos;t started yet, once lines are posted
+          for them. Picking ahead on a future week works exactly the same way and counts as that
+          week&apos;s own separate 5 picks + dog pick, not this week&apos;s.
         </p>
       </div>
 

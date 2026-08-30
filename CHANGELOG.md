@@ -2,6 +2,12 @@
 
 All notable changes to Cavepicks, newest first.
 
+## 2026-08-30 (night)
+- Players can now pick and lock ahead on future weeks, not just the current one - the per-game auto-lock logic already handled this correctly, so the "current week only" restriction from the last update was unnecessary and has been removed
+- Fixed a real bug this exposed: locking a pick always filed it under today's calendar week regardless of which week the actual game belonged to - now correctly uses the game's own week, so each week's 5 picks + dog pick are tracked independently
+- Removed the separate read-only view for past/future weeks entirely - the same interactive pick sheet now handles every week uniformly, since already-started games naturally render as locked via existing logic
+- Rules page updated to explain picking ahead
+
 ## 2026-08-30 (evening, big update)
 - **New: postponed/cancelled game handling.** Games can be marked "voided" - they no longer block their whole week's pot from resolving, and no picks on them ever get graded (no win/loss/push either way)
 - **New: Admin page** at `/admin`, password-protected (set `ADMIN_PASSWORD` as an env var). Lets you void a postponed game with a reason, un-void it, or manually set a final score (which immediately grades every pick on that game) - for fixing exceptions the automatic pipeline can't handle on its own

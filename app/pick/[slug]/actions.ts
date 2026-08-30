@@ -301,13 +301,16 @@ export async function autosaveSelection(
   const user = await prisma.user.findUnique({ where: { pickSlug: slug } });
   if (!user) return { error: "Player not found" };
 
-  const week = await getOrCreateCurrentWeek();
-
   const game = await prisma.game.findUnique({ where: { id: gameId } });
   if (!game) return { error: "Game not found" };
   if (isPastAutoLock(game.commenceTime)) return { error: "This game already auto-locked" };
 
-  const existingPicks = await prisma.pick.findMany({ where: { userId: user.id, weekId: week.id } });
+  // The pick belongs to whatever week the GAME is actually in, not
+  // whatever week happens to be "current" today - this matters now that
+  // players can pick ahead on future weeks' games.
+  const weekId = game.weekId;
+
+  const existingPicks = await prisma.pick.findMany({ where: { userId: user.id, weekId } });
   const existingForSlot = existingPicks.find((p) => p.gameId === gameId && p.pickType === pickType);
 
   if (existingForSlot?.locked) return { error: "Already locked" };
@@ -324,9 +327,9 @@ export async function autosaveSelection(
   }
 
   await prisma.pick.upsert({
-    where: { userId_weekId_gameId_pickType: { userId: user.id, weekId: week.id, gameId, pickType } },
+    where: { userId_weekId_gameId_pickType: { userId: user.id, weekId, gameId, pickType } },
     update: { selection },
-    create: { userId: user.id, weekId: week.id, gameId, pickType, selection },
+    create: { userId: user.id, weekId, gameId, pickType, selection },
   });
 
   revalidatePath(`/pick/${slug}`);
@@ -353,13 +356,16 @@ export async function lockValue(
   const user = await prisma.user.findUnique({ where: { pickSlug: slug } });
   if (!user) return { error: "Player not found" };
 
-  const week = await getOrCreateCurrentWeek();
-
   const game = await prisma.game.findUnique({ where: { id: gameId } });
   if (!game) return { error: "Game not found" };
   if (isPastAutoLock(game.commenceTime)) return { error: "This game already auto-locked" };
 
-  const existingPicks = await prisma.pick.findMany({ where: { userId: user.id, weekId: week.id } });
+  // The pick belongs to whatever week the GAME is actually in, not
+  // whatever week happens to be "current" today - this matters now that
+  // players can pick ahead on future weeks' games.
+  const weekId = game.weekId;
+
+  const existingPicks = await prisma.pick.findMany({ where: { userId: user.id, weekId } });
   const alreadyExists = existingPicks.some((p) => p.gameId === gameId && p.pickType === pickType);
 
   if (!alreadyExists) {
@@ -383,11 +389,10 @@ export async function lockValue(
   };
 
   await prisma.pick.upsert({
-    where: { userId_weekId_gameId_pickType: { userId: user.id, weekId: week.id, gameId, pickType } },
+    where: { userId_weekId_gameId_pickType: { userId: user.id, weekId, gameId, pickType } },
     update: data,
-    create: { userId: user.id, weekId: week.id, gameId, pickType, ...data },
+    create: { userId: user.id, weekId, gameId, pickType, ...data },
   });
-
 
   revalidatePath(`/pick/${slug}`);
   revalidatePath("/board");

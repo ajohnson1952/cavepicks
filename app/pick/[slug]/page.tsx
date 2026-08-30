@@ -1,16 +1,9 @@
 import { prisma } from "@/lib/db";
 import { isPastAutoLock } from "@/lib/lock";
 import { getOrCreateCurrentWeek, getWeekNumberForDate } from "@/lib/currentWeek";
-import { formatSpread, formatOdds } from "@/lib/format";
 import PickForm from "./PickForm";
 import WeekNav from "../../WeekNav";
 import { notFound } from "next/navigation";
-
-function abbr(selection: string, homeTeam: string, homeAbbr: string | null, awayTeam: string, awayAbbr: string | null) {
-  if (selection === homeTeam) return homeAbbr ?? selection;
-  if (selection === awayTeam) return awayAbbr ?? selection;
-  return selection;
-}
 
 export default async function PickPage({
   params,
@@ -56,72 +49,7 @@ export default async function PickPage({
   const pickLookup = new Map<string, (typeof picks)[number]>();
   for (const p of picks) pickLookup.set(`${p.gameId}_${p.pickType}`, p);
 
-  // --- Read-only view for any week other than the current one ---
-  if (!isCurrentWeek) {
-    const sidePicks = picks.filter((p) => p.pickType !== "DOG");
-    const dogPick = picks.find((p) => p.pickType === "DOG");
-    const gameById = new Map(games.map((g) => [g.id, g]));
-
-    return (
-      <main>
-        <h1>{user.name}&apos;s Picks</h1>
-        <WeekNav basePath={`/pick/${params.slug}`} weekNumber={weekNumber} minWeek={minWeek} maxWeek={maxWeek} isCurrent={isCurrentWeek} />
-        <p className="subtext">
-          {weekNumber > currentWeekNumber
-            ? "This week hasn't started yet - come back once it's current to make picks."
-            : "This week has passed - picks shown here are locked in and can't be changed."}
-        </p>
-
-        <div className="card">
-          <div className="matchup">Picks</div>
-          <div className="divider" />
-          {sidePicks.length === 0 && <p className="subtext" style={{ margin: 0 }}>No picks were made this week.</p>}
-          {sidePicks.map((p) => {
-            const g = gameById.get(p.gameId);
-            if (!g) return null;
-            const label = p.pickType === "SPREAD" ? abbr(p.selection, g.homeTeam, g.homeAbbr, g.awayTeam, g.awayAbbr) : p.selection;
-            const lineNumber =
-              p.lockedLine != null
-                ? p.pickType === "SPREAD"
-                  ? ` (${formatSpread(p.lockedLine)}${p.lockedOdds != null ? ` ${formatOdds(p.lockedOdds)}` : ""})`
-                  : ` (${p.lockedLine}${p.lockedOdds != null ? ` ${formatOdds(p.lockedOdds)}` : ""})`
-                : "";
-            const rClass = !p.graded ? "" : p.isPush ? "pick-push" : p.isWin ? "pick-win" : "pick-loss";
-            return (
-              <div key={p.id} className={rClass} style={{ fontSize: "13px", marginBottom: "4px" }}>
-                <span className="mono" style={{ color: rClass ? "inherit" : "var(--dim)" }}>
-                  {p.pickType === "SPREAD" ? "SPRD" : "TOTL"}
-                </span>{" "}
-                {g.awayAbbr ?? g.awayTeam} @ {g.homeAbbr ?? g.homeTeam} &mdash; {label}
-                {lineNumber}
-                {g.voided && <span className="meta" style={{ color: "#b98f42" }}>{` (voided \u2014 ${g.voidReason})`}</span>}
-                {!p.locked && !g.voided && <span className="meta"> (not locked)</span>}
-              </div>
-            );
-          })}
-          {dogPick &&
-            (() => {
-              const g = gameById.get(dogPick.gameId);
-              if (!g) return null;
-              const label = abbr(dogPick.selection, g.homeTeam, g.homeAbbr, g.awayTeam, g.awayAbbr);
-              const rClass = !dogPick.graded ? "" : dogPick.isWin ? "pick-win" : "pick-loss";
-              return (
-                <div className={rClass} style={{ fontSize: "13px", marginTop: "6px" }}>
-                  <span className="mono" style={{ color: "var(--dim)" }}>DOG</span>{" "}
-                  {g.awayAbbr ?? g.awayTeam} @ {g.homeAbbr ?? g.homeTeam} &mdash; {label}
-                  {dogPick.dogSpreadValue != null &&
-                    ` (worth ${dogPick.dogSpreadValue} pts${dogPick.lockedOdds != null ? `, ${formatOdds(dogPick.lockedOdds)} ML` : ""})`}
-                  {g.voided && <span className="meta" style={{ color: "#b98f42" }}>{` (voided \u2014 ${g.voidReason})`}</span>}
-                  {!dogPick.locked && !g.voided && <span className="meta"> (not locked)</span>}
-                </div>
-              );
-            })()}
-        </div>
-      </main>
-    );
-  }
-
-  // --- Full interactive view for the current week ---
+  // --- Full interactive view, for whatever week is currently being viewed ---
   const gameIds = games.map((g) => g.id);
   const lockedPicksEveryone = await prisma.pick.findMany({
     where: { gameId: { in: gameIds }, locked: true, userId: { not: user.id } },
@@ -245,6 +173,14 @@ export default async function PickPage({
         {lockedSideCount}/5 picks locked &middot; dog pick {lockedDogPick ? "locked" : "not locked"}
         <br />
         Games lock automatically 30 minutes before kickoff if not locked manually.
+        {!isCurrentWeek && (
+          <>
+            <br />
+            {weekNumber > currentWeekNumber
+              ? "Picking ahead \u2014 this week has its own separate 5 picks + dog pick, counted independently."
+              : "This week has passed \u2014 anything shown here is locked in for good."}
+          </>
+        )}
         <br />
         Last updated:{" "}
         {lastUpdated
