@@ -27,6 +27,22 @@ export async function fetchEspnTeams(): Promise<EspnTeamInfo[]> {
   }));
 }
 
+// Teams ESPN's /teams endpoint omits entirely (new programs, some FCS) even
+// though they play real games and DO appear on ESPN's /scoreboard. Without
+// this they'd render with no logo and no abbreviation. Keyed by the Odds API
+// name, lowercased. Logo URL follows ESPN's pattern using the team's own id
+// (visible on /scoreboard). Grading still works for these via /scoreboard
+// name-matching in espnScores.ts - this is purely for the logo/abbr.
+const MANUAL_TEAMS: Record<string, EspnTeamInfo> = {
+  "ut rio grande valley vaqueros": {
+    location: "UT Rio Grande Valley",
+    abbreviation: "RGV",
+    logo: "https://a.espncdn.com/i/teamlogos/ncaa/500/292.png",
+  },
+};
+
 export function findEspnTeamInfo(oddsApiTeamName: string, teams: EspnTeamInfo[]): EspnTeamInfo | null {
+  const manual = MANUAL_TEAMS[oddsApiTeamName.toLowerCase().replace(/\s+/g, " ").trim()];
+  if (manual) return manual;
   return bestNameMatch(oddsApiTeamName, teams, (t) => t.location);
 }

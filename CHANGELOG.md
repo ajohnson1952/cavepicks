@@ -2,6 +2,15 @@
 
 All notable changes to Cavepicks, newest first.
 
+## 2026-08-30 (team names)
+- Fixed five team mismatches on the pick sheet / board, all from the Odds API and ESPN naming a school differently:
+  - **Albany** (Odds API sends bare "Albany") now resolves to ESPN's **UAlbany** instead of nothing / the unrelated D-II "Albany State"
+  - **UT Rio Grande Valley** now gets a logo + "RGV" abbreviation. ESPN's team-list endpoint omits UTRGV entirely (brand-new program), so it's a manual entry; grading already worked via the scoreboard endpoint
+  - **Southeastern Louisiana** ("Southeastern Louisiana Lions") now maps to ESPN's "SE Louisiana" instead of collapsing onto plain "Louisiana"
+  - **Houston Christian** ("Houston Baptist Huskies" - the Odds API still uses the pre-rebrand name) now maps to Houston Christian instead of "Houston" (Cougars)
+  - **Louisiana / Ragin' Cajuns** was showing as "LAF" - a stale alias expanded it to "louisiana lafayette", which then collided with the real school "Lafayette" (Leopards). Alias removed; it resolves cleanly to "Louisiana" / UL now
+- Also removed a `ut rio grande valley` alias that pointed at a name ESPN doesn't use, which had been breaking grade-time matching for that game
+
 ## 2026-08-30 (line source)
 - **Transparency**: every game on the pick sheet and every locked pick on both the pick sheet and the board now shows which sportsbook its line came from (e.g. "odds via FanDuel", or "(-6.5 -110, DraftKings)" on a locked pick). New `sourceBook` on each odds snapshot and `lockedBook` frozen onto each pick at lock time (set by all three lock paths - manual, auto-lock sweep, grading safety net; cleared on unlock). Rules page explains the FanDuel-then-DraftKings-then-BetMGM order
 - **Real fix**: odds no longer depend on a single sportsbook. Diagnosed via a new debug endpoint that ~15 Week 1 games (the late-Saturday / Sunday / Monday kickoffs) had no line - not because DraftKings.com hadn't posted them, but because The Odds API's *DraftKings feed* for CFB lags its own site by a day+ for those windows. Switched primary book to FanDuel (earliest, most complete for CFB), but FanDuel has its own occasional gaps (e.g. it was missing UMass @ Rutgers, which DraftKings had). Each pull now requests **FanDuel, DraftKings, and BetMGM in one call** (no extra API cost - billing is markets x regions, not book count) and each game uses the first of those that has a real line. Result: every game that any of the three has priced now shows a number. The pull response and debug endpoint report which book each line came from

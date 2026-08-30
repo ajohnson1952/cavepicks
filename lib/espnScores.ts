@@ -22,12 +22,31 @@ export type EspnResult = {
 // even the word-overlap matcher below can't bridge them on its own.
 // IMPORTANT: keys should be the FULL distinguishing phrase, not a single
 // generic word - "louisiana" alone previously matched inside "Louisiana
-// Tech Bulldogs" too, silently corrupting an unrelated team's name.
+// Tech Bulldogs" too, silently corrupting an unrelated team's name. (A bare
+// single word is only OK when every team name on either side that contains
+// it belongs to the same school - e.g. "albany".)
+// Keys are matched against the Odds API name; values must be a real ESPN
+// team name (or a substring of one) - never invent a value ESPN won't have.
 const NAME_ALIASES: Record<string, string> = {
   "miami (oh)": "miami",
   "miami (fl)": "miami",
   "louisiana-monroe": "ul monroe",
-  "louisiana ragin cajuns": "louisiana lafayette",
+  // NOTE: "Louisiana Ragin Cajuns" (the Odds API name) needs NO alias - its
+  // words already cover ESPN's plain "Louisiana" and nothing else. It used to
+  // be mapped to "louisiana lafayette", which injected the word "lafayette"
+  // and made it collide with the real, unrelated school "Lafayette" (Leopards,
+  // abbr LAF) - that was the "shows as LAF" bug.
+  //
+  // ESPN lists Southeastern Louisiana as "SE Louisiana" - "se" and
+  // "southeastern" don't share a token, so without this the odds name
+  // "Southeastern Louisiana Lions" collapsed onto plain "Louisiana".
+  "southeastern louisiana": "se louisiana",
+  // The Odds API sends bare "Albany"; ESPN has "UAlbany" and the unrelated
+  // D-II "Albany State". Bare "Albany" matched neither cleanly.
+  "albany": "ualbany",
+  // School rebranded Houston Baptist -> Houston Christian; the odds feed
+  // still uses the old name, so it was collapsing onto "Houston" (Cougars).
+  "houston baptist": "houston christian",
   "appalachian state": "app state",
   "pitt": "pittsburgh",
   "ul lafayette": "louisiana",
@@ -35,7 +54,6 @@ const NAME_ALIASES: Record<string, string> = {
   "liu": "long island university",
   "youngstown st": "youngstown state",
   "citadel": "the citadel",
-  "ut rio grande valley": "utrgv",
 };
 
 function cleanBase(name: string): string {
