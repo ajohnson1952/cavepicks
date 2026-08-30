@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/db";
-import { formatSpread, formatOdds } from "@/lib/format";
+import { formatSpread, formatOdds, bookLabel } from "@/lib/format";
 import { getOrCreateCurrentWeek, getWeekNumberForDate } from "@/lib/currentWeek";
 import { fetchEspnScoreboard, teamNamesMatch, toYyyymmdd } from "@/lib/espnScores";
 import WeekNav from "../WeekNav";
@@ -68,7 +68,7 @@ export default async function BoardPage({ searchParams }: { searchParams: { week
   const users = await prisma.user.findMany({ orderBy: { name: "asc" } });
   const picks = await prisma.pick.findMany({
     where: { weekId: week.id },
-    include: { game: true },
+    include: { game: { include: { oddsSnapshots: { orderBy: { capturedAt: "desc" }, take: 1 } } } },
     orderBy: { game: { commenceTime: "asc" } },
   });
 
@@ -129,11 +129,13 @@ export default async function BoardPage({ searchParams }: { searchParams: { week
                   : p.selection;
               const rClass = resultClass(p.graded, p.isWin, p.isPush);
               const isLive = liveGameIds.has(p.game.id);
+              const book = p.lockedBook ?? p.game.oddsSnapshots[0]?.sourceBook ?? null;
+              const bookTag = book ? `, ${bookLabel(book)}` : "";
               const lineNumber =
                 p.lockedLine != null
                   ? p.pickType === "SPREAD"
-                    ? ` (${formatSpread(p.lockedLine)}${p.lockedOdds != null ? ` ${formatOdds(p.lockedOdds)}` : ""})`
-                    : ` (${p.lockedLine}${p.lockedOdds != null ? ` ${formatOdds(p.lockedOdds)}` : ""})`
+                    ? ` (${formatSpread(p.lockedLine)}${p.lockedOdds != null ? ` ${formatOdds(p.lockedOdds)}` : ""}${bookTag})`
+                    : ` (${p.lockedLine}${p.lockedOdds != null ? ` ${formatOdds(p.lockedOdds)}` : ""}${bookTag})`
                   : "";
 
               return (
@@ -181,7 +183,7 @@ export default async function BoardPage({ searchParams }: { searchParams: { week
                     {dogPick.isWin ? `hit \u2014 +${dogPick.pointsEarned} pts` : "missed \u2014 0 pts"}
                   </span>
                 ) : dogPick.locked ? (
-                  <span>{` (worth ${dogPick.dogSpreadValue ?? "?"} pts${dogPick.lockedOdds != null ? `, ${formatOdds(dogPick.lockedOdds)} ML` : ""})`}</span>
+                  <span>{` (worth ${dogPick.dogSpreadValue ?? "?"} pts${dogPick.lockedOdds != null ? `, ${formatOdds(dogPick.lockedOdds)} ML` : ""}${dogPick.lockedBook ? `, ${bookLabel(dogPick.lockedBook)}` : ""})`}</span>
                 ) : (
                   <span className="meta"> (open)</span>
                 )}

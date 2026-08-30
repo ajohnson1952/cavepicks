@@ -57,7 +57,7 @@ export default async function PickPage({
   });
   const lockedByOthersByGame = new Map<
     string,
-    { name: string; pickType: string; selection: string; lockedLine: number | null; dogSpreadValue: number | null }[]
+    { name: string; pickType: string; selection: string; lockedLine: number | null; dogSpreadValue: number | null; lockedBook: string | null }[]
   >();
   for (const p of lockedPicksEveryone) {
     const list = lockedByOthersByGame.get(p.gameId) ?? [];
@@ -67,6 +67,7 @@ export default async function PickPage({
       selection: p.selection,
       lockedLine: p.lockedLine,
       dogSpreadValue: p.dogSpreadValue,
+      lockedBook: p.lockedBook,
     });
     lockedByOthersByGame.set(p.gameId, list);
   }
@@ -133,6 +134,7 @@ export default async function PickPage({
             mlHome: latest.mlHome,
             mlAway: latest.mlAway,
             underdogTeam: latest.underdogTeam,
+            sourceBook: latest.sourceBook,
           }
         : null,
       movement: { spreadHome: spreadHomeMove, spreadAway: spreadAwayMove, total: totalMove },
@@ -142,6 +144,7 @@ export default async function PickPage({
         locked: !!spreadPick?.locked,
         lockedLine: spreadPick?.lockedLine ?? null,
         lockedOdds: spreadPick?.lockedOdds ?? null,
+        lockedBook: spreadPick?.lockedBook ?? null,
       },
       total: {
         pickId: totalPick?.id ?? null,
@@ -149,6 +152,7 @@ export default async function PickPage({
         locked: !!totalPick?.locked,
         lockedLine: totalPick?.lockedLine ?? null,
         lockedOdds: totalPick?.lockedOdds ?? null,
+        lockedBook: totalPick?.lockedBook ?? null,
       },
       dog: latest?.underdogTeam
         ? {
@@ -157,6 +161,7 @@ export default async function PickPage({
             locked: !!dogPick?.locked,
             dogSpreadValue: dogPick?.dogSpreadValue ?? null,
             lockedOdds: dogPick?.lockedOdds ?? null,
+            lockedBook: dogPick?.lockedBook ?? null,
           }
         : null,
       lockedByOthers: lockedByOthersByGame.get(g.id) ?? [],

@@ -101,7 +101,7 @@ export async function GET() {
         }
         await prisma.pick.update({
           where: { id: pick.id },
-          data: { locked: true, lockedAt: new Date(), lockedLine, lockedOdds, dogSpreadValue },
+          data: { locked: true, lockedAt: new Date(), lockedLine, lockedOdds, dogSpreadValue, lockedBook: snap.sourceBook },
         });
       }
 

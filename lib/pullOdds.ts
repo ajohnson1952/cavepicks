@@ -74,6 +74,7 @@ export async function pullOdds(snapshotType: "early" | "lock") {
         mlAway: g.mlAway,
         favoriteTeam: g.favoriteTeam,
         underdogTeam: g.underdogTeam,
+        sourceBook: g.sourceBook,
       },
     });
 
@@ -82,8 +83,15 @@ export async function pullOdds(snapshotType: "early" | "lock") {
       week: gameWeek.weekNumber,
       spreadHome: g.spreadHome,
       total: g.total,
+      sourceBook: g.sourceBook,
     });
   }
 
-  return { results, unmatchedTeams: Array.from(unmatchedTeams), espnTeamsFetched: espnTeams.length };
+  const bookCounts: Record<string, number> = {};
+  for (const r of results) {
+    const key = r.sourceBook ?? "(no line)";
+    bookCounts[key] = (bookCounts[key] ?? 0) + 1;
+  }
+
+  return { results, bookCounts, unmatchedTeams: Array.from(unmatchedTeams), espnTeamsFetched: espnTeams.length };
 }

@@ -23,7 +23,7 @@ export async function unlockPick(slug: string, pickId: string) {
 
   await prisma.pick.update({
     where: { id: pickId },
-    data: { locked: false, lockedAt: null, lockedLine: null, lockedOdds: null, dogSpreadValue: null },
+    data: { locked: false, lockedAt: null, lockedLine: null, lockedOdds: null, dogSpreadValue: null, lockedBook: null },
   });
   revalidatePath(`/pick/${slug}`);
   revalidatePath("/board");
@@ -107,7 +107,8 @@ export async function lockValue(
   selection: string,
   lockedLine: number | null,
   lockedOdds: number | null,
-  dogSpreadValue: number | null
+  dogSpreadValue: number | null,
+  lockedBook: string | null
 ) {
   const user = await prisma.user.findUnique({ where: { pickSlug: slug } });
   if (!user) return { error: "Player not found" };
@@ -145,6 +146,7 @@ export async function lockValue(
     lockedLine,
     lockedOdds,
     dogSpreadValue,
+    lockedBook,
   };
 
   await prisma.pick.upsert({

@@ -1,5 +1,5 @@
 // lib/oddsApi.ts
-import { SPORTSBOOK } from "./lock";
+import { BOOK_PREFERENCE } from "./lock";
 
 export type OddsGame = {
   id: string;
@@ -17,11 +17,31 @@ export type OddsGame = {
   mlAway: number | null;
   favoriteTeam: string | null;
   underdogTeam: string | null;
+  sourceBook: string | null; // which book in BOOK_PREFERENCE this game's line came from
 };
 
-// Pulls NCAAF odds for our single book of record (SPORTSBOOK, see lib/lock.ts)
-// from The Odds API. Games The Odds API returns but that book hasn't priced
-// yet come back with every line field null - callers handle that.
+const marketOutcomes = (book: any, key: string): any[] =>
+  book?.markets?.find((m: any) => m.key === key)?.outcomes ?? [];
+
+// Of the books we requested, pick the one to use for THIS game: walk
+// BOOK_PREFERENCE in order and take the first book that actually has a
+// spread posted, then fall back to first-with-a-total, then first-with-a-
+// moneyline, then just the first book present. Reading every market from a
+// single book keeps the spread and total internally consistent.
+function pickBook(bookmakers: any[]): any | undefined {
+  const ordered = BOOK_PREFERENCE.map((k) => bookmakers?.find((b: any) => b.key === k)).filter(Boolean);
+  return (
+    ordered.find((b) => marketOutcomes(b, "spreads").length) ??
+    ordered.find((b) => marketOutcomes(b, "totals").length) ??
+    ordered.find((b) => marketOutcomes(b, "h2h").length) ??
+    ordered[0]
+  );
+}
+
+// Pulls NCAAF odds from The Odds API for every book in BOOK_PREFERENCE in one
+// call (see lib/lock.ts for why more than one). Games The Odds API returns
+// that none of those books have priced yet come back with every line field
+// null - callers handle that.
 export async function fetchOdds(): Promise<OddsGame[]> {
   const apiKey = process.env.ODDS_API_KEY;
   if (!apiKey) throw new Error("ODDS_API_KEY is not set");
@@ -29,7 +49,7 @@ export async function fetchOdds(): Promise<OddsGame[]> {
   const url =
     `https://api.the-odds-api.com/v4/sports/americanfootball_ncaaf/odds` +
     `?regions=us&markets=h2h,spreads,totals&oddsFormat=american` +
-    `&bookmakers=${SPORTSBOOK}&apiKey=${apiKey}`;
+    `&bookmakers=${BOOK_PREFERENCE.join(",")}&apiKey=${apiKey}`;
 
   const res = await fetch(url, { cache: "no-store" });
   if (!res.ok) {
@@ -38,21 +58,21 @@ export async function fetchOdds(): Promise<OddsGame[]> {
   const data = await res.json();
 
   return data.map((g: any) => {
-    const book = g.bookmakers?.find((b: any) => b.key === SPORTSBOOK);
-    const h2h = book?.markets?.find((m: any) => m.key === "h2h");
-    const spreads = book?.markets?.find((m: any) => m.key === "spreads");
-    const totals = book?.markets?.find((m: any) => m.key === "totals");
+    const book = pickBook(g.bookmakers ?? []);
+    const spreads = marketOutcomes(book, "spreads");
+    const totals = marketOutcomes(book, "totals");
+    const h2h = marketOutcomes(book, "h2h");
 
-    const homeSpread = spreads?.outcomes?.find((o: any) => o.name === g.home_team);
-    const awaySpread = spreads?.outcomes?.find((o: any) => o.name === g.away_team);
-    const homeMl = h2h?.outcomes?.find((o: any) => o.name === g.home_team);
-    const awayMl = h2h?.outcomes?.find((o: any) => o.name === g.away_team);
+    const homeSpread = spreads.find((o: any) => o.name === g.home_team);
+    const awaySpread = spreads.find((o: any) => o.name === g.away_team);
+    const homeMl = h2h.find((o: any) => o.name === g.home_team);
+    const awayMl = h2h.find((o: any) => o.name === g.away_team);
 
     // Bug fix: totals has TWO outcomes (Over and Under), each with its own
     // juice - previously we only ever grabbed outcomes[0], silently assuming
     // both sides carried identical price, which isn't always true.
-    const overOutcome = totals?.outcomes?.find((o: any) => o.name === "Over");
-    const underOutcome = totals?.outcomes?.find((o: any) => o.name === "Under");
+    const overOutcome = totals.find((o: any) => o.name === "Over");
+    const underOutcome = totals.find((o: any) => o.name === "Under");
 
     let favoriteTeam: string | null = null;
     let underdogTeam: string | null = null;
@@ -77,6 +97,7 @@ export async function fetchOdds(): Promise<OddsGame[]> {
       mlAway: awayMl?.price ?? null,
       favoriteTeam,
       underdogTeam,
+      sourceBook: (homeSpread || overOutcome || homeMl) ? book?.key ?? null : null,
     };
   });
 }

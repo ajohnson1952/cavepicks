@@ -35,7 +35,8 @@ export async function GET() {
         lockedLine?: number | null;
         lockedOdds?: number | null;
         dogSpreadValue?: number | null;
-      } = { locked: true, lockedAt: new Date() };
+        lockedBook?: string | null;
+      } = { locked: true, lockedAt: new Date(), lockedBook: snap.sourceBook };
 
       if (pick.pickType === "SPREAD") {
         const isHome = pick.selection === game.homeTeam;

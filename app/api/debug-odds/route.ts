@@ -3,20 +3,20 @@
 // odds snapshots exist and whether the latest one actually has real numbers.
 // Add &live=1 to also hit The Odds API right now and compare - this tells you
 // whether a game with no line is (a) not being returned by the API at all,
-// (b) returned but with no line from our chosen book (SPORTSBOOK) yet, or
-// (c) split into a separate row by an event-id / name mismatch.
+// (b) returned but with no line from any book in BOOK_PREFERENCE yet, or
+// (c) split into a separate row by an event-id / name mismatch. It also
+// breaks down which book each game's line is coming from.
 //
-// Add &probe=1 to do ONE extra unfiltered call (all US books, not just
-// SPORTSBOOK) - for each game with no line right now, it shows which
-// bookmakers The Odds API DOES have spreads for, and whether our book is
-// among them. This distinguishes "the book's own site has it but The Odds
-// API's feed for that book is lagging" from "The Odds API has nothing for
-// this game from anyone yet". Costs a few API credits, use sparingly.
+// Add &probe=1 to do ONE extra unfiltered call (every US book, not just our
+// preference list) - for each game with no line right now, it shows which
+// bookmakers The Odds API DOES have spreads for, and whether one of our
+// preference books is among them (meaning the next pull should fix it).
+// Costs a couple API credits, use sparingly.
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { fetchOdds } from "@/lib/oddsApi";
 import { getWeekNumberForDate } from "@/lib/currentWeek";
-import { SPORTSBOOK } from "@/lib/lock";
+import { BOOK_PREFERENCE } from "@/lib/lock";
 
 export const dynamic = "force-dynamic";
 
@@ -75,9 +75,15 @@ export async function GET(request: Request) {
       (ag) => getWeekNumberForDate(new Date(ag.commenceTime)) === weekNumber
     );
     const dbEventIds = new Set(games.map((g) => g.oddsApiEventId));
+    const bookCounts: Record<string, number> = {};
+    for (const ag of inThisWeek) {
+      const key = ag.sourceBook ?? "(no line)";
+      bookCounts[key] = (bookCounts[key] ?? 0) + 1;
+    }
     live = {
       apiGamesTotalReturned: apiGames.length,
       apiGamesInThisWeek: inThisWeek.length,
+      lineSourceByBook: bookCounts,
       apiGamesInWeekWithNoSpreadOrTotal: inThisWeek
         .filter((ag) => ag.spreadHome == null && ag.total == null)
         .map((ag) => `${ag.awayTeam} @ ${ag.homeTeam}`),
@@ -114,7 +120,7 @@ export async function GET(request: Request) {
         probe = {
           creditsUsed: res.headers.get("x-requests-last") ?? "unknown",
           creditsRemaining: res.headers.get("x-requests-remaining") ?? "unknown",
-          probedBookmaker: SPORTSBOOK,
+          ourBooks: BOOK_PREFERENCE,
           missingGames: missing.map((g) => {
             const e = g.oddsApiEventId ? byEventId.get(g.oddsApiEventId) : undefined;
             const books: { key: string; hasSpreads: boolean; hasTotals: boolean }[] = (e?.bookmakers ?? []).map(
@@ -124,16 +130,16 @@ export async function GET(request: Request) {
                 hasTotals: !!b.markets?.find((m: any) => m.key === "totals")?.outcomes?.length,
               })
             );
-            const ourBook = books.find((b) => b.key === SPORTSBOOK);
+            const ourBookWithSpread = BOOK_PREFERENCE.find((k) => books.find((b) => b.key === k && b.hasSpreads));
             return {
               matchup: `${g.awayTeam} @ ${g.homeTeam}`,
               commenceTime: g.commenceTime.toISOString(),
               foundInProbe: !!e,
               bookmakerCount: books.length,
               booksWithSpreads: books.filter((b) => b.hasSpreads).map((b) => b.key),
-              ourBookPresent: !!ourBook,
-              ourBookHasSpreads: !!ourBook?.hasSpreads,
-              ourBookHasTotals: !!ourBook?.hasTotals,
+              // If this is set, our next pull SHOULD fill this game in - it means
+              // one of our preference books has a spread the last pull missed.
+              ourBookThatShouldCoverIt: ourBookWithSpread ?? null,
             };
           }),
         };

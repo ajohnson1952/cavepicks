@@ -3,7 +3,7 @@
 import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { unlockPick, clearPick, lockValue, autosaveSelection } from "./actions";
-import { formatSpread, formatOdds } from "@/lib/format";
+import { formatSpread, formatOdds, bookLabel } from "@/lib/format";
 
 type Snap = {
   spreadHome: number | null;
@@ -16,6 +16,7 @@ type Snap = {
   mlHome: number | null;
   mlAway: number | null;
   underdogTeam: string | null;
+  sourceBook: string | null;
 };
 
 type Movement = {
@@ -30,6 +31,7 @@ type PickSlot = {
   locked: boolean;
   lockedLine: number | null;
   lockedOdds: number | null;
+  lockedBook: string | null;
 };
 
 type DogSlot = {
@@ -38,6 +40,7 @@ type DogSlot = {
   locked: boolean;
   dogSpreadValue: number | null;
   lockedOdds: number | null;
+  lockedBook: string | null;
 };
 
 type LockedByOther = {
@@ -46,6 +49,7 @@ type LockedByOther = {
   selection: string;
   lockedLine: number | null;
   dogSpreadValue: number | null;
+  lockedBook: string | null;
 };
 
 type GameView = {
@@ -209,18 +213,20 @@ export default function PickForm({
             <div className="meta" style={{ marginTop: "2px" }}>
               {g.kickoffDisplay}
               {g.broadcast ? ` \u00b7 ${g.broadcast}` : ""}
+              {g.snap?.sourceBook ? ` \u00b7 odds via ${bookLabel(g.snap.sourceBook)}` : ""}
             </div>
 
             {g.lockedByOthers.length > 0 && (
               <div style={{ marginTop: "6px" }}>
                 {g.lockedByOthers.map((o, i) => {
+                  const bookTag = o.lockedBook ? `, ${bookLabel(o.lockedBook)}` : "";
                   const num =
                     o.pickType === "DOG"
                       ? o.dogSpreadValue != null
-                        ? ` (worth ${o.dogSpreadValue} pts)`
+                        ? ` (worth ${o.dogSpreadValue} pts${bookTag})`
                         : ""
                       : o.lockedLine != null
-                      ? ` (${o.pickType === "SPREAD" ? formatSpread(o.lockedLine) : o.lockedLine})`
+                      ? ` (${o.pickType === "SPREAD" ? formatSpread(o.lockedLine) : o.lockedLine}${bookTag})`
                       : "";
                   const selectionDisplay =
                     o.selection === g.homeTeam
@@ -256,7 +262,7 @@ export default function PickForm({
                             : g.spread.selection === g.awayTeam
                             ? g.awayAbbr ?? g.spread.selection
                             : g.spread.selection}
-                          {g.spread.lockedLine != null ? ` (${formatSpread(g.spread.lockedLine)}${g.spread.lockedOdds != null ? ` ${formatOdds(g.spread.lockedOdds)}` : ""})` : ""}
+                          {g.spread.lockedLine != null ? ` (${formatSpread(g.spread.lockedLine)}${g.spread.lockedOdds != null ? ` ${formatOdds(g.spread.lockedOdds)}` : ""}${g.spread.lockedBook ? `, ${bookLabel(g.spread.lockedBook)}` : ""})` : ""}
                         </span>
                         <span className="locked-badge">
                           <span className="locked-dot" />
@@ -323,7 +329,7 @@ export default function PickForm({
                               const lockedOdds = isHome
                                 ? g.snap?.spreadHomePrice ?? null
                                 : g.snap?.spreadAwayPrice ?? null;
-                              const res = await lockValue(slug, g.id, "SPREAD", value, lockedLine, lockedOdds, null);
+                              const res = await lockValue(slug, g.id, "SPREAD", value, lockedLine, lockedOdds, null, g.snap?.sourceBook ?? null);
                               if (res.error) setError(res.error);
                               else setError(null);
                             }}
@@ -355,7 +361,7 @@ export default function PickForm({
                       <div className="row-between">
                         <span>
                           Total: {g.total.selection}
-                          {g.total.lockedLine != null ? ` (${g.total.lockedLine}${g.total.lockedOdds != null ? ` ${formatOdds(g.total.lockedOdds)}` : ""})` : ""}
+                          {g.total.lockedLine != null ? ` (${g.total.lockedLine}${g.total.lockedOdds != null ? ` ${formatOdds(g.total.lockedOdds)}` : ""}${g.total.lockedBook ? `, ${bookLabel(g.total.lockedBook)}` : ""})` : ""}
                         </span>
                         <span className="locked-badge">
                           <span className="locked-dot" />
@@ -415,7 +421,7 @@ export default function PickForm({
                               const lockedLine = g.snap?.total ?? null;
                               const lockedOdds =
                                 value === "over" ? g.snap?.totalOverPrice ?? null : g.snap?.totalUnderPrice ?? null;
-                              const res = await lockValue(slug, g.id, "TOTAL", value, lockedLine, lockedOdds, null);
+                              const res = await lockValue(slug, g.id, "TOTAL", value, lockedLine, lockedOdds, null, g.snap?.sourceBook ?? null);
                               if (res.error) setError(res.error);
                               else setError(null);
                             }}
@@ -456,7 +462,7 @@ export default function PickForm({
                                 : dog.selection === g.awayTeam
                                 ? g.awayAbbr ?? dog.selection
                                 : dog.selection}
-                              {dog.dogSpreadValue != null ? ` (worth ${dog.dogSpreadValue} pts${dog.lockedOdds != null ? `, ${formatOdds(dog.lockedOdds)} ML` : ""})` : ""}
+                              {dog.dogSpreadValue != null ? ` (worth ${dog.dogSpreadValue} pts${dog.lockedOdds != null ? `, ${formatOdds(dog.lockedOdds)} ML` : ""}${dog.lockedBook ? `, ${bookLabel(dog.lockedBook)}` : ""})` : ""}
                             </span>
                             <span className="locked-badge">
                               <span className="locked-dot" />
@@ -511,7 +517,8 @@ export default function PickForm({
                                     g.snap.underdogTeam,
                                     null,
                                     lockedOdds,
-                                    dogSpreadValue
+                                    dogSpreadValue,
+                                    g.snap.sourceBook
                                   );
                                   if (res.error) setError(res.error);
                                   else setError(null);

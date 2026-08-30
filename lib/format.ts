@@ -14,3 +14,16 @@ export function formatOdds(value: number | null | undefined): string {
   if (value == null) return "";
   return value > 0 ? `+${value}` : `${value}`;
 }
+
+// The Odds API bookmaker keys -> display names. A line can come from any book
+// in BOOK_PREFERENCE (lib/lock.ts) depending on which one had the game posted
+// when it was pulled or locked - show which, for transparency.
+const BOOK_LABELS: Record<string, string> = {
+  fanduel: "FanDuel",
+  draftkings: "DraftKings",
+  betmgm: "BetMGM",
+};
+export function bookLabel(key: string | null | undefined): string {
+  if (!key) return "";
+  return BOOK_LABELS[key] ?? key;
+}

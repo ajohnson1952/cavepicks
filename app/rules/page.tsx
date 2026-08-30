@@ -34,8 +34,13 @@ export default function RulesPage() {
           you see is live and can move right up until you lock it.
         </p>
         <p style={{ fontSize: "13px", marginBottom: "10px" }}>
-          Hitting <strong>Lock In</strong> freezes whatever line and juice FanDuel is showing at
-          that exact moment &mdash; not what it was when you first opened the page, not what it becomes
+          Lines come from <strong>FanDuel</strong> whenever available; for the occasional game FanDuel
+          hasn&apos;t posted, the site falls back to DraftKings, then BetMGM. Each game (and each locked
+          pick) shows which book its number came from, so you can always check.
+        </p>
+        <p style={{ fontSize: "13px", marginBottom: "10px" }}>
+          Hitting <strong>Lock In</strong> freezes whatever line and juice the sportsbook is showing
+          at that exact moment &mdash; not what it was when you first opened the page, not what it becomes
           later. Different people can end up with different numbers on the same game depending on when
           each of you locked, and that&apos;s expected.
         </p>

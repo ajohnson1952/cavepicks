@@ -9,11 +9,12 @@ export async function GET(request: Request) {
   const type = (searchParams.get("type") as "early" | "lock") || "early";
 
   try {
-    const { results, unmatchedTeams, espnTeamsFetched } = await pullOdds(type);
+    const { results, bookCounts, unmatchedTeams, espnTeamsFetched } = await pullOdds(type);
     return NextResponse.json({
       ok: true,
       snapshotType: type,
       count: results.length,
+      bookCounts,
       results,
       espnTeamsFetched,
       unmatchedTeams,
