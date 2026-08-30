@@ -23,6 +23,12 @@ export default function RulesPage() {
         <div className="matchup">Locking In</div>
         <div className="divider" />
         <p style={{ fontSize: "13px", marginBottom: "10px" }}>
+          A new week&apos;s slate shows up right at <strong>midnight Tuesday, Central time</strong>{" "}
+          &mdash; that&apos;s when the site switches over to that week&apos;s games. Some lines may
+          not be posted by DraftKings yet that early in the week, especially for smaller games, but
+          they&apos;ll fill in as the week goes on.
+        </p>
+        <p style={{ fontSize: "13px", marginBottom: "10px" }}>
           Lines start showing as soon as the site pulls that week&apos;s odds for the first time. From
           that moment on, you can pick and lock any game, any time during the week &mdash; the number
           you see is live and can move right up until you lock it.

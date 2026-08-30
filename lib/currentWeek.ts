@@ -1,15 +1,19 @@
 // lib/currentWeek.ts
 import { prisma } from "./db";
+import { getCurrentWeekBounds } from "./lock";
 
-// Season anchor: the Tuesday that begins Week 1. Week numbers advance every
-// 7 days from here, matching the Tuesday-Monday boundaries in lib/lock.ts.
+// Season anchor: the Tuesday (00:00 Central) that begins Week 0. Week numbers
+// advance every 7 days from here. Derived from getCurrentWeekBounds() so
+// this can never disagree with the Tuesday-Monday boundaries in lib/lock.ts -
+// previously these were two separate, inconsistent date calculations.
 export const SEASON_YEAR = 2026;
-const SEASON_START = new Date("2026-08-25T00:00:00Z");
+const SEASON_WEEK_ZERO_START = getCurrentWeekBounds(new Date("2026-08-25T12:00:00Z")).start;
 
 export function getWeekNumberForDate(date: Date = new Date()): number {
+  const { start } = getCurrentWeekBounds(date);
   const msPerWeek = 7 * 24 * 60 * 60 * 1000;
-  const diff = date.getTime() - SEASON_START.getTime();
-  return Math.max(0, Math.floor(diff / msPerWeek));
+  const diff = start.getTime() - SEASON_WEEK_ZERO_START.getTime();
+  return Math.max(0, Math.round(diff / msPerWeek));
 }
 
 // Auto-creates the week row the first time anything touches a new week -

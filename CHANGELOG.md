@@ -2,6 +2,14 @@
 
 All notable changes to Cavepicks, newest first.
 
+## 2026-08-30 (very late night, cont.)
+- Rules page now explains exactly when a new week's slate appears (midnight Tuesday Central) and that some lines may still be filling in early in the week
+
+## 2026-08-30 (very late night)
+- Fixed a real timezone bug: week boundaries were computed using the server's local time (UTC on Render), not Central time like the rest of the app - meaning the week would have actually rolled over around Monday ~7pm CT instead of the intended Tuesday midnight CT
+- Unified week-number calculation and the Tuesday-Monday display window into one Central-time-aware source of truth (`lib/lock.ts`), so the two can never disagree with each other again like they previously could
+- Verified with explicit test cases against known dates before shipping
+
 ## 2026-08-30 (late night)
 - Fixed a serious bug: none of the 10 API routes were marked as dynamic, meaning Next.js could silently cache a route's entire response and keep replaying the same frozen snapshot forever, never actually re-running the code. Confirmed on `debug-weeks` (identical timestamp on repeat calls) and fixed everywhere at once by adding `export const dynamic = "force-dynamic"` to all 10 routes, removing any ambiguity about which ones Next.js's caching heuristics would or wouldn't affect
 
