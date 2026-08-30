@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { formatSpread } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 
@@ -85,7 +86,9 @@ export default async function BoardPage() {
                   {p.locked ? (
                     <span className="locked-badge" style={{ marginLeft: "6px" }}>
                       <span className="locked-dot" />
-                      <span className="locked-text mono">{p.lockedLine ?? "?"}</span>
+                      <span className="locked-text mono">
+                        {p.pickType === "SPREAD" ? formatSpread(p.lockedLine) : p.lockedLine ?? "?"}
+                      </span>
                     </span>
                   ) : (
                     <span className="meta"> (open)</span>
