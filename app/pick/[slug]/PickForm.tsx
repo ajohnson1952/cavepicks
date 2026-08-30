@@ -189,7 +189,7 @@ export default function PickForm({
       {games.map((g) => {
         const gameFullyLocked = g.pastAutoLock;
         // A snapshot row can exist with all-null values (or only partially
-        // filled) for a game before DraftKings has posted a full line -
+        // filled) for a game before the book has posted a full line -
         // checking g.snap truthiness alone isn't enough, since that snapshot
         // still exists. Spread and total post independently, so gate each
         // one on its own rather than hiding the whole game until both land.

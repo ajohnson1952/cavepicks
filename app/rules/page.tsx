@@ -25,8 +25,8 @@ export default function RulesPage() {
         <p style={{ fontSize: "13px", marginBottom: "10px" }}>
           A new week&apos;s slate shows up right at <strong>midnight Tuesday, Central time</strong>{" "}
           &mdash; that&apos;s when the site switches over to that week&apos;s games. Some lines may
-          not be posted by DraftKings yet that early in the week, especially for smaller games, but
-          they&apos;ll fill in as the week goes on.
+          not be posted by the sportsbook yet that early in the week, especially for smaller games,
+          but they&apos;ll fill in as the week goes on.
         </p>
         <p style={{ fontSize: "13px", marginBottom: "10px" }}>
           Lines start showing as soon as the site pulls that week&apos;s odds for the first time. From
@@ -34,7 +34,7 @@ export default function RulesPage() {
           you see is live and can move right up until you lock it.
         </p>
         <p style={{ fontSize: "13px", marginBottom: "10px" }}>
-          Hitting <strong>Lock In</strong> freezes whatever line and juice DraftKings is showing at
+          Hitting <strong>Lock In</strong> freezes whatever line and juice FanDuel is showing at
           that exact moment &mdash; not what it was when you first opened the page, not what it becomes
           later. Different people can end up with different numbers on the same game depending on when
           each of you locked, and that&apos;s expected.

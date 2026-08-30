@@ -4,7 +4,13 @@
 // odds pull (no live API call needed). Anything still unlocked gets
 // automatically force-locked AUTO_LOCK_MINUTES before that game's kickoff.
 
-export const SPORTSBOOK = "draftkings"; // matches The Odds API's `bookmakers` param value
+// The book whose line cavepicks plays against. FanDuel, not DraftKings:
+// The Odds API's DraftKings feed for CFB consistently lags its own site by
+// a day or more for late-window / Sunday / Monday games, leaving those with
+// no line here. FanDuel has the earliest and most complete coverage in The
+// Odds API, so every game gets a number well before kickoff. Must match one
+// of The Odds API's `bookmakers` keys exactly.
+export const SPORTSBOOK = "fanduel";
 
 export const AUTO_LOCK_MINUTES = 30;
 

@@ -19,7 +19,10 @@ export type OddsGame = {
   underdogTeam: string | null;
 };
 
-export async function fetchDraftKingsOdds(): Promise<OddsGame[]> {
+// Pulls NCAAF odds for our single book of record (SPORTSBOOK, see lib/lock.ts)
+// from The Odds API. Games The Odds API returns but that book hasn't priced
+// yet come back with every line field null - callers handle that.
+export async function fetchOdds(): Promise<OddsGame[]> {
   const apiKey = process.env.ODDS_API_KEY;
   if (!apiKey) throw new Error("ODDS_API_KEY is not set");
 

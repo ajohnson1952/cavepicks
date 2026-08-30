@@ -1,12 +1,12 @@
 // lib/pullOdds.ts
 import { prisma } from "./db";
-import { fetchDraftKingsOdds } from "./oddsApi";
+import { fetchOdds } from "./oddsApi";
 import { fetchEspnTeams, findEspnTeamInfo } from "./espnTeams";
 import { fetchEspnScoreboard, teamNamesMatch, toYyyymmdd, EspnResult } from "./espnScores";
 import { getOrCreateWeekForDate } from "./currentWeek";
 
 export async function pullOdds(snapshotType: "early" | "lock") {
-  const games = await fetchDraftKingsOdds();
+  const games = await fetchOdds();
   const espnTeams = await fetchEspnTeams(); // one call, reused for every game below
   const results = [];
   const unmatchedTeams = new Set<string>();

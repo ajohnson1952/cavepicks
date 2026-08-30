@@ -2,9 +2,10 @@
 
 All notable changes to Cavepicks, newest first.
 
-## 2026-08-30 (partial lines)
-- **Fix**: the pick sheet hid a game entirely ("Odds not posted yet") unless DraftKings had posted the spread *and* the total. Early in the week DK routinely posts one before the other, so plenty of Week 1 games looked like the line "wasn't pulling in" when half of it actually was. The spread and total sections are now gated independently - whichever side has a line shows and is pickable, the other shows nothing until it posts
-- Added `/api/debug-odds?week=N` (add `&live=1`) to inspect, per game, how many snapshots exist, the latest spread/total/ML values, and - live - which games The Odds API is and isn't returning DraftKings lines for right now
+## 2026-08-30 (line source)
+- **Real fix**: switched the book of record from **DraftKings to FanDuel**. Diagnosed via a new debug endpoint that ~15 Week 1 games (all the late-Saturday / Sunday / Monday kickoffs, plus several future-week marquee games) had no line - not because DraftKings.com hadn't posted them, but because The Odds API's *DraftKings feed* for CFB lags its own site by a day or more for those windows. FanDuel had every one of those games, days earlier. Spreads/totals between the two books are near-identical, so this just means lines actually show up when they should. Locking, grading, and the auto-lock sweep all read whatever `SPORTSBOOK` is, so nothing else changed
+- **Fix**: the pick sheet hid a game entirely ("Odds not posted yet") unless the book had posted the spread *and* the total. Early in the week a book can post one before the other, so a game with half a line looked completely blank. Spread and total sections are now gated independently - whichever side has a line shows and is pickable, the other stays hidden until it posts
+- Added `/api/debug-odds?week=N` - per-game snapshot counts and latest values; `&live=1` compares against a fresh pull; `&probe=1` does one all-books call to show which sportsbooks The Odds API has for any still-lineless game
 
 ## 2026-08-30 (night, matching overhaul)
 - **Real fix**: replaced substring-containment team matching with word-overlap matching - a candidate now only counts as a match if EVERY one of its words appears as a whole word in the odds API name, not just any character-level substring. This structurally fixes the whole class of "short name wins over longer specific name" bugs: Albany vs Albany State, Arkansas vs Arkansas Pine Bluff, Houston vs Houston Christian, and more, tested against 8 cases before shipping
