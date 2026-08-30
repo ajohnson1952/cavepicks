@@ -118,5 +118,11 @@ export async function GET() {
     }
   }
 
-  return NextResponse.json({ ok: true, gamesGraded, picksGraded, stillInProgress, unmatched });
+  const debugInfo = games.map((g) => ({
+    matchup: `${g.awayTeam} @ ${g.homeTeam}`,
+    commenceTimeRaw: g.commenceTime.toISOString(),
+    queriedAsDate: toYyyymmdd(g.commenceTime),
+  }));
+
+  return NextResponse.json({ ok: true, gamesGraded, picksGraded, stillInProgress, unmatched, debugInfo });
 }
