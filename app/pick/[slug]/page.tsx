@@ -135,6 +135,12 @@ export default async function PickPage({
             mlAway: latest.mlAway,
             underdogTeam: latest.underdogTeam,
             sourceBook: latest.sourceBook,
+            capturedAtDisplay:
+              latest.capturedAt.toLocaleString("en-US", {
+                timeZone: "America/Chicago",
+                dateStyle: "medium",
+                timeStyle: "short",
+              }) + " CT",
           }
         : null,
       movement: { spreadHome: spreadHomeMove, spreadAway: spreadAwayMove, total: totalMove },

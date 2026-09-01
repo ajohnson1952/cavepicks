@@ -39,6 +39,13 @@ export default function RulesPage() {
           pick) shows which book its number came from, so you can always check.
         </p>
         <p style={{ fontSize: "13px", marginBottom: "10px" }}>
+          The site re-checks the sportsbook a handful of times a day early in the week, then more often
+          as game day gets closer &mdash; on Saturdays it pulls fresh lines roughly every hour, with extra
+          checks in the evening for prime-time and late kickoffs. Every line shows a{" "}
+          <strong>&ldquo;as of&rdquo; timestamp</strong> right next to it, so you can always see exactly
+          how fresh that specific number is before you pick or lock it.
+        </p>
+        <p style={{ fontSize: "13px", marginBottom: "10px" }}>
           Hitting <strong>Lock In</strong> freezes whatever line and juice the sportsbook is showing
           at that exact moment &mdash; not what it was when you first opened the page, not what it becomes
           later. Different people can end up with different numbers on the same game depending on when

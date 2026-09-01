@@ -129,14 +129,33 @@ export default async function BoardPage({ searchParams }: { searchParams: { week
                   : p.selection;
               const rClass = resultClass(p.graded, p.isWin, p.isPush);
               const isLive = liveGameIds.has(p.game.id);
-              const book = p.lockedBook ?? p.game.oddsSnapshots[0]?.sourceBook ?? null;
+              const liveSnap = p.game.oddsSnapshots[0] ?? null;
+              const book = p.lockedBook ?? liveSnap?.sourceBook ?? null;
               const bookTag = book ? `, ${bookLabel(book)}` : "";
-              const lineNumber =
-                p.lockedLine != null
-                  ? p.pickType === "SPREAD"
+
+              // Once locked, always show the frozen number. Otherwise fall
+              // back to the game's current live line so an open pick isn't
+              // shown with no number at all - just make sure it reads as
+              // still-moving, not locked (the "(open)" tag below does that).
+              let lineNumber = "";
+              if (p.lockedLine != null) {
+                lineNumber =
+                  p.pickType === "SPREAD"
                     ? ` (${formatSpread(p.lockedLine)}${p.lockedOdds != null ? ` ${formatOdds(p.lockedOdds)}` : ""}${bookTag})`
-                    : ` (${p.lockedLine}${p.lockedOdds != null ? ` ${formatOdds(p.lockedOdds)}` : ""}${bookTag})`
-                  : "";
+                    : ` (${p.lockedLine}${p.lockedOdds != null ? ` ${formatOdds(p.lockedOdds)}` : ""}${bookTag})`;
+              } else if (liveSnap) {
+                if (p.pickType === "SPREAD") {
+                  const isHome = p.selection === p.game.homeTeam;
+                  const liveLine = isHome ? liveSnap.spreadHome : liveSnap.spreadAway;
+                  const liveOdds = isHome ? liveSnap.spreadHomePrice : liveSnap.spreadAwayPrice;
+                  if (liveLine != null) {
+                    lineNumber = ` (${formatSpread(liveLine)}${liveOdds != null ? ` ${formatOdds(liveOdds)}` : ""}${bookTag})`;
+                  }
+                } else if (liveSnap.total != null) {
+                  const liveOdds = p.selection === "over" ? liveSnap.totalOverPrice : liveSnap.totalUnderPrice;
+                  lineNumber = ` (${liveSnap.total}${liveOdds != null ? ` ${formatOdds(liveOdds)}` : ""}${bookTag})`;
+                }
+              }
 
               return (
                 <div key={p.id} className={rClass} style={{ fontSize: "13px", marginBottom: "4px" }}>
@@ -184,9 +203,25 @@ export default async function BoardPage({ searchParams }: { searchParams: { week
                   </span>
                 ) : dogPick.locked ? (
                   <span>{` (worth ${dogPick.dogSpreadValue ?? "?"} pts${dogPick.lockedOdds != null ? `, ${formatOdds(dogPick.lockedOdds)} ML` : ""}${dogPick.lockedBook ? `, ${bookLabel(dogPick.lockedBook)}` : ""})`}</span>
-                ) : (
-                  <span className="meta"> (open)</span>
-                )}
+                ) : (() => {
+                  // Same live-fallback as side picks: an open dog pick still
+                  // has a current worth-in-points sitting in the game's
+                  // latest snapshot, so show it instead of nothing.
+                  const dogSnap = dogPick.game.oddsSnapshots[0] ?? null;
+                  if (!dogSnap || dogSnap.underdogTeam !== dogPick.selection) {
+                    return <span className="meta"> (open)</span>;
+                  }
+                  const isHome = dogPick.selection === dogPick.game.homeTeam;
+                  const liveWorth = Math.abs((isHome ? dogSnap.spreadHome : dogSnap.spreadAway) ?? 0);
+                  const liveOdds = isHome ? dogSnap.mlHome : dogSnap.mlAway;
+                  const liveBook = dogSnap.sourceBook ? `, ${bookLabel(dogSnap.sourceBook)}` : "";
+                  return (
+                    <span>
+                      {` (worth ${liveWorth} pts${liveOdds != null ? `, ${formatOdds(liveOdds)} ML` : ""}${liveBook})`}
+                      <span className="meta"> (open)</span>
+                    </span>
+                  );
+                })()}
                 {liveGameIds.has(dogPick.game.id) && !dogPick.graded && (
                   <span className="live-badge" style={{ marginLeft: "6px" }}>
                     <span className="live-dot" /> LIVE

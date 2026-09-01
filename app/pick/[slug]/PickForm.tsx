@@ -17,6 +17,7 @@ type Snap = {
   mlAway: number | null;
   underdogTeam: string | null;
   sourceBook: string | null;
+  capturedAtDisplay: string;
 };
 
 type Movement = {
@@ -214,6 +215,7 @@ export default function PickForm({
               {g.kickoffDisplay}
               {g.broadcast ? ` \u00b7 ${g.broadcast}` : ""}
               {g.snap?.sourceBook ? ` \u00b7 odds via ${bookLabel(g.snap.sourceBook)}` : ""}
+              {g.snap?.capturedAtDisplay ? ` \u00b7 line as of ${g.snap.capturedAtDisplay}` : ""}
             </div>
 
             {g.lockedByOthers.length > 0 && (
