@@ -1,7 +1,6 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import { unlockPick, clearPick, lockValue, autosaveSelection } from "./actions";
 import { formatSpread, formatOdds, bookLabel } from "@/lib/format";
 
@@ -128,8 +127,7 @@ export default function PickForm({
   );
   const [dogChoice, setDogChoice] = useState<string | undefined>(() => computeInitialState(games).dog);
   const [error, setError] = useState<string | null>(null);
-  const router = useRouter();
-  const [isRefreshing, startRefresh] = useTransition();
+  const [search, setSearch] = useState("");
 
   useEffect(() => {
     const init = computeInitialState(games);
@@ -175,23 +173,38 @@ export default function PickForm({
     }
   }
 
+  const query = search.trim().toLowerCase();
+  const visibleGames = query
+    ? games.filter(
+        (g) =>
+          g.homeTeam.toLowerCase().includes(query) ||
+          g.awayTeam.toLowerCase().includes(query) ||
+          (g.homeAbbr?.toLowerCase().includes(query) ?? false) ||
+          (g.awayAbbr?.toLowerCase().includes(query) ?? false)
+      )
+    : games;
+
   return (
     <div>
-      <button
-        type="button"
-        className="btn"
-        disabled={isRefreshing}
-        onClick={() => startRefresh(() => router.refresh())}
-        style={{ marginBottom: "12px" }}
-      >
-        {isRefreshing ? "Refreshing\u2026" : "\ud83d\udd04 Refresh lines"}
-      </button>
+      {games.length > 0 && (
+        <input
+          type="text"
+          className="input"
+          placeholder="Search teams\u2026"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          style={{ marginBottom: "12px", width: "100%" }}
+        />
+      )}
 
       {error && <div className="banner-error">{error}</div>}
 
       {games.length === 0 && <p className="subtext">No games in this week&apos;s slate yet.</p>}
+      {games.length > 0 && visibleGames.length === 0 && (
+        <p className="subtext">No games match &ldquo;{search}&rdquo;.</p>
+      )}
 
-      {games.map((g) => {
+      {visibleGames.map((g) => {
         const gameFullyLocked = g.pastAutoLock;
         // A snapshot row can exist with all-null values (or only partially
         // filled) for a game before the book has posted a full line -
@@ -214,8 +227,6 @@ export default function PickForm({
             <div className="meta" style={{ marginTop: "2px" }}>
               {g.kickoffDisplay}
               {g.broadcast ? ` \u00b7 ${g.broadcast}` : ""}
-              {g.snap?.sourceBook ? ` \u00b7 odds via ${bookLabel(g.snap.sourceBook)}` : ""}
-              {g.snap?.capturedAtDisplay ? ` \u00b7 line as of ${g.snap.capturedAtDisplay}` : ""}
             </div>
 
             {g.lockedByOthers.length > 0 && (
@@ -549,6 +560,13 @@ export default function PickForm({
                   );
                 })()}
               </>
+            )}
+
+            {g.snap && (
+              <div className="meta" style={{ marginTop: "8px" }}>
+                {g.snap.sourceBook ? `odds via ${bookLabel(g.snap.sourceBook)} · ` : ""}
+                line as of {g.snap.capturedAtDisplay}
+              </div>
             )}
           </div>
         );

@@ -27,3 +27,14 @@ export function bookLabel(key: string | null | undefined): string {
   if (!key) return "";
   return BOOK_LABELS[key] ?? key;
 }
+
+// Same idea as BOOK_LABELS but short enough for tight spaces like the Board.
+const BOOK_ABBR: Record<string, string> = {
+  fanduel: "FD",
+  draftkings: "DK",
+  betmgm: "MGM",
+};
+export function bookAbbr(key: string | null | undefined): string {
+  if (!key) return "";
+  return BOOK_ABBR[key] ?? key;
+}

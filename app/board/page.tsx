@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/db";
-import { formatSpread, formatOdds, bookLabel } from "@/lib/format";
+import { formatSpread, formatOdds, bookAbbr } from "@/lib/format";
 import { getOrCreateCurrentWeek, getWeekNumberForDate } from "@/lib/currentWeek";
 import { fetchEspnScoreboard, teamNamesMatch, toYyyymmdd } from "@/lib/espnScores";
 import WeekNav from "../WeekNav";
@@ -10,6 +10,16 @@ function abbr(selection: string, homeTeam: string, homeAbbr: string | null, away
   if (selection === homeTeam) return homeAbbr ?? selection;
   if (selection === awayTeam) return awayAbbr ?? selection;
   return selection;
+}
+
+// Builds the trailing "(+3.5 -110, FD)" / "(-110, FD)" parenthetical from
+// whichever pieces exist, so callers don't each hand-roll the join logic.
+function metaParen(numberPart: string | null, oddsVal: number | null | undefined, bookKey: string | null): string {
+  let s = numberPart ?? "";
+  if (oddsVal != null) s += (s ? " " : "") + formatOdds(oddsVal);
+  const abbrev = bookAbbr(bookKey);
+  if (abbrev) s += (s ? ", " : "") + abbrev;
+  return s ? ` (${s})` : "";
 }
 
 function resultClass(graded: boolean, isWin: boolean | null, isPush: boolean | null): string {
@@ -123,37 +133,38 @@ export default async function BoardPage({ searchParams }: { searchParams: { week
             <div className="divider" />
             {sidePicks.length === 0 && <p className="subtext" style={{ margin: 0 }}>No picks yet</p>}
             {sidePicks.map((p) => {
-              const pickLabel =
-                p.pickType === "SPREAD"
-                  ? abbr(p.selection, p.game.homeTeam, p.game.homeAbbr, p.game.awayTeam, p.game.awayAbbr)
-                  : p.selection;
               const rClass = resultClass(p.graded, p.isWin, p.isPush);
               const isLive = liveGameIds.has(p.game.id);
               const liveSnap = p.game.oddsSnapshots[0] ?? null;
               const book = p.lockedBook ?? liveSnap?.sourceBook ?? null;
-              const bookTag = book ? `, ${bookLabel(book)}` : "";
 
               // Once locked, always show the frozen number. Otherwise fall
               // back to the game's current live line so an open pick isn't
               // shown with no number at all - just make sure it reads as
               // still-moving, not locked (the "(open)" tag below does that).
+              let pickLabel: string;
               let lineNumber = "";
-              if (p.lockedLine != null) {
-                lineNumber =
-                  p.pickType === "SPREAD"
-                    ? ` (${formatSpread(p.lockedLine)}${p.lockedOdds != null ? ` ${formatOdds(p.lockedOdds)}` : ""}${bookTag})`
-                    : ` (${p.lockedLine}${p.lockedOdds != null ? ` ${formatOdds(p.lockedOdds)}` : ""}${bookTag})`;
-              } else if (liveSnap) {
-                if (p.pickType === "SPREAD") {
+              if (p.pickType === "SPREAD") {
+                pickLabel = abbr(p.selection, p.game.homeTeam, p.game.homeAbbr, p.game.awayTeam, p.game.awayAbbr);
+                if (p.lockedLine != null) {
+                  lineNumber = metaParen(formatSpread(p.lockedLine), p.lockedOdds, book);
+                } else if (liveSnap) {
                   const isHome = p.selection === p.game.homeTeam;
                   const liveLine = isHome ? liveSnap.spreadHome : liveSnap.spreadAway;
                   const liveOdds = isHome ? liveSnap.spreadHomePrice : liveSnap.spreadAwayPrice;
-                  if (liveLine != null) {
-                    lineNumber = ` (${formatSpread(liveLine)}${liveOdds != null ? ` ${formatOdds(liveOdds)}` : ""}${bookTag})`;
-                  }
-                } else if (liveSnap.total != null) {
+                  if (liveLine != null) lineNumber = metaParen(formatSpread(liveLine), liveOdds, book);
+                }
+              } else {
+                // Fold the number straight into the pick itself - "o51.5" /
+                // "u51.5" - instead of spelling out "over"/"under" and then
+                // repeating the same number again in a parenthetical.
+                const totalLine = p.lockedLine ?? liveSnap?.total ?? null;
+                pickLabel = totalLine != null ? `${p.selection === "over" ? "o" : "u"}${totalLine}` : p.selection;
+                if (p.lockedLine != null) {
+                  lineNumber = metaParen(null, p.lockedOdds, book);
+                } else if (liveSnap?.total != null) {
                   const liveOdds = p.selection === "over" ? liveSnap.totalOverPrice : liveSnap.totalUnderPrice;
-                  lineNumber = ` (${liveSnap.total}${liveOdds != null ? ` ${formatOdds(liveOdds)}` : ""}${bookTag})`;
+                  lineNumber = metaParen(null, liveOdds, book);
                 }
               }
 
@@ -202,7 +213,7 @@ export default async function BoardPage({ searchParams }: { searchParams: { week
                     {dogPick.isWin ? `hit \u2014 +${dogPick.pointsEarned} pts` : "missed \u2014 0 pts"}
                   </span>
                 ) : dogPick.locked ? (
-                  <span>{` (worth ${dogPick.dogSpreadValue ?? "?"} pts${dogPick.lockedOdds != null ? `, ${formatOdds(dogPick.lockedOdds)} ML` : ""}${dogPick.lockedBook ? `, ${bookLabel(dogPick.lockedBook)}` : ""})`}</span>
+                  <span>{` (worth ${dogPick.dogSpreadValue ?? "?"} pts${dogPick.lockedOdds != null ? `, ${formatOdds(dogPick.lockedOdds)} ML` : ""}${dogPick.lockedBook ? `, ${bookAbbr(dogPick.lockedBook)}` : ""})`}</span>
                 ) : (() => {
                   // Same live-fallback as side picks: an open dog pick still
                   // has a current worth-in-points sitting in the game's
@@ -214,7 +225,7 @@ export default async function BoardPage({ searchParams }: { searchParams: { week
                   const isHome = dogPick.selection === dogPick.game.homeTeam;
                   const liveWorth = Math.abs((isHome ? dogSnap.spreadHome : dogSnap.spreadAway) ?? 0);
                   const liveOdds = isHome ? dogSnap.mlHome : dogSnap.mlAway;
-                  const liveBook = dogSnap.sourceBook ? `, ${bookLabel(dogSnap.sourceBook)}` : "";
+                  const liveBook = dogSnap.sourceBook ? `, ${bookAbbr(dogSnap.sourceBook)}` : "";
                   return (
                     <span>
                       {` (worth ${liveWorth} pts${liveOdds != null ? `, ${formatOdds(liveOdds)} ML` : ""}${liveBook})`}

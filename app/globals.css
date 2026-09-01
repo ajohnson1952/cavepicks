@@ -224,6 +224,20 @@ h1 {
   padding: 4px 0;
 }
 
+.input {
+  font-family: inherit;
+  font-size: 13px;
+  padding: 9px 12px;
+  border-radius: 6px;
+  border: 1px solid var(--border-soft);
+  background: var(--panel-alt);
+  color: var(--ink);
+}
+
+.input::placeholder {
+  color: var(--dim);
+}
+
 /* Locked state */
 .locked-badge {
   display: inline-flex;
