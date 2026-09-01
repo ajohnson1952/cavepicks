@@ -1,8 +1,10 @@
 name: Auto-Lock Sweep
 
 on:
-  schedule:
-    - cron: "*/15 * * * *"
+  # Scheduling moved to cron-job.org - GitHub's schedule trigger is
+  # best-effort and was firing ~1/16th as often as configured (every few
+  # hours instead of every 15 min). Kept here only for manual runs from
+  # the Actions tab.
   workflow_dispatch: {}
 
 jobs:

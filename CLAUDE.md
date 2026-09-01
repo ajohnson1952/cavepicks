@@ -60,10 +60,26 @@ Rules page (source of truth for game rules): cavepicks.onrender.com/rules
      the 30-min deadline using the last cached snapshot
   3. `app/api/grade-results/route.ts` - safety net, force-locks any
      straggler right before grading
-- Automation runs via GitHub Actions (`.github/workflows/`), not Render
-  cron - pull-odds (tuned schedule to stay under 500 odds-API credits/month),
-  auto-lock-sweep (every 15 min), grade-results (every 30 min). All hit
-  plain API routes on the live site.
+- Automation is scheduled via **cron-job.org** (18 jobs across 3 endpoints;
+  API key lives in the cron-job.org account, not in this repo), not Render
+  cron or GitHub Actions - GitHub's `schedule:` trigger turned out to be
+  wildly unreliable in practice (fired ~1/16th as often as configured) and
+  was dropped. `.github/workflows/*.yml` still exist for `workflow_dispatch`
+  (manual runs from the Actions tab) but have no schedule trigger anymore.
+  - pull-odds: 12 jobs replicating the tuned weekly pattern (tuned to stay
+    under 500 odds-API credits/month)
+  - auto-lock-sweep: every 15 min (3 jobs covering the active window)
+  - grade-results: every 30 min (3 jobs covering the active window)
+  - All jobs run only **7:30am-12:30am Central** (not 24/7) - Render's free
+    plan caps a workspace at 750 instance-hours/month shared across every
+    free service in that Render account, and pinging around the clock would
+    keep the service permanently awake and risk exhausting that pool
+    (which suspends ALL free services on the account, not just this one).
+    The overnight gap lets it sleep; a visit during that window just eats
+    one ~30-60s cold-start.
+  - All jobs hit plain GET API routes on the live site, timezone
+    `America/Chicago` (DST handled natively by cron-job.org, unlike raw
+    UTC cron strings).
 - `/admin` is password-gated (`ADMIN_PASSWORD` env var) - lets the owner
   void postponed/cancelled games and manually correct scores.
 
