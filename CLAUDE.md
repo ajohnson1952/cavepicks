@@ -3,11 +3,10 @@
 Private college football pick'em site for 7 friends. Next.js 14 (App Router)
 + Prisma + Neon Postgres, hosted on Render free tier, deployed via GitHub.
 
-**The person maintaining this is a coding novice.** No local dev environment,
-no git CLI - they drag files into GitHub's web UI and Render auto-deploys.
-When handing back changes: bundle multi-file updates into one zip preserving
-the exact repo folder structure, and always give a one-line commit message
-to paste into GitHub's commit box.
+**The person maintaining this is a coding novice.** No local dev environment.
+Claude commits and pushes changes directly to `main` on GitHub; Render
+auto-deploys from `main`. Keep commit messages to a single clear line and
+explain what changed in plain terms when handing back.
 
 Live site: cavepicks.onrender.com
 Rules page (source of truth for game rules): cavepicks.onrender.com/rules
@@ -60,17 +59,32 @@ Rules page (source of truth for game rules): cavepicks.onrender.com/rules
      the 30-min deadline using the last cached snapshot
   3. `app/api/grade-results/route.ts` - safety net, force-locks any
      straggler right before grading
-- Automation is scheduled via **cron-job.org** (18 jobs across 3 endpoints;
-  API key lives in the cron-job.org account, not in this repo), not Render
+- Automation is scheduled via **cron-job.org** (18 jobs across 3 endpoints,
+  2 intentionally disabled; API key lives in the cron-job.org account, not
+  in this repo), not Render
   cron or GitHub Actions - GitHub's `schedule:` trigger turned out to be
   wildly unreliable in practice (fired ~1/16th as often as configured) and
   was dropped. `.github/workflows/*.yml` still exist for `workflow_dispatch`
   (manual runs from the Actions tab) but have no schedule trigger anymore.
+  - The three endpoints are scheduled on **distinct minutes so they never
+    hit the server in the same minute** - two cold-start route handlers at
+    once will OOM Render's 512MB free instance and it returns 502/503 for
+    an hour+ until it stabilises. This actually happened (Sep 1-2 2026)
+    right after the GitHub->cron-job.org move put everything on `:00`.
+    Current split: auto-lock-sweep `:05/:20/:35/:50`, grade-results
+    `:15/:45`, pull-odds `:25`. Keep new jobs off those collision minutes.
   - pull-odds: 12 jobs replicating the tuned weekly pattern (tuned to stay
-    under 500 odds-API credits/month)
-  - auto-lock-sweep: every 15 min (3 jobs covering the active window)
-  - grade-results: every 30 min (3 jobs covering the active window)
-  - All jobs run only **7:30am-12:30am Central** (not 24/7) - Render's free
+    under 500 odds-API credits/month), all firing at `hh:25`
+  - auto-lock-sweep: every 15 min, 9am-11:50pm (one job). Two helper jobs
+    for the midnight and 7:30am edges are kept but **disabled** (`[off]`
+    prefix) - nothing kicks off before ~10am CT or after ~11pm CT, so they
+    only cost wake-ups.
+  - grade-results: every 30 min - core 11am-11:45pm, plus a single 7:30am
+    run and a 12:15/12:45am run for late West-coast finishers
+  - Both DB-heavy routes cap games processed per invocation
+    (`MAX_GAMES_PER_RUN`) so a backlog can't spike memory; the next run
+    picks up any overflow.
+  - Jobs run roughly **8am-12:45am Central** (not 24/7) - Render's free
     plan caps a workspace at 750 instance-hours/month shared across every
     free service in that Render account, and pinging around the clock would
     keep the service permanently awake and risk exhausting that pool
@@ -125,3 +139,11 @@ Rules page (source of truth for game rules): cavepicks.onrender.com/rules
   kickoff date (`getOrCreateWeekForDate()`), never to whatever week is
   merely "current" at pull time - otherwise a game whose line posts early
   gets permanently filed under the wrong week.
+- **Never schedule two cron endpoints on the same minute.** Render's free
+  512MB instance OOMs when two cold-start Next.js route handlers run at
+  once, then serves 502/503 for an hour+ while it thrashes. Symptom looks
+  like "cron-job.org is broken" but the job history shows fast 502/503
+  from Render, not timeouts. Keep the minute split documented in
+  Architecture. Also: `snapshotType` on OddsSnapshot is just a label
+  (always `"market"`); grading uses the newest snapshot regardless, so
+  don't build logic that branches on it.

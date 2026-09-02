@@ -50,12 +50,13 @@ model Game {
   picks         Pick[]
 }
 
-// Captured twice per game: once "early" (informational), once "lock" (what actually counts)
+// One row per odds pull per game. Grading always uses the most recent
+// snapshot for a game (by capturedAt), regardless of label.
 model OddsSnapshot {
   id           String   @id @default(cuid())
   gameId       String
   game         Game     @relation(fields: [gameId], references: [id])
-  snapshotType String   // "early" | "lock"
+  snapshotType String   // pull label - in practice always "market"
   spreadHome   Float?
   spreadAway   Float?
   spreadHomePrice Int? // juice on the spread, e.g. -110

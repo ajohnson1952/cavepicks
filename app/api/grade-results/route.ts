@@ -6,6 +6,12 @@ import { gradePick } from "@/lib/scoring";
 
 export const dynamic = "force-dynamic";
 
+// Cap games processed per invocation so a pathological backlog (e.g. a whole
+// season's worth of ungraded games) can't spike memory on Render's 512MB
+// free instance. This cron runs every 30 min, so any overflow is picked up
+// on the next pass - ordered oldest-first so nothing starves.
+const MAX_GAMES_PER_RUN = 60;
+
 export async function GET() {
   // Any game that's already kicked off but isn't marked final yet - across
   // ALL weeks, not just "this week". Using each game's own clock instead of
@@ -14,6 +20,8 @@ export async function GET() {
   const games = await prisma.game.findMany({
     where: { isFinal: false, voided: false, commenceTime: { lte: new Date() } },
     include: { oddsSnapshots: { orderBy: { capturedAt: "desc" }, take: 1 } },
+    orderBy: { commenceTime: "asc" },
+    take: MAX_GAMES_PER_RUN,
   });
 
   if (games.length === 0) {
@@ -39,6 +47,7 @@ export async function GET() {
 
   let gamesGraded = 0;
   let picksGraded = 0;
+  const gradedIds = new Set<string>();
   const unmatched: { ourGame: string; date: string; espnGamesThatDay: string[] }[] = [];
   const stillInProgress: string[] = [];
 
@@ -75,6 +84,7 @@ export async function GET() {
       data: { homeScore: match.homeScore, awayScore: match.awayScore, isFinal: true },
     });
     gamesGraded++;
+    gradedIds.add(game.id);
 
     const picks = await prisma.pick.findMany({ where: { gameId: game.id } });
     const snap = game.oddsSnapshots[0];
@@ -130,11 +140,26 @@ export async function GET() {
     }
   }
 
-  const debugInfo = games.map((g) => ({
-    matchup: `${g.awayTeam} @ ${g.homeTeam}`,
-    commenceTimeRaw: g.commenceTime.toISOString(),
-    queriedAsDate: toYyyymmdd(g.commenceTime),
-  }));
+  // Only surface timing debug for games that did NOT get graded this run -
+  // that's the only case anyone inspects it for, and it keeps the response
+  // (and the memory to serialize it) small on a big Saturday slate.
+  const debugInfo = games
+    .filter((g) => !gradedIds.has(g.id))
+    .slice(0, 15)
+    .map((g) => ({
+      matchup: `${g.awayTeam} @ ${g.homeTeam}`,
+      commenceTimeRaw: g.commenceTime.toISOString(),
+      queriedAsDate: toYyyymmdd(g.commenceTime),
+    }));
 
-  return NextResponse.json({ ok: true, gamesGraded, picksGraded, stillInProgress, unmatched, debugInfo });
+  return NextResponse.json({
+    ok: true,
+    gamesGraded,
+    picksGraded,
+    processed: games.length,
+    capped: games.length === MAX_GAMES_PER_RUN,
+    stillInProgress,
+    unmatched,
+    debugInfo,
+  });
 }

@@ -5,6 +5,11 @@ import { isPastAutoLock } from "@/lib/lock";
 
 export const dynamic = "force-dynamic";
 
+// Guardrail against a pathological backlog spiking memory on Render's 512MB
+// free instance. This sweep runs every 15 min, so any overflow is caught on
+// the next pass - ordered soonest-kickoff-first so the most urgent locks win.
+const MAX_GAMES_PER_RUN = 80;
+
 export async function GET() {
   // Any game not yet final, whose auto-lock window could plausibly have
   // opened - scoped to "kicks off within the next day or already started"
@@ -15,6 +20,8 @@ export async function GET() {
       commenceTime: { lte: new Date(Date.now() + 24 * 60 * 60 * 1000) },
     },
     include: { oddsSnapshots: { orderBy: { capturedAt: "desc" }, take: 1 } },
+    orderBy: { commenceTime: "asc" },
+    take: MAX_GAMES_PER_RUN,
   });
 
   let lockedCount = 0;
