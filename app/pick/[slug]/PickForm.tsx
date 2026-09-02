@@ -100,7 +100,9 @@ function TeamLogo({ src, alt }: { src: string | null; alt: string }) {
 }
 
 function MoveIndicator({ delta }: { delta: number | null }) {
-  if (delta === null || delta === 0) return null;
+  // Hide sub-half-point noise (and exact zero). Lines move in 0.5 steps, so
+  // anything worth showing is >= 0.5.
+  if (delta === null || Math.abs(delta) < 0.5) return null;
   return delta > 0 ? (
     <span className="move-up">&#9650;{Math.abs(delta)}</span>
   ) : (

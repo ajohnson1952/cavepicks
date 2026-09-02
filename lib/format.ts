@@ -9,6 +9,22 @@ export function formatSpread(value: number | null | undefined): string {
   return value > 0 ? `+${value}` : `${value}`;
 }
 
+// Signed points a spread has moved since it opened, oriented by distance from
+// pick'em (0), for the ▲/▼ movement chips:
+//   > 0  line GREW  - bigger favorite or bigger underdog  -> ▲ (green)
+//   < 0  line SHRANK toward pick'em                        -> ▼ (red)
+// Direction comes from |now| - |open|; magnitude is always the real points
+// moved, including straight across pick'em - so a -2 -> +2 flip reads as 4,
+// not 0 (which would make the chip vanish). Exact-magnitude flips tie to ▲.
+//
+// A plain `now - open` is WRONG for favorites: -9.5 -> -7.5 is a favorite
+// getting SMALLER but subtracts to +2, showing a green up-arrow. Totals don't
+// have this problem (always positive, far from zero) - use `now - open` there.
+export function spreadMove(now: number, open: number): number {
+  const grew = Math.abs(now) - Math.abs(open) >= 0 ? 1 : -1;
+  return Math.round(grew * Math.abs(now - open) * 10) / 10;
+}
+
 // American odds/juice always show an explicit sign - e.g. -110, +150.
 export function formatOdds(value: number | null | undefined): string {
   if (value == null) return "";

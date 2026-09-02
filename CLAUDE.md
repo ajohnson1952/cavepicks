@@ -139,6 +139,12 @@ Rules page (source of truth for game rules): cavepicks.onrender.com/rules
   kickoff date (`getOrCreateWeekForDate()`), never to whatever week is
   merely "current" at pull time - otherwise a game whose line posts early
   gets permanently filed under the wrong week.
+- **Spread line-movement arrows: never use raw `now - open`.** A favorite
+  going `-9.5 -> -7.5` has gotten *smaller* (▼) but subtracts to `+2` (▲).
+  Use `spreadMove(now, open)` in `lib/format.ts` - direction from
+  `|now| - |open|`, magnitude from the real `|now - open|` so a cross-zero
+  flip like `-2 -> +2` still reads as 4, not a vanished chip. Totals are
+  fine with plain `now - open` (always positive, far from zero).
 - **Never schedule two cron endpoints on the same minute.** Render's free
   512MB instance OOMs when two cold-start Next.js route handlers run at
   once, then serves 502/503 for an hour+ while it thrashes. Symptom looks

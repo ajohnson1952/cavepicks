@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db";
 import { isPastAutoLock } from "@/lib/lock";
+import { spreadMove } from "@/lib/format";
 import { getOrCreateCurrentWeek, getWeekNumberForDate } from "@/lib/currentWeek";
 import PickForm from "./PickForm";
 import WeekNav from "../../WeekNav";
@@ -89,13 +90,15 @@ export default async function PickPage({
     const latest = snapshots[snapshots.length - 1] ?? null;
     const opening = snapshots[0] ?? null;
 
+    // Spread movement is oriented by distance from pick'em, not raw subtraction
+    // (a favorite going -9.5 -> -7.5 has SHRUNK, ▼) - see spreadMove().
     const spreadHomeMove =
       latest && opening && latest.spreadHome != null && opening.spreadHome != null
-        ? Math.round((latest.spreadHome - opening.spreadHome) * 10) / 10
+        ? spreadMove(latest.spreadHome, opening.spreadHome)
         : null;
     const spreadAwayMove =
       latest && opening && latest.spreadAway != null && opening.spreadAway != null
-        ? Math.round((latest.spreadAway - opening.spreadAway) * 10) / 10
+        ? spreadMove(latest.spreadAway, opening.spreadAway)
         : null;
     const totalMove =
       latest && opening && latest.total != null && opening.total != null
