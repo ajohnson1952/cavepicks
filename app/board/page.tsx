@@ -2,7 +2,9 @@ import { prisma } from "@/lib/db";
 import { formatSpread, formatOdds, bookAbbr } from "@/lib/format";
 import { getOrCreateCurrentWeek, getWeekNumberForDate } from "@/lib/currentWeek";
 import { fetchEspnScoreboard, teamNamesMatch, toYyyymmdd } from "@/lib/espnScores";
+import { buildPickShareText } from "@/lib/pickShareText";
 import WeekNav from "../WeekNav";
+import CopyPicksButton from "./CopyPicksButton";
 
 export const dynamic = "force-dynamic";
 
@@ -122,10 +124,14 @@ export default async function BoardPage({ searchParams }: { searchParams: { week
         const sidePicks = userPicks.filter((p) => p.pickType !== "DOG");
         const dogPick = userPicks.find((p) => p.pickType === "DOG");
         const lockedSideCount = sidePicks.filter((p) => p.locked).length;
+        const shareText = buildPickShareText(u.name, week.weekNumber, sidePicks, dogPick ?? null);
 
         return (
           <div key={u.id} className="card">
-            <div className="matchup">{u.name}</div>
+            <div className="matchup">
+              {u.name}
+              {shareText && <CopyPicksButton name={u.name} text={shareText} />}
+            </div>
             <div className="meta" style={{ marginTop: "2px" }}>
               {lockedSideCount}/5 locked &middot; dog{" "}
               {dogPick ? (dogPick.locked ? "locked" : "picked") : "\u2014"}
