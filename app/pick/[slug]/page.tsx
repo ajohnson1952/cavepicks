@@ -125,6 +125,9 @@ export default async function PickPage({
           timeStyle: "short",
         }) + " CT",
       pastAutoLock: isPastAutoLock(g.commenceTime),
+      isFinal: g.isFinal,
+      homeScore: g.homeScore,
+      awayScore: g.awayScore,
       snap: latest
         ? {
             spreadHome: latest.spreadHome,
@@ -154,6 +157,9 @@ export default async function PickPage({
         lockedLine: spreadPick?.lockedLine ?? null,
         lockedOdds: spreadPick?.lockedOdds ?? null,
         lockedBook: spreadPick?.lockedBook ?? null,
+        graded: !!spreadPick?.graded,
+        isWin: spreadPick?.isWin ?? null,
+        isPush: spreadPick?.isPush ?? null,
       },
       total: {
         pickId: totalPick?.id ?? null,
@@ -162,6 +168,9 @@ export default async function PickPage({
         lockedLine: totalPick?.lockedLine ?? null,
         lockedOdds: totalPick?.lockedOdds ?? null,
         lockedBook: totalPick?.lockedBook ?? null,
+        graded: !!totalPick?.graded,
+        isWin: totalPick?.isWin ?? null,
+        isPush: totalPick?.isPush ?? null,
       },
       dog: latest?.underdogTeam
         ? {
@@ -171,6 +180,9 @@ export default async function PickPage({
             dogSpreadValue: dogPick?.dogSpreadValue ?? null,
             lockedOdds: dogPick?.lockedOdds ?? null,
             lockedBook: dogPick?.lockedBook ?? null,
+            graded: !!dogPick?.graded,
+            isWin: dogPick?.isWin ?? null,
+            pointsEarned: dogPick?.pointsEarned ?? null,
           }
         : null,
       lockedByOthers: lockedByOthersByGame.get(g.id) ?? [],

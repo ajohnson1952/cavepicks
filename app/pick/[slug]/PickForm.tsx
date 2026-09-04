@@ -32,6 +32,9 @@ type PickSlot = {
   lockedLine: number | null;
   lockedOdds: number | null;
   lockedBook: string | null;
+  graded: boolean;
+  isWin: boolean | null;
+  isPush: boolean | null;
 };
 
 type DogSlot = {
@@ -41,6 +44,9 @@ type DogSlot = {
   dogSpreadValue: number | null;
   lockedOdds: number | null;
   lockedBook: string | null;
+  graded: boolean;
+  isWin: boolean | null;
+  pointsEarned: number | null;
 };
 
 type LockedByOther = {
@@ -63,6 +69,9 @@ type GameView = {
   broadcast: string | null;
   kickoffDisplay: string;
   pastAutoLock: boolean;
+  isFinal: boolean;
+  homeScore: number | null;
+  awayScore: number | null;
   snap: Snap | null;
   movement: Movement;
   spread: PickSlot;
@@ -110,6 +119,34 @@ function MoveIndicator({ delta }: { delta: number | null }) {
   );
 }
 
+// Small coloured "WON / LOST / PUSH" tag on a graded side pick.
+function ResultTag({ graded, isWin, isPush }: { graded: boolean; isWin: boolean | null; isPush: boolean | null }) {
+  if (!graded) return null;
+  const [cls, label] = isPush ? ["pick-push", "PUSH"] : isWin ? ["pick-win", "WON"] : ["pick-loss", "LOST"];
+  return <span className={cls} style={{ fontSize: "11px", fontWeight: 700, marginLeft: "6px" }}>{label}</span>;
+}
+
+// Final score line - shown on every completed game's card, pick or no pick.
+function FinalScore({ g }: { g: GameView }) {
+  if (!g.isFinal || g.homeScore == null || g.awayScore == null) return null;
+  const away = g.awayAbbr ?? g.awayTeam;
+  const home = g.homeAbbr ?? g.homeTeam;
+  const awayWon = g.awayScore > g.homeScore;
+  const homeWon = g.homeScore > g.awayScore;
+  return (
+    <div className="meta" style={{ marginTop: "3px", color: "var(--ink)" }}>
+      Final:{" "}
+      <span style={{ fontWeight: awayWon ? 700 : 400 }}>
+        {away} {g.awayScore}
+      </span>
+      ,{" "}
+      <span style={{ fontWeight: homeWon ? 700 : 400 }}>
+        {home} {g.homeScore}
+      </span>
+    </div>
+  );
+}
+
 export default function PickForm({
   slug,
   games,
@@ -130,6 +167,7 @@ export default function PickForm({
   const [dogChoice, setDogChoice] = useState<string | undefined>(() => computeInitialState(games).dog);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
+  const [onlyMine, setOnlyMine] = useState(false);
 
   useEffect(() => {
     const init = computeInitialState(games);
@@ -175,35 +213,69 @@ export default function PickForm({
     }
   }
 
+  // "Mine" = a saved pick on any slot, or a selection that's mid-save in local
+  // state (so a game doesn't blink out of the filtered view before it persists).
+  const isMine = (g: GameView) =>
+    !!(
+      g.spread.pickId ||
+      g.total.pickId ||
+      g.dog?.pickId ||
+      spreadChoice[g.id] ||
+      totalChoice[g.id] ||
+      (dogChoice && dogChoice.split("|")[0] === g.id)
+    );
+  const myCount = games.filter(isMine).length;
+
   const query = search.trim().toLowerCase();
-  const visibleGames = query
-    ? games.filter(
-        (g) =>
-          g.homeTeam.toLowerCase().includes(query) ||
-          g.awayTeam.toLowerCase().includes(query) ||
-          (g.homeAbbr?.toLowerCase().includes(query) ?? false) ||
-          (g.awayAbbr?.toLowerCase().includes(query) ?? false)
-      )
-    : games;
+  const visibleGames = games.filter((g) => {
+    if (onlyMine && !isMine(g)) return false;
+    if (!query) return true;
+    return (
+      g.homeTeam.toLowerCase().includes(query) ||
+      g.awayTeam.toLowerCase().includes(query) ||
+      (g.homeAbbr?.toLowerCase().includes(query) ?? false) ||
+      (g.awayAbbr?.toLowerCase().includes(query) ?? false)
+    );
+  });
 
   return (
     <div>
       {games.length > 0 && (
-        <input
-          type="text"
-          className="input"
-          placeholder="Search teams\u2026"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          style={{ marginBottom: "12px", width: "100%" }}
-        />
+        <div style={{ display: "flex", gap: "8px", marginBottom: "12px", alignItems: "stretch" }}>
+          <input
+            type="text"
+            className="input"
+            placeholder="Search teams..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            style={{ flex: 1, minWidth: 0 }}
+          />
+          <button
+            type="button"
+            className="btn"
+            aria-pressed={onlyMine}
+            onClick={() => setOnlyMine((v) => !v)}
+            style={{
+              width: "auto",
+              whiteSpace: "nowrap",
+              borderColor: onlyMine ? "var(--action)" : "var(--border-soft)",
+              color: onlyMine ? "var(--action-soft)" : "var(--dim)",
+            }}
+          >
+            My picks ({myCount})
+          </button>
+        </div>
       )}
 
       {error && <div className="banner-error">{error}</div>}
 
       {games.length === 0 && <p className="subtext">No games in this week&apos;s slate yet.</p>}
       {games.length > 0 && visibleGames.length === 0 && (
-        <p className="subtext">No games match &ldquo;{search}&rdquo;.</p>
+        <p className="subtext">
+          {onlyMine && myCount === 0
+            ? "You haven't picked any games this week yet."
+            : `No games match "${search}".`}
+        </p>
       )}
 
       {visibleGames.map((g) => {
@@ -230,6 +302,7 @@ export default function PickForm({
               {g.kickoffDisplay}
               {g.broadcast ? ` \u00b7 ${g.broadcast}` : ""}
             </div>
+            <FinalScore g={g} />
 
             {g.lockedByOthers.length > 0 && (
               <div style={{ marginTop: "6px" }}>
@@ -278,6 +351,7 @@ export default function PickForm({
                             ? g.awayAbbr ?? g.spread.selection
                             : g.spread.selection}
                           {g.spread.lockedLine != null ? ` (${formatSpread(g.spread.lockedLine)}${g.spread.lockedOdds != null ? ` ${formatOdds(g.spread.lockedOdds)}` : ""}${g.spread.lockedBook ? `, ${bookLabel(g.spread.lockedBook)}` : ""})` : ""}
+                          <ResultTag graded={g.spread.graded} isWin={g.spread.isWin} isPush={g.spread.isPush} />
                         </span>
                         <span className="locked-badge">
                           <span className="locked-dot" />
@@ -377,6 +451,7 @@ export default function PickForm({
                         <span>
                           Total: {g.total.selection}
                           {g.total.lockedLine != null ? ` (${g.total.lockedLine}${g.total.lockedOdds != null ? ` ${formatOdds(g.total.lockedOdds)}` : ""}${g.total.lockedBook ? `, ${bookLabel(g.total.lockedBook)}` : ""})` : ""}
+                          <ResultTag graded={g.total.graded} isWin={g.total.isWin} isPush={g.total.isPush} />
                         </span>
                         <span className="locked-badge">
                           <span className="locked-dot" />
@@ -478,6 +553,14 @@ export default function PickForm({
                                 ? g.awayAbbr ?? dog.selection
                                 : dog.selection}
                               {dog.dogSpreadValue != null ? ` (worth ${dog.dogSpreadValue} pts${dog.lockedOdds != null ? `, ${formatOdds(dog.lockedOdds)} ML` : ""}${dog.lockedBook ? `, ${bookLabel(dog.lockedBook)}` : ""})` : ""}
+                              {dog.graded && (
+                                <span
+                                  className={dog.isWin ? "pick-win" : "pick-loss"}
+                                  style={{ fontSize: "11px", fontWeight: 700, marginLeft: "6px" }}
+                                >
+                                  {dog.isWin ? `HIT +${dog.pointsEarned ?? 0} pts` : "MISS"}
+                                </span>
+                              )}
                             </span>
                             <span className="locked-badge">
                               <span className="locked-dot" />
