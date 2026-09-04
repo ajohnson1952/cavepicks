@@ -21,6 +21,20 @@ export function isPastAutoLock(commenceTime: Date, now: Date = new Date()): bool
   return now >= deadline;
 }
 
+// The snapshot to use when force-locking a straggler pick (auto-lock-sweep,
+// or grade-results' pre-grading safety net): the most recent snapshot
+// actually captured BEFORE kickoff, never whatever is merely newest overall.
+// pullOdds() already refuses to capture in-play lines, so in normal
+// operation the newest snapshot for a not-yet-final game is always pregame
+// anyway - this is the defense-in-depth for a missed sweep landing on old
+// data, or any future regression in that filter. Pass snapshots newest-first.
+export function latestPreKickoffSnapshot<T extends { capturedAt: Date }>(
+  snapshotsDesc: T[],
+  commenceTime: Date
+): T | null {
+  return snapshotsDesc.find((s) => s.capturedAt.getTime() <= commenceTime.getTime()) ?? null;
+}
+
 // --- Central-time-aware date math -----------------------------------------
 // The server runs in UTC (standard for Render and most cloud hosts), but the
 // whole app is built around Central time. Using plain Date methods like

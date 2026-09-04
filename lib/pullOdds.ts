@@ -6,7 +6,19 @@ import { fetchEspnScoreboard, teamNamesMatch, toYyyymmdd, EspnResult } from "./e
 import { getOrCreateWeekForDate } from "./currentWeek";
 
 export async function pullOdds(snapshotType: string = "market") {
-  const games = await fetchOdds();
+  const allGames = await fetchOdds();
+
+  // The Odds API's /odds endpoint returns live/in-play games too - any event
+  // whose commence_time is already in the past comes back with in-play lines
+  // that reflect the game actually happening (they move with the score), not
+  // a pregame market. Never snapshot those: if a pick's auto-lock sweep ever
+  // misses its window and grade-results has to force-lock it as a straggler,
+  // it must fall back to a genuine pregame line, never a live one - this is
+  // the only write path for OddsSnapshot, so filtering here is the one place
+  // that needs to guard it. See CLAUDE.md gotchas.
+  const now = Date.now();
+  const games = allGames.filter((g) => new Date(g.commenceTime).getTime() > now);
+
   const espnTeams = await fetchEspnTeams(); // one call, reused for every game below
   const results = [];
   const unmatchedTeams = new Set<string>();

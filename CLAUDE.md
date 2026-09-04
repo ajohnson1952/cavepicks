@@ -139,6 +139,18 @@ Rules page (source of truth for game rules): cavepicks.onrender.com/rules
   kickoff date (`getOrCreateWeekForDate()`), never to whatever week is
   merely "current" at pull time - otherwise a game whose line posts early
   gets permanently filed under the wrong week.
+- **The Odds API's `/odds` endpoint also returns live/in-play games with
+  in-play lines** (any event whose `commence_time` has passed) - there's no
+  param to exclude them. `pullOdds()` filters to `commenceTime > now` before
+  ever writing an `OddsSnapshot`, and it's the only writer of that table -
+  don't remove that filter or add another write path without it. Otherwise
+  a pick whose auto-lock sweep gets missed (an outage, say) could get
+  force-locked or graded against a mid-game line that already reflects the
+  score, not the market. `latestPreKickoffSnapshot()` in `lib/lock.ts` is
+  the defense-in-depth on the read side (auto-lock-sweep and grade-results'
+  straggler force-lock both use it instead of "just take the newest
+  snapshot") - keep using it in any new code that force-locks from a cached
+  snapshot. `/api/debug-live-line-audit` checks both ends.
 - **Spread line-movement arrows: never use raw `now - open`.** A favorite
   going `-9.5 -> -7.5` has gotten *smaller* (▼) but subtracts to `+2` (▲).
   Use `spreadMove(now, open)` in `lib/format.ts` - direction from

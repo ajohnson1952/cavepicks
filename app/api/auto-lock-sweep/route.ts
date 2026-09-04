@@ -1,7 +1,7 @@
 // app/api/auto-lock-sweep/route.ts
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { isPastAutoLock } from "@/lib/lock";
+import { isPastAutoLock, latestPreKickoffSnapshot } from "@/lib/lock";
 
 export const dynamic = "force-dynamic";
 
@@ -19,7 +19,7 @@ export async function GET() {
       isFinal: false,
       commenceTime: { lte: new Date(Date.now() + 24 * 60 * 60 * 1000) },
     },
-    include: { oddsSnapshots: { orderBy: { capturedAt: "desc" }, take: 1 } },
+    include: { oddsSnapshots: { orderBy: { capturedAt: "desc" }, take: 10 } },
     orderBy: { commenceTime: "asc" },
     take: MAX_GAMES_PER_RUN,
   });
@@ -28,7 +28,7 @@ export async function GET() {
 
   for (const game of games) {
     if (!isPastAutoLock(game.commenceTime)) continue;
-    const snap = game.oddsSnapshots[0];
+    const snap = latestPreKickoffSnapshot(game.oddsSnapshots, game.commenceTime);
     if (!snap) continue;
 
     const unlockedPicks = await prisma.pick.findMany({

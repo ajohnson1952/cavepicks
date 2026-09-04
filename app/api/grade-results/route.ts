@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { fetchEspnScoreboard, teamNamesMatch, toYyyymmdd, EspnResult } from "@/lib/espnScores";
 import { gradePick } from "@/lib/scoring";
+import { latestPreKickoffSnapshot } from "@/lib/lock";
 
 export const dynamic = "force-dynamic";
 
@@ -19,7 +20,7 @@ export async function GET() {
   // graded even after the calendar has already rolled into a new week.
   const games = await prisma.game.findMany({
     where: { isFinal: false, voided: false, commenceTime: { lte: new Date() } },
-    include: { oddsSnapshots: { orderBy: { capturedAt: "desc" }, take: 1 } },
+    include: { oddsSnapshots: { orderBy: { capturedAt: "desc" }, take: 10 } },
     orderBy: { commenceTime: "asc" },
     take: MAX_GAMES_PER_RUN,
   });
@@ -87,7 +88,9 @@ export async function GET() {
     gradedIds.add(game.id);
 
     const picks = await prisma.pick.findMany({ where: { gameId: game.id } });
-    const snap = game.oddsSnapshots[0];
+    // Never fall back to a snapshot captured after kickoff (in-play line) -
+    // see the pullOdds() gotcha in CLAUDE.md.
+    const snap = latestPreKickoffSnapshot(game.oddsSnapshots, game.commenceTime);
 
     for (const pick of picks) {
       let lockedLine = pick.lockedLine;
