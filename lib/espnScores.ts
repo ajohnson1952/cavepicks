@@ -14,6 +14,7 @@ export type EspnResult = {
   dateISO: string;
   broadcast: string | null;
   state: "pre" | "in" | "post" | string;
+  statusDetail: string | null; // ESPN's short status, e.g. "3:24 - 3rd", "Halftime", "Final"
 };
 
 // The Odds API and ESPN are two separate vendors with their own internal
@@ -167,6 +168,7 @@ export async function fetchEspnScoreboard(yyyymmdd: string): Promise<EspnResult[
       dateISO: event.date,
       broadcast: competition.broadcasts?.[0]?.names?.join("/") ?? competition.broadcast ?? null,
       state: competition.status?.type?.state ?? "pre",
+      statusDetail: competition.status?.type?.shortDetail ?? competition.status?.type?.detail ?? null,
     });
   }
   return results;

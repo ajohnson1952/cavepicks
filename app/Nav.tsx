@@ -27,6 +27,9 @@ export default function Nav() {
       <a href="/board" className={`nav-link${isActive("/board") ? " active" : ""}`}>
         Board
       </a>
+      <a href="/watch" className={`nav-link${isActive("/watch") ? " active" : ""}`}>
+        Watch
+      </a>
       <a href="/standings" className={`nav-link${isActive("/standings") ? " active" : ""}`}>
         Standings
       </a>
