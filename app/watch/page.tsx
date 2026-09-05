@@ -58,10 +58,14 @@ export default async function WatchPage() {
     const e = espnFor(g);
     const final = g.isFinal || e?.completed === true;
     const live = !final && e?.state === "in";
+    const phase: Status["phase"] = final ? "final" : live ? "live" : "pre";
     statusOf.set(g.id, {
-      phase: final ? "final" : live ? "live" : "pre",
-      homeScore: g.isFinal ? g.homeScore : e?.homeScore ?? null,
-      awayScore: g.isFinal ? g.awayScore : e?.awayScore ?? null,
+      phase,
+      // ESPN reports 0-0 (not null) before kickoff - only trust a score once
+      // the game is actually live or final, or a not-yet-started game reads
+      // as "currently 0-0" and every under looks like it's covering.
+      homeScore: g.isFinal ? g.homeScore : phase === "pre" ? null : e?.homeScore ?? null,
+      awayScore: g.isFinal ? g.awayScore : phase === "pre" ? null : e?.awayScore ?? null,
       detail: e?.statusDetail ?? null,
       broadcast: g.broadcast ?? e?.broadcast ?? null,
     });
@@ -88,7 +92,7 @@ export default async function WatchPage() {
       if (pick.pickType === "DOG") return pick.isWin ? "won" : "lost";
       return pick.isPush ? "push" : pick.isWin ? "won" : "lost";
     }
-    if (st.homeScore == null || st.awayScore == null) return "pending";
+    if (st.phase === "pre" || st.homeScore == null || st.awayScore == null) return "pending";
 
     const { line, dogVal } = lineFor(pick, g);
     if (pick.pickType !== "DOG" && line == null) return "unknown";
