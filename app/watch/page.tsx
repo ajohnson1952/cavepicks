@@ -127,7 +127,7 @@ export default async function WatchPage() {
   const decidedSideGames = sideGames.filter((g) => statusOf.get(g.id)?.phase === "final").length;
   const blurb = buildRaceBlurb(race, decidedSideGames, sideGames.length);
 
-  // --- bucket the games ---
+  // --- relevance of each game, for a badge + a tiebreak within a time slot ---
   const picksByGame = new Map<string, typeof picks>();
   for (const p of picks) {
     const arr = picksByGame.get(p.gameId) ?? [];
@@ -135,10 +135,8 @@ export default async function WatchPage() {
     picksByGame.set(p.gameId, arr);
   }
 
-  type Bucket = "swing" | "watch" | "dog" | "cold" | "done";
-  const bucketOf = (g: (typeof games)[number]): Bucket => {
-    const st = statusOf.get(g.id)!;
-    if (st.phase === "final") return "done";
+  type Rel = "swing" | "watch" | "dog" | "cold";
+  const relevanceOf = (g: (typeof games)[number]): Rel => {
     const gp = picksByGame.get(g.id) ?? [];
     const aliveSidePickers = new Set(
       gp.filter((p) => p.pickType !== "DOG" && aliveIds.has(p.userId)).map((p) => p.userId)
@@ -148,13 +146,33 @@ export default async function WatchPage() {
     if (gp.some((p) => p.pickType === "DOG")) return "dog";
     return "cold";
   };
+  const relRank: Record<Rel, number> = { swing: 0, watch: 1, dog: 2, cold: 3 };
 
-  const buckets: Record<Bucket, (typeof games)[number][]> = { swing: [], watch: [], dog: [], cold: [], done: [] };
-  for (const g of pickedGames) buckets[bucketOf(g)].push(g);
+  // Everything not final, in the order you'd actually watch it: kickoff time
+  // first, relevance as the tiebreak when several kick at once.
+  const upcoming = pickedGames
+    .filter((g) => statusOf.get(g.id)!.phase !== "final")
+    .sort(
+      (a, b) =>
+        a.commenceTime.getTime() - b.commenceTime.getTime() ||
+        relRank[relevanceOf(a)] - relRank[relevanceOf(b)]
+    );
+  const doneGames = pickedGames
+    .filter((g) => statusOf.get(g.id)!.phase === "final")
+    .sort((a, b) => a.commenceTime.getTime() - b.commenceTime.getTime());
+
+  // group the upcoming list by calendar day (Central) so it reads as a schedule
+  const dayLabel = (d: Date) => CT(d, { weekday: "long", month: "short", day: "numeric" });
+  const dayGroups: { day: string; games: (typeof games)[number][] }[] = [];
+  for (const g of upcoming) {
+    const day = dayLabel(g.commenceTime);
+    if (dayGroups[dayGroups.length - 1]?.day !== day) dayGroups.push({ day, games: [] });
+    dayGroups[dayGroups.length - 1].games.push(g);
+  }
 
   const asOf = CT(new Date(), { hour: "numeric", minute: "2-digit", second: "2-digit" }) + " CT";
 
-  function GameRow({ g, dim }: { g: (typeof games)[number]; dim?: boolean }) {
+  function GameRow({ g, rel, dim }: { g: (typeof games)[number]; rel: Rel | "done"; dim?: boolean }) {
     const st = statusOf.get(g.id)!;
     const gp = (picksByGame.get(g.id) ?? []).slice().sort((a, b) => a.user.name.localeCompare(b.user.name));
     const away = g.awayAbbr ?? g.awayTeam;
@@ -178,6 +196,23 @@ export default async function WatchPage() {
       <div className="card" style={dim ? { opacity: 0.6 } : undefined}>
         <div className="matchup">
           {away} @ {home}
+          {rel === "swing" && (
+            <span
+              style={{
+                fontSize: "10px",
+                fontWeight: 800,
+                letterSpacing: "0.05em",
+                color: "var(--action-soft)",
+                border: "1px solid var(--action)",
+                borderRadius: "4px",
+                padding: "1px 5px",
+                marginLeft: "8px",
+                verticalAlign: "1px",
+              }}
+            >
+              SWING
+            </span>
+          )}
         </div>
         <div className="meta" style={{ marginTop: "2px" }}>
           {statusLine}
@@ -217,16 +252,19 @@ export default async function WatchPage() {
     );
   }
 
-  const Section = ({ title, note, games: gs, dim }: { title: string; note?: string; games: (typeof games)[number][]; dim?: boolean }) =>
-    gs.length === 0 ? null : (
-      <section style={{ marginTop: "18px" }}>
-        <h2 style={{ fontSize: "15px", marginBottom: "2px" }}>{title}</h2>
-        {note && <p className="subtext" style={{ margin: "0 0 8px" }}>{note}</p>}
-        {gs.map((g) => (
-          <GameRow key={g.id} g={g} dim={dim} />
-        ))}
-      </section>
-    );
+  const DayHeader = ({ day }: { day: string }) => (
+    <h3
+      style={{
+        fontSize: "12px",
+        textTransform: "uppercase",
+        letterSpacing: "0.05em",
+        color: "var(--dim)",
+        margin: "16px 0 6px",
+      }}
+    >
+      {day}
+    </h3>
+  );
 
   return (
     <main>
@@ -254,11 +292,34 @@ export default async function WatchPage() {
           ))}
       </section>
 
-      <Section title="Swing games" note="Two or more players still in it have a pick here." games={buckets.swing} />
-      <Section title="Also live" note="One contender has a pick riding on it." games={buckets.watch} />
-      <Section title="Dog watch" note="Season-long dog race, not the weekly pot." games={buckets.dog} />
-      <Section title="No weekly impact" note="Only knocked-out players picked these." games={buckets.cold} dim />
-      <Section title="Done" games={buckets.done} dim />
+      <section style={{ marginTop: "20px" }}>
+        <h2 style={{ fontSize: "15px", marginBottom: "2px" }}>The slate</h2>
+        <p className="subtext" style={{ margin: "0 0 4px" }}>
+          In kickoff order. <strong style={{ color: "var(--action-soft)" }}>SWING</strong> = two or more
+          players still alive have a pick. Dimmed = knocked-out players only.
+        </p>
+        {dayGroups.map((grp) => (
+          <div key={grp.day}>
+            <DayHeader day={grp.day} />
+            {grp.games.map((g) => {
+              const rel = relevanceOf(g);
+              return <GameRow key={g.id} g={g} rel={rel} dim={rel === "cold"} />;
+            })}
+          </div>
+        ))}
+        {upcoming.length === 0 && pickedGames.length > 0 && (
+          <p className="subtext">Every picked game is final — see below.</p>
+        )}
+      </section>
+
+      {doneGames.length > 0 && (
+        <section style={{ marginTop: "22px" }}>
+          <h2 style={{ fontSize: "15px", marginBottom: "6px" }}>Final</h2>
+          {doneGames.map((g) => (
+            <GameRow key={g.id} g={g} rel="done" dim />
+          ))}
+        </section>
+      )}
 
       {pickedGames.length === 0 && <p className="subtext">No picks are in for this week yet.</p>}
     </main>
