@@ -52,9 +52,14 @@ export default function RulesPage() {
           each of you locked, and that&apos;s expected.
         </p>
         <p style={{ fontSize: "13px", marginBottom: "10px" }}>
-          If you never lock a pick yourself, it <strong>auto-locks 30 minutes before kickoff</strong> at
-          whatever the line is at that point. Once a game locks &mdash; by you or automatically &mdash;
-          it&apos;s final for that pick.
+          You have to lock each pick yourself. The window closes{" "}
+          <strong>30 minutes before that game&apos;s kickoff</strong> &mdash; anything you selected but
+          didn&apos;t lock by then <strong>doesn&apos;t count</strong> (no line is ever recorded for an
+          unlocked pick). There is no auto-lock.
+        </p>
+        <p style={{ fontSize: "13px", marginBottom: "10px" }}>
+          A lock is <strong>final</strong> &mdash; you can&apos;t unlock it yourself. If something genuinely
+          went wrong (a misclick, a bug), ask the commissioner to unlock it.
         </p>
         <p style={{ fontSize: "13px", margin: 0 }}>
           Use the <strong>&larr; Prev / Next &rarr;</strong> arrows at the top of My Picks or the Board

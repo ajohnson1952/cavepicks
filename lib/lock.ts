@@ -1,8 +1,9 @@
 // lib/lock.ts
-// Locking model: a player can manually "Lock In" any individual pick at any
-// time, freezing whatever line is currently cached from the last background
-// odds pull (no live API call needed). Anything still unlocked gets
-// automatically force-locked AUTO_LOCK_MINUTES before that game's kickoff.
+// Locking model: a player must manually "Lock In" each pick, which freezes
+// whatever line is on screen (the last cached odds pull - no live API call).
+// The deadline is AUTO_LOCK_MINUTES before that game's kickoff. There is NO
+// auto-lock: a pick still unlocked at the deadline simply doesn't count that
+// week. Only the admin can unlock a pick after it's been locked.
 
 // The books cavepicks plays against, in preference order. No single book has
 // 100% coverage in The Odds API: FanDuel is earliest and most complete for
@@ -14,25 +15,14 @@
 // `bookmakers` values exactly.
 export const BOOK_PREFERENCE = ["fanduel", "draftkings", "betmgm"] as const;
 
+// Minutes before kickoff that the lock window closes. Past this point a pick
+// can no longer be selected, changed, or locked - and if it wasn't locked,
+// it doesn't count.
 export const AUTO_LOCK_MINUTES = 30;
 
-export function isPastAutoLock(commenceTime: Date, now: Date = new Date()): boolean {
+export function isPastLockDeadline(commenceTime: Date, now: Date = new Date()): boolean {
   const deadline = new Date(commenceTime.getTime() - AUTO_LOCK_MINUTES * 60_000);
   return now >= deadline;
-}
-
-// The snapshot to use when force-locking a straggler pick (auto-lock-sweep,
-// or grade-results' pre-grading safety net): the most recent snapshot
-// actually captured BEFORE kickoff, never whatever is merely newest overall.
-// pullOdds() already refuses to capture in-play lines, so in normal
-// operation the newest snapshot for a not-yet-final game is always pregame
-// anyway - this is the defense-in-depth for a missed sweep landing on old
-// data, or any future regression in that filter. Pass snapshots newest-first.
-export function latestPreKickoffSnapshot<T extends { capturedAt: Date }>(
-  snapshotsDesc: T[],
-  commenceTime: Date
-): T | null {
-  return snapshotsDesc.find((s) => s.capturedAt.getTime() <= commenceTime.getTime()) ?? null;
 }
 
 // --- Central-time-aware date math -----------------------------------------

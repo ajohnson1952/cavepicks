@@ -10,12 +10,10 @@ export async function pullOdds(snapshotType: string = "market") {
 
   // The Odds API's /odds endpoint returns live/in-play games too - any event
   // whose commence_time is already in the past comes back with in-play lines
-  // that reflect the game actually happening (they move with the score), not
-  // a pregame market. Never snapshot those: if a pick's auto-lock sweep ever
-  // misses its window and grade-results has to force-lock it as a straggler,
-  // it must fall back to a genuine pregame line, never a live one - this is
-  // the only write path for OddsSnapshot, so filtering here is the one place
-  // that needs to guard it. See CLAUDE.md gotchas.
+  // that move with the score, not a pregame market. Never snapshot those:
+  // the pick page shows the newest snapshot as the live pill price, and this
+  // is the only write path for OddsSnapshot, so this filter is the one guard.
+  // See CLAUDE.md gotchas.
   const now = Date.now();
   const games = allGames.filter((g) => new Date(g.commenceTime).getTime() > now);
 

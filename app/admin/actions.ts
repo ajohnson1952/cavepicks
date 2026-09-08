@@ -53,6 +53,37 @@ export async function voidGame(formData: FormData) {
   revalidatePath("/standings");
 }
 
+// Players cannot unlock their own picks - locks are final. The admin can,
+// for a genuine misclick / bug / dispute. Wipes the frozen line and any
+// grading so the player can re-pick and re-lock (or leave it unlocked, in
+// which case it just won't count).
+export async function adminUnlockPick(formData: FormData) {
+  if (!isAuthed()) return;
+  const pickId = formData.get("pickId");
+  if (typeof pickId !== "string") return;
+
+  await prisma.pick.update({
+    where: { id: pickId },
+    data: {
+      locked: false,
+      lockedAt: null,
+      lockedLine: null,
+      lockedOdds: null,
+      dogSpreadValue: null,
+      lockedBook: null,
+      graded: false,
+      isWin: null,
+      isPush: null,
+      pointsEarned: 0,
+    },
+  });
+
+  revalidatePath("/admin");
+  revalidatePath("/board");
+  revalidatePath("/standings");
+  revalidatePath("/watch");
+}
+
 export async function unvoidGame(formData: FormData) {
   if (!isAuthed()) return;
   const gameId = formData.get("gameId");

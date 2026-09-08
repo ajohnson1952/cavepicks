@@ -1,20 +1,14 @@
 // Builds the copy-paste-to-iMessage pick list shown behind the "copy picks"
-// link on the Board. One line per pick, picked team first with its number,
-// separator carries home/away:  "@" = picked team is the visitor,
-// "v" = picked team is hosting.
-//   SMU -3.5 @ FSU        (took the away favorite)
-//   FSU -3.5 v SMU        (took the home favorite)
-//   Tulane v Memphis o52.5   (took the over - no team "picked", away v home)
+// link on the Board. LOCKED picks only - an unlocked pick has no frozen line
+// and doesn't count, so it's not something to share. Every line is plain
+// "AWAY @ HOME" order; the number (spread, o/u total, or dog ML) sits right
+// after whichever team was picked:
+//   SMU -3.5 @ FSU          (took the away side)
+//   CLEM @ LSU -10.5        (took the home side)
+//   Tulane @ Memphis u52.5  (took the under)
 //   Wisc +20.5 ML @ ND (dog)
-// Line is the frozen one once locked, otherwise the current live line.
+//   ND @ Wisc +20.5 ML (dog)
 import { formatSpread } from "./format";
-
-type ShareSnapshot = {
-  spreadHome: number | null;
-  spreadAway: number | null;
-  total: number | null;
-  underdogTeam: string | null;
-};
 
 type ShareGame = {
   homeTeam: string;
@@ -22,12 +16,12 @@ type ShareGame = {
   homeAbbr: string | null;
   awayAbbr: string | null;
   voided: boolean;
-  oddsSnapshots: ShareSnapshot[];
 };
 
 export type SharePick = {
   pickType: "SPREAD" | "TOTAL" | "DOG";
   selection: string;
+  locked: boolean;
   lockedLine: number | null;
   dogSpreadValue: number | null;
   game: ShareGame;
@@ -37,54 +31,40 @@ function abbrs(g: ShareGame) {
   return { home: g.homeAbbr ?? g.homeTeam, away: g.awayAbbr ?? g.awayTeam };
 }
 
+// "AWAY @ HOME" with `tail` attached to whichever side was picked.
+function awayAtHome(away: string, home: string, pickedHome: boolean, tail: string): string {
+  return pickedHome ? `${away} @ ${home}${tail}` : `${away}${tail} @ ${home}`;
+}
+
 function formatSide(p: SharePick): string {
   const g = p.game;
   const { home, away } = abbrs(g);
-  const snap = g.oddsSnapshots[0] ?? null;
+  const isHome = p.selection === g.homeTeam;
 
   if (p.pickType === "TOTAL") {
-    const line = p.lockedLine ?? snap?.total ?? null;
     const ou = p.selection === "over" ? "o" : "u";
-    const tail = line != null ? ` ${ou}${line}` : ` ${p.selection}`;
-    return `${away} v ${home}${tail}`;
+    return `${away} @ ${home}${p.lockedLine != null ? ` ${ou}${p.lockedLine}` : ` ${p.selection}`}`;
   }
-
-  // SPREAD
-  const isHome = p.selection === g.homeTeam;
-  const picked = isHome ? home : away;
-  const other = isHome ? away : home;
-  let line = p.lockedLine;
-  if (line == null && snap) line = isHome ? snap.spreadHome : snap.spreadAway;
-  const num = line != null ? ` ${formatSpread(line)}` : "";
-  return `${picked}${num} ${isHome ? "v" : "@"} ${other}`;
+  return awayAtHome(away, home, isHome, p.lockedLine != null ? ` ${formatSpread(p.lockedLine)}` : "");
 }
 
 function formatDog(p: SharePick): string {
   const g = p.game;
   const { home, away } = abbrs(g);
-  const snap = g.oddsSnapshots[0] ?? null;
   const isHome = p.selection === g.homeTeam;
-  const picked = isHome ? home : away;
-  const other = isHome ? away : home;
-
-  let worth = p.dogSpreadValue;
-  if (worth == null && snap) {
-    const s = isHome ? snap.spreadHome : snap.spreadAway;
-    worth = s != null ? Math.abs(s) : null;
-  }
-  const num = worth != null ? ` +${worth}` : "";
-  return `${picked}${num} ML ${isHome ? "v" : "@"} ${other} (dog)`;
+  const tail = ` ${p.dogSpreadValue != null ? `+${p.dogSpreadValue} ` : ""}ML`;
+  return `${awayAtHome(away, home, isHome, tail)} (dog)`;
 }
 
-/** Empty string when the player has no (non-voided) picks. */
+/** Empty string when the player has no locked (non-voided) picks. */
 export function buildPickShareText(
   name: string,
   weekNumber: number,
   sidePicks: SharePick[],
   dogPick: SharePick | null
 ): string {
-  const lines = sidePicks.filter((p) => !p.game.voided).map(formatSide);
-  if (dogPick && !dogPick.game.voided) lines.push(formatDog(dogPick));
+  const lines = sidePicks.filter((p) => p.locked && !p.game.voided).map(formatSide);
+  if (dogPick && dogPick.locked && !dogPick.game.voided) lines.push(formatDog(dogPick));
   if (lines.length === 0) return "";
   return `${name} — Week ${weekNumber}\n${lines.join("\n")}`;
 }

@@ -3,7 +3,6 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { fetchEspnScoreboard, teamNamesMatch, toYyyymmdd, EspnResult } from "@/lib/espnScores";
 import { gradePick } from "@/lib/scoring";
-import { latestPreKickoffSnapshot } from "@/lib/lock";
 
 export const dynamic = "force-dynamic";
 
@@ -20,7 +19,6 @@ export async function GET() {
   // graded even after the calendar has already rolled into a new week.
   const games = await prisma.game.findMany({
     where: { isFinal: false, voided: false, commenceTime: { lte: new Date() } },
-    include: { oddsSnapshots: { orderBy: { capturedAt: "desc" }, take: 10 } },
     orderBy: { commenceTime: "asc" },
     take: MAX_GAMES_PER_RUN,
   });
@@ -48,6 +46,7 @@ export async function GET() {
 
   let gamesGraded = 0;
   let picksGraded = 0;
+  let skippedUnlocked = 0; // picks a player never locked - they don't count
   const gradedIds = new Set<string>();
   const unmatched: { ourGame: string; date: string; espnGamesThatDay: string[] }[] = [];
   const stillInProgress: string[] = [];
@@ -88,39 +87,21 @@ export async function GET() {
     gradedIds.add(game.id);
 
     const picks = await prisma.pick.findMany({ where: { gameId: game.id } });
-    // Never fall back to a snapshot captured after kickoff (in-play line) -
-    // see the pullOdds() gotcha in CLAUDE.md.
-    const snap = latestPreKickoffSnapshot(game.oddsSnapshots, game.commenceTime);
 
     for (const pick of picks) {
-      let lockedLine = pick.lockedLine;
-      let lockedOdds = pick.lockedOdds;
-      let dogSpreadValue = pick.dogSpreadValue;
-
-      // Safety net: if a pick somehow never got locked (sweep missed it),
-      // force-lock it now using the last cached line before grading.
-      if (!pick.locked && snap) {
-        if (pick.pickType === "SPREAD") {
-          const isHome = pick.selection === game.homeTeam;
-          lockedLine = isHome ? snap.spreadHome : snap.spreadAway;
-          lockedOdds = isHome ? snap.spreadHomePrice : snap.spreadAwayPrice;
-        } else if (pick.pickType === "TOTAL") {
-          lockedLine = snap.total;
-          lockedOdds = pick.selection === "over" ? snap.totalOverPrice : snap.totalUnderPrice;
-        } else if (pick.pickType === "DOG") {
-          const isHome = pick.selection === game.homeTeam;
-          dogSpreadValue = Math.abs((isHome ? snap.spreadHome : snap.spreadAway) ?? 0);
-          lockedOdds = isHome ? snap.mlHome : snap.mlAway;
-        }
-        await prisma.pick.update({
-          where: { id: pick.id },
-          data: { locked: true, lockedAt: new Date(), lockedLine, lockedOdds, dogSpreadValue, lockedBook: snap.sourceBook },
-        });
+      // No auto-lock: a pick the player never locked doesn't count. Leave it
+      // ungraded (pointsEarned 0, isWin null) so it's just absent from the
+      // week rather than a loss.
+      if (!pick.locked) {
+        skippedUnlocked++;
+        continue;
       }
 
-      // If there's still no real line to grade against (never locked, and no
-      // usable cached snapshot even as a fallback), don't guess - skip this
-      // pick entirely rather than silently grading it against a fake 0 line.
+      const lockedLine = pick.lockedLine;
+      const dogSpreadValue = pick.dogSpreadValue;
+
+      // A locked pick with no line is a data problem, not a normal case -
+      // skip rather than grade against a fake 0.
       const hasUsableLine =
         pick.pickType === "DOG" ? dogSpreadValue != null : lockedLine != null;
       if (!hasUsableLine) continue;
@@ -159,6 +140,7 @@ export async function GET() {
     ok: true,
     gamesGraded,
     picksGraded,
+    skippedUnlocked,
     processed: games.length,
     capped: games.length === MAX_GAMES_PER_RUN,
     stillInProgress,

@@ -263,6 +263,17 @@ h1 {
   letter-spacing: 0.04em;
 }
 
+.miss-badge {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--down);
+  background: rgba(255, 75, 75, 0.12);
+  padding: 3px 8px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
 /* Error / status banners */
 .banner-error {
   background: rgba(255, 75, 75, 0.12);

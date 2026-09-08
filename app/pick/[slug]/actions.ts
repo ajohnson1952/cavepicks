@@ -1,37 +1,13 @@
 "use server";
 
 import { prisma } from "@/lib/db";
-import { isPastAutoLock } from "@/lib/lock";
+import { isPastLockDeadline } from "@/lib/lock";
 import { getWeekNumberForDate } from "@/lib/currentWeek";
 import { revalidatePath } from "next/cache";
 
-// Undoes a manual lock - only allowed if the game hasn't hit its 30-min
-// auto-lock deadline yet. Past that point, locks are final either way.
-export async function unlockPick(slug: string, pickId: string) {
-  const user = await prisma.user.findUnique({ where: { pickSlug: slug } });
-  if (!user) return { error: "Player not found" };
-
-  const pick = await prisma.pick.findUnique({
-    where: { id: pickId },
-    include: { game: true },
-  });
-  if (!pick || pick.userId !== user.id) return { error: "Pick not found" };
-  if (!pick.locked) return { error: "Not locked" };
-  if (isPastAutoLock(pick.game.commenceTime)) {
-    return { error: "Can't unlock - this game already passed its auto-lock deadline" };
-  }
-
-  await prisma.pick.update({
-    where: { id: pickId },
-    data: { locked: false, lockedAt: null, lockedLine: null, lockedOdds: null, dogSpreadValue: null, lockedBook: null },
-  });
-  revalidatePath(`/pick/${slug}`);
-  revalidatePath("/board");
-  return { error: null };
-}
-
 // Deletes an unlocked pick entirely, since radio buttons can't be "unselected"
-// on their own. Locked picks can't be cleared - unlock first.
+// on their own. Locked picks can't be cleared by a player - the lock is
+// final (only the admin can unlock).
 export async function clearPick(slug: string, gameId: string, pickType: "SPREAD" | "TOTAL" | "DOG") {
   const user = await prisma.user.findUnique({ where: { pickSlug: slug } });
   if (!user) return { error: "Player not found" };
@@ -40,7 +16,7 @@ export async function clearPick(slug: string, gameId: string, pickType: "SPREAD"
     where: { userId: user.id, gameId, pickType },
   });
   if (!pick) return { error: null }; // nothing to clear
-  if (pick.locked) return { error: "Can't clear a locked pick - unlock it first" };
+  if (pick.locked) return { error: "That pick is locked - locks are final. Ask the commissioner to unlock it." };
 
   await prisma.pick.delete({ where: { id: pick.id } });
   revalidatePath(`/pick/${slug}`);
@@ -61,7 +37,7 @@ export async function autosaveSelection(
 
   const game = await prisma.game.findUnique({ where: { id: gameId } });
   if (!game) return { error: "Game not found" };
-  if (isPastAutoLock(game.commenceTime)) return { error: "This game already auto-locked" };
+  if (isPastLockDeadline(game.commenceTime)) return { error: "The lock window for this game has closed" };
 
   // The pick belongs to whatever week the GAME is actually in, not
   // whatever week happens to be "current" today - this matters now that
@@ -115,7 +91,7 @@ export async function lockValue(
 
   const game = await prisma.game.findUnique({ where: { id: gameId }, include: { week: true } });
   if (!game) return { error: "Game not found" };
-  if (isPastAutoLock(game.commenceTime)) return { error: "This game already auto-locked" };
+  if (isPastLockDeadline(game.commenceTime)) return { error: "The lock window for this game has closed" };
   if (game.week.weekNumber > getWeekNumberForDate()) {
     return { error: "Locking isn't open yet for a future week - come back once it's the current week." };
   }
@@ -126,7 +102,11 @@ export async function lockValue(
   const weekId = game.weekId;
 
   const existingPicks = await prisma.pick.findMany({ where: { userId: user.id, weekId } });
-  const alreadyExists = existingPicks.some((p) => p.gameId === gameId && p.pickType === pickType);
+  const existingSlot = existingPicks.find((p) => p.gameId === gameId && p.pickType === pickType);
+  const alreadyExists = !!existingSlot;
+
+  // Locks are final - a locked pick can't be re-locked with a new line.
+  if (existingSlot?.locked) return { error: "That pick is already locked." };
 
   if (!alreadyExists) {
     if (pickType === "DOG") {

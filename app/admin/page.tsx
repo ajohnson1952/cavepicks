@@ -1,7 +1,8 @@
 import { cookies } from "next/headers";
 import { prisma } from "@/lib/db";
 import { getOrCreateCurrentWeek } from "@/lib/currentWeek";
-import { adminLogin, adminLogout, voidGame, unvoidGame, setManualScore } from "./actions";
+import { adminLogin, adminLogout, voidGame, unvoidGame, setManualScore, adminUnlockPick } from "./actions";
+import { formatSpread } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 
@@ -53,6 +54,20 @@ export default async function AdminPage({
     : [];
   const games = showAll ? allGames : allGames.filter((g) => !g.isFinal || g.voided);
   const hiddenCount = allGames.length - games.length;
+
+  const lockedPicks = week
+    ? await prisma.pick.findMany({
+        where: { gameId: { in: games.map((g) => g.id) }, locked: true },
+        include: { user: true },
+        orderBy: [{ user: { name: "asc" } }, { pickType: "asc" }],
+      })
+    : [];
+  const lockedByGame = new Map<string, typeof lockedPicks>();
+  for (const p of lockedPicks) {
+    const arr = lockedByGame.get(p.gameId) ?? [];
+    arr.push(p);
+    lockedByGame.set(p.gameId, arr);
+  }
 
   return (
     <main>
@@ -164,6 +179,41 @@ export default async function AdminPage({
               </button>
             </form>
           </div>
+
+          {(lockedByGame.get(g.id) ?? []).length > 0 && (
+            <div style={{ marginTop: "10px" }}>
+              <div className="meta" style={{ marginBottom: "4px" }}>Locked picks</div>
+              {(lockedByGame.get(g.id) ?? []).map((p) => {
+                const num =
+                  p.pickType === "DOG"
+                    ? p.dogSpreadValue != null
+                      ? ` (worth ${p.dogSpreadValue})`
+                      : ""
+                    : p.pickType === "SPREAD" && p.lockedLine != null
+                    ? ` (${formatSpread(p.lockedLine)})`
+                    : p.lockedLine != null
+                    ? ` (${p.lockedLine})`
+                    : "";
+                return (
+                  <form
+                    key={p.id}
+                    action={adminUnlockPick}
+                    style={{ display: "flex", gap: "8px", alignItems: "center", fontSize: "13px", marginBottom: "3px" }}
+                  >
+                    <input type="hidden" name="pickId" value={p.id} />
+                    <span style={{ flex: 1 }}>
+                      {p.user.name} &middot; {p.pickType.toLowerCase()} {p.selection}
+                      {num}
+                      {p.graded ? (p.isWin ? " — won" : p.isPush ? " — push" : " — lost") : ""}
+                    </span>
+                    <button type="submit" className="btn btn-ghost">
+                      Unlock
+                    </button>
+                  </form>
+                );
+              })}
+            </div>
+          )}
         </div>
       ))}
     </main>

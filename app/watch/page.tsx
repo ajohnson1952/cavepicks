@@ -2,7 +2,7 @@ import { prisma } from "@/lib/db";
 import { getOrCreateCurrentWeek } from "@/lib/currentWeek";
 import { fetchEspnScoreboard, teamNamesMatch, toYyyymmdd } from "@/lib/espnScores";
 import { gradePick } from "@/lib/scoring";
-import { latestPreKickoffSnapshot } from "@/lib/lock";
+import { isPastLockDeadline } from "@/lib/lock";
 import { formatSpread } from "@/lib/format";
 import { computeRace, buildRaceBlurb, isDecided, PickOutcome } from "@/lib/weeklyRace";
 import RefreshButton from "./RefreshButton";
@@ -25,6 +25,7 @@ const OUTCOME_UI: Record<PickOutcome, { label: string; cls: string }> = {
   "live-covering": { label: "covering", cls: "pick-win" },
   "live-losing": { label: "trailing", cls: "pick-loss" },
   pending: { label: "not started", cls: "pick-push" },
+  missed: { label: "not locked", cls: "pick-loss" },
   unknown: { label: "?", cls: "pick-push" },
 };
 
@@ -33,7 +34,6 @@ export default async function WatchPage() {
   const users = await prisma.user.findMany({ orderBy: { name: "asc" } });
   const games = await prisma.game.findMany({
     where: { weekId: week.id },
-    include: { oddsSnapshots: { orderBy: { capturedAt: "desc" }, take: 10 } },
     orderBy: { commenceTime: "asc" },
   });
   const picks = await prisma.pick.findMany({ where: { weekId: week.id }, include: { user: true } });
@@ -73,14 +73,11 @@ export default async function WatchPage() {
 
   const gameById = new Map(games.map((g) => [g.id, g]));
 
-  function lineFor(pick: (typeof picks)[number], g: (typeof games)[number]) {
-    if (pick.locked) return { line: pick.lockedLine, dogVal: pick.dogSpreadValue };
-    const snap = latestPreKickoffSnapshot(g.oddsSnapshots, g.commenceTime);
-    if (!snap) return { line: null as number | null, dogVal: null as number | null };
-    const isHome = pick.selection === g.homeTeam;
-    if (pick.pickType === "SPREAD") return { line: isHome ? snap.spreadHome : snap.spreadAway, dogVal: null };
-    if (pick.pickType === "TOTAL") return { line: snap.total, dogVal: null };
-    return { line: null, dogVal: Math.abs((isHome ? snap.spreadHome : snap.spreadAway) ?? 0) };
+  // Only a locked pick has a line. An unlocked pick never adopts one - it
+  // just won't count.
+  function lineFor(pick: (typeof picks)[number]) {
+    if (!pick.locked) return { line: null as number | null, dogVal: null as number | null };
+    return { line: pick.lockedLine, dogVal: pick.dogSpreadValue };
   }
 
   function outcomeOf(pick: (typeof picks)[number]): PickOutcome {
@@ -88,13 +85,17 @@ export default async function WatchPage() {
     const g = gameById.get(pick.gameId);
     if (!st || !g) return "unknown";
 
+    // No auto-lock: an unlocked pick is either still lockable ("pending") or,
+    // once its deadline passed, gone ("missed").
+    if (!pick.locked) return isPastLockDeadline(g.commenceTime) ? "missed" : "pending";
+
     if (pick.graded) {
       if (pick.pickType === "DOG") return pick.isWin ? "won" : "lost";
       return pick.isPush ? "push" : pick.isWin ? "won" : "lost";
     }
     if (st.phase === "pre" || st.homeScore == null || st.awayScore == null) return "pending";
 
-    const { line, dogVal } = lineFor(pick, g);
+    const { line, dogVal } = lineFor(pick);
     if (pick.pickType !== "DOG" && line == null) return "unknown";
 
     const r = gradePick(
@@ -112,11 +113,15 @@ export default async function WatchPage() {
   const outcome = new Map(picks.map((p) => [p.id, outcomeOf(p)]));
 
   // --- weekly race (SPREAD + TOTAL only) ---
+  // A pick that missed its lock doesn't count - leave it out entirely rather
+  // than as a loss, so a forgotten lock just shrinks that player's slate.
   const sidePicks = picks.filter((p) => p.pickType !== "DOG");
   const byUser = new Map<string, PickOutcome[]>();
   for (const p of sidePicks) {
+    const o = outcome.get(p.id)!;
+    if (o === "missed") continue;
     const arr = byUser.get(p.userId) ?? [];
-    arr.push(outcome.get(p.id)!);
+    arr.push(o);
     byUser.set(p.userId, arr);
   }
   const race = computeRace(users.map((u) => ({ userId: u.id, name: u.name })), byUser);
@@ -223,27 +228,27 @@ export default async function WatchPage() {
           const o = outcome.get(p.id)!;
           const ui = OUTCOME_UI[o];
           const alive = aliveIds.has(p.userId);
+          const { line } = lineFor(p);
           let label: string;
           if (p.pickType === "SPREAD") {
-            const { line } = lineFor(p, g2);
             label = `${abbrOf(p.selection, g2)}${line != null ? ` ${formatSpread(line)}` : ""}`;
           } else if (p.pickType === "TOTAL") {
-            const { line } = lineFor(p, g2);
-            label = `${p.selection === "over" ? "o" : "u"}${line ?? "?"}`;
+            label = line != null ? `${p.selection === "over" ? "o" : "u"}${line}` : p.selection;
           } else {
             label = `${abbrOf(p.selection, g2)} ML`;
           }
+          const showTag = isDecided(o) || o === "live-covering" || o === "live-losing" || o === "missed";
           return (
             <div key={p.id} style={{ fontSize: "13px", marginBottom: "3px" }}>
               <span style={{ fontWeight: alive ? 700 : 400, color: alive ? "var(--ink)" : "var(--dim)" }}>
                 {p.user.name}
               </span>
-              {!alive && <span className="meta"> (out)</span>}
+              {!alive && o !== "missed" && <span className="meta"> (out)</span>}
               {p.pickType === "DOG" && <span className="meta"> · dog</span>}
               {"  "}
               {label}{" "}
               <span className={ui.cls} style={{ fontSize: "11px", fontWeight: 700 }}>
-                {isDecided(o) || o === "live-covering" || o === "live-losing" ? ui.label : ""}
+                {showTag ? ui.label : ""}
               </span>
             </div>
           );

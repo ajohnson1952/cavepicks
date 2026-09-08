@@ -2,6 +2,7 @@ import { prisma } from "@/lib/db";
 import { formatSpread, formatOdds, bookAbbr } from "@/lib/format";
 import { getOrCreateCurrentWeek, getWeekNumberForDate } from "@/lib/currentWeek";
 import { fetchEspnScoreboard, teamNamesMatch, toYyyymmdd } from "@/lib/espnScores";
+import { isPastLockDeadline } from "@/lib/lock";
 import { buildPickShareText } from "@/lib/pickShareText";
 import WeekNav from "../WeekNav";
 import CopyPicksButton from "./CopyPicksButton";
@@ -80,7 +81,7 @@ export default async function BoardPage({ searchParams }: { searchParams: { week
   const users = await prisma.user.findMany({ orderBy: { name: "asc" } });
   const picks = await prisma.pick.findMany({
     where: { weekId: week.id },
-    include: { game: { include: { oddsSnapshots: { orderBy: { capturedAt: "desc" }, take: 1 } } } },
+    include: { game: true },
     orderBy: { game: { commenceTime: "asc" } },
   });
 
@@ -141,36 +142,26 @@ export default async function BoardPage({ searchParams }: { searchParams: { week
             {sidePicks.map((p) => {
               const rClass = resultClass(p.graded, p.isWin, p.isPush);
               const isLive = liveGameIds.has(p.game.id);
-              const liveSnap = p.game.oddsSnapshots[0] ?? null;
-              const book = p.lockedBook ?? liveSnap?.sourceBook ?? null;
+              const book = p.lockedBook ?? null;
+              const missedLock = !p.locked && isPastLockDeadline(p.game.commenceTime);
 
-              // Once locked, always show the frozen number. Otherwise fall
-              // back to the game's current live line so an open pick isn't
-              // shown with no number at all - just make sure it reads as
-              // still-moving, not locked (the "(open)" tag below does that).
+              // Only a locked pick has a number to show - an unlocked pick
+              // never adopts a line (there's no auto-lock), so it just reads
+              // as a bare side with a "(not locked)" tag.
               let pickLabel: string;
               let lineNumber = "";
               if (p.pickType === "SPREAD") {
                 pickLabel = abbr(p.selection, p.game.homeTeam, p.game.homeAbbr, p.game.awayTeam, p.game.awayAbbr);
                 if (p.lockedLine != null) {
                   lineNumber = metaParen(formatSpread(p.lockedLine), p.lockedOdds, book);
-                } else if (liveSnap) {
-                  const isHome = p.selection === p.game.homeTeam;
-                  const liveLine = isHome ? liveSnap.spreadHome : liveSnap.spreadAway;
-                  const liveOdds = isHome ? liveSnap.spreadHomePrice : liveSnap.spreadAwayPrice;
-                  if (liveLine != null) lineNumber = metaParen(formatSpread(liveLine), liveOdds, book);
                 }
               } else {
-                // Fold the number straight into the pick itself - "o51.5" /
-                // "u51.5" - instead of spelling out "over"/"under" and then
-                // repeating the same number again in a parenthetical.
-                const totalLine = p.lockedLine ?? liveSnap?.total ?? null;
-                pickLabel = totalLine != null ? `${p.selection === "over" ? "o" : "u"}${totalLine}` : p.selection;
+                pickLabel =
+                  p.lockedLine != null
+                    ? `${p.selection === "over" ? "o" : "u"}${p.lockedLine}`
+                    : p.selection;
                 if (p.lockedLine != null) {
                   lineNumber = metaParen(null, p.lockedOdds, book);
-                } else if (liveSnap?.total != null) {
-                  const liveOdds = p.selection === "over" ? liveSnap.totalOverPrice : liveSnap.totalUnderPrice;
-                  lineNumber = metaParen(null, liveOdds, book);
                 }
               }
 
@@ -189,7 +180,11 @@ export default async function BoardPage({ searchParams }: { searchParams: { week
                       {` (voided \u2014 ${p.game.voidReason})`}
                     </span>
                   )}
-                  {!p.game.voided && !p.locked && !p.graded && <span className="meta"> (open)</span>}
+                  {!p.game.voided && !p.locked && !p.graded && (
+                    <span className="meta" style={missedLock ? { color: "var(--down)" } : undefined}>
+                      {missedLock ? " — not locked, no pick" : " (not locked)"}
+                    </span>
+                  )}
                   {!p.game.voided && isLive && !p.graded && (
                     <span className="live-badge" style={{ marginLeft: "6px" }}>
                       <span className="live-dot" /> LIVE
@@ -220,25 +215,11 @@ export default async function BoardPage({ searchParams }: { searchParams: { week
                   </span>
                 ) : dogPick.locked ? (
                   <span>{` (worth ${dogPick.dogSpreadValue ?? "?"} pts${dogPick.lockedOdds != null ? `, ${formatOdds(dogPick.lockedOdds)} ML` : ""}${dogPick.lockedBook ? `, ${bookAbbr(dogPick.lockedBook)}` : ""})`}</span>
-                ) : (() => {
-                  // Same live-fallback as side picks: an open dog pick still
-                  // has a current worth-in-points sitting in the game's
-                  // latest snapshot, so show it instead of nothing.
-                  const dogSnap = dogPick.game.oddsSnapshots[0] ?? null;
-                  if (!dogSnap || dogSnap.underdogTeam !== dogPick.selection) {
-                    return <span className="meta"> (open)</span>;
-                  }
-                  const isHome = dogPick.selection === dogPick.game.homeTeam;
-                  const liveWorth = Math.abs((isHome ? dogSnap.spreadHome : dogSnap.spreadAway) ?? 0);
-                  const liveOdds = isHome ? dogSnap.mlHome : dogSnap.mlAway;
-                  const liveBook = dogSnap.sourceBook ? `, ${bookAbbr(dogSnap.sourceBook)}` : "";
-                  return (
-                    <span>
-                      {` (worth ${liveWorth} pts${liveOdds != null ? `, ${formatOdds(liveOdds)} ML` : ""}${liveBook})`}
-                      <span className="meta"> (open)</span>
-                    </span>
-                  );
-                })()}
+                ) : isPastLockDeadline(dogPick.game.commenceTime) ? (
+                  <span className="meta" style={{ color: "var(--down)" }}> &mdash; not locked, no pick</span>
+                ) : (
+                  <span className="meta"> (not locked)</span>
+                )}
                 {liveGameIds.has(dogPick.game.id) && !dogPick.graded && (
                   <span className="live-badge" style={{ marginLeft: "6px" }}>
                     <span className="live-dot" /> LIVE

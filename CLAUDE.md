@@ -24,9 +24,15 @@ Rules page (source of truth for game rules): cavepicks.onrender.com/rules
   one game) + 1 dog pick (moneyline pick on an underdog)
 - Dog pick pays points = the spread magnitude it was getting, only if it
   wins outright. 0 if it loses. No push.
-- Games auto-lock **30 minutes before that specific game's own kickoff** -
-  this is per-game, not per-week. A player can manually "Lock In" any pick
-  earlier than that.
+- **No auto-lock.** A player must hit "Lock In" on each pick themselves.
+  The lock window closes **30 minutes before that specific game's own
+  kickoff** (per-game, not per-week). A pick still unlocked at that point
+  **does not count** - it is left ungraded (not a loss, just absent from
+  the week). An unlocked pick never has a line recorded against it.
+- **Locks are final for players** - there is no player-facing unlock. Only
+  the admin can unlock a pick (`adminUnlockPick` in `app/admin/actions.ts`,
+  surfaced per game on `/admin`), which also wipes the frozen line and any
+  grading so it can be re-locked.
 - Manual Lock In freezes **exactly the line/odds shown on screen at the
   moment of the click** - it must never re-fetch a fresher line
   server-side. This was a real bug once (see Gotchas).
@@ -43,7 +49,8 @@ Rules page (source of truth for game rules): cavepicks.onrender.com/rules
 ## Architecture
 
 - `lib/lock.ts` - single source of truth for Central-time week boundaries
-  (Tuesday midnight CT) and per-game auto-lock timing. `lib/currentWeek.ts`
+  (Tuesday midnight CT) and the per-game lock deadline
+  (`isPastLockDeadline`, 30 min before kickoff). `lib/currentWeek.ts`
   derives week numbers from this, never do date math independently elsewhere.
 - `lib/scoring.ts` - grades a single pick (spread/total/dog) given a
   finished game's score. Pure function, no DB access.
@@ -52,13 +59,11 @@ Rules page (source of truth for game rules): cavepicks.onrender.com/rules
 - `lib/pot.ts` - constants only (WEEKLY_BUYIN, DOG_BUYIN, DOG_PAYOUTS). The
   actual pot/standings math lives inline in `app/standings/page.tsx`,
   computed fresh on every page load - there is no persisted "pot" table.
-- Three separate code paths can lock a pick, and must stay consistent on
-  every field (`lockedLine`, `lockedOdds`, `dogSpreadValue`):
-  1. `app/pick/[slug]/actions.ts` `lockValue()` - the manual Lock In button
-  2. `app/api/auto-lock-sweep/route.ts` - cron, force-locks anything past
-     the 30-min deadline using the last cached snapshot
-  3. `app/api/grade-results/route.ts` - safety net, force-locks any
-     straggler right before grading
+- **Only one code path locks a pick**: `app/pick/[slug]/actions.ts`
+  `lockValue()`, from the manual Lock In button. Nothing force-locks
+  anymore - `grade-results` skips any pick that isn't locked, and
+  `app/api/auto-lock-sweep/route.ts` is a retired no-op (kept only so old
+  cron jobs get a 200; those jobs can be deleted).
 - Automation is scheduled via **cron-job.org** (18 jobs across 3 endpoints,
   2 intentionally disabled; API key lives in the cron-job.org account, not
   in this repo), not Render
@@ -71,14 +76,12 @@ Rules page (source of truth for game rules): cavepicks.onrender.com/rules
     once will OOM Render's 512MB free instance and it returns 502/503 for
     an hour+ until it stabilises. This actually happened (Sep 1-2 2026)
     right after the GitHub->cron-job.org move put everything on `:00`.
-    Current split: auto-lock-sweep `:05/:20/:35/:50`, grade-results
-    `:15/:45`, pull-odds `:25`. Keep new jobs off those collision minutes.
+    Current split: grade-results `:15/:45`, pull-odds `:25`. Keep new jobs
+    off those collision minutes.
   - pull-odds: 12 jobs replicating the tuned weekly pattern (tuned to stay
     under 500 odds-API credits/month), all firing at `hh:25`
-  - auto-lock-sweep: every 15 min, 9am-11:50pm (one job). Two helper jobs
-    for the midnight and 7:30am edges are kept but **disabled** (`[off]`
-    prefix) - nothing kicks off before ~10am CT or after ~11pm CT, so they
-    only cost wake-ups.
+  - auto-lock-sweep: **retired** (no auto-lock anymore). The cron jobs that
+    hit it (one active, two `[off]`) can be deleted; the route is a no-op.
   - grade-results: every 30 min - core 11am-11:45pm, plus a single 7:30am
     run and a 12:15/12:45am run for late West-coast finishers
   - Both DB-heavy routes cap games processed per invocation
@@ -95,7 +98,8 @@ Rules page (source of truth for game rules): cavepicks.onrender.com/rules
     `America/Chicago` (DST handled natively by cron-job.org, unlike raw
     UTC cron strings).
 - `/admin` is password-gated (`ADMIN_PASSWORD` env var) - lets the owner
-  void postponed/cancelled games and manually correct scores.
+  void postponed/cancelled games, manually correct scores, and unlock a
+  player's locked pick.
 
 ## Gotchas (all found the hard way - don't reintroduce these)
 
@@ -144,13 +148,10 @@ Rules page (source of truth for game rules): cavepicks.onrender.com/rules
   param to exclude them. `pullOdds()` filters to `commenceTime > now` before
   ever writing an `OddsSnapshot`, and it's the only writer of that table -
   don't remove that filter or add another write path without it. Otherwise
-  a pick whose auto-lock sweep gets missed (an outage, say) could get
-  force-locked or graded against a mid-game line that already reflects the
-  score, not the market. `latestPreKickoffSnapshot()` in `lib/lock.ts` is
-  the defense-in-depth on the read side (auto-lock-sweep and grade-results'
-  straggler force-lock both use it instead of "just take the newest
-  snapshot") - keep using it in any new code that force-locks from a cached
-  snapshot. `/api/debug-live-line-audit` checks both ends.
+  the pick page's live pill prices (and anything else reading the newest
+  snapshot) would show a number that's really the game's score baked into a
+  live line. `/api/debug-live-line-audit` flags any snapshot ever captured
+  after kickoff.
 - **Spread line-movement arrows: never use raw `now - open`.** A favorite
   going `-9.5 -> -7.5` has gotten *smaller* (▼) but subtracts to `+2` (▲).
   Use `spreadMove(now, open)` in `lib/format.ts` - direction from

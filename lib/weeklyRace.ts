@@ -9,7 +9,8 @@ export type PickOutcome =
   | "push"
   | "live-covering" // game in progress, would win if it ended now
   | "live-losing" // game in progress, would lose if it ended now
-  | "pending" // game hasn't started
+  | "pending" // game hasn't started (or pick is still lockable)
+  | "missed" // never locked before the deadline - doesn't count
   | "unknown"; // no line to grade against (shouldn't happen in practice)
 
 export function isDecided(o: PickOutcome): boolean {

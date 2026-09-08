@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/db";
-import { isPastAutoLock } from "@/lib/lock";
+import { isPastLockDeadline } from "@/lib/lock";
 import { spreadMove } from "@/lib/format";
 import { getOrCreateCurrentWeek, getWeekNumberForDate } from "@/lib/currentWeek";
 import PickForm from "./PickForm";
@@ -124,7 +124,7 @@ export default async function PickPage({
           dateStyle: "medium",
           timeStyle: "short",
         }) + " CT",
-      pastAutoLock: isPastAutoLock(g.commenceTime),
+      pastLockDeadline: isPastLockDeadline(g.commenceTime),
       isFinal: g.isFinal,
       homeScore: g.homeScore,
       awayScore: g.awayScore,
@@ -191,6 +191,18 @@ export default async function PickPage({
 
   const voidedGames = games.filter((g) => g.voided);
 
+  // Nudges for the new manual-only locking rule.
+  const pickSlots = gameViews.flatMap((gv) => {
+    const s = [
+      { has: !!gv.spread.pickId, locked: gv.spread.locked, past: gv.pastLockDeadline },
+      { has: !!gv.total.pickId, locked: gv.total.locked, past: gv.pastLockDeadline },
+    ];
+    if (gv.dog) s.push({ has: !!gv.dog.pickId, locked: gv.dog.locked, past: gv.pastLockDeadline });
+    return s;
+  });
+  const openPickCount = pickSlots.filter((s) => s.has && !s.locked && !s.past).length;
+  const missedLockCount = pickSlots.filter((s) => s.has && !s.locked && s.past).length;
+
   return (
     <main>
       <h1>{user.name}&apos;s Picks</h1>
@@ -198,7 +210,9 @@ export default async function PickPage({
       <p className="subtext">
         {lockedSideCount}/5 picks locked &middot; dog pick {lockedDogPick ? "locked" : "not locked"}
         <br />
-        Games lock automatically 30 minutes before kickoff if not locked manually.
+        You must lock each pick yourself before its game &mdash; the window closes 30 minutes
+        before kickoff. Anything not locked by then doesn&apos;t count. Locks are final (only
+        the admin can undo one).
         {!isCurrentWeek && (
           <>
             <br />
@@ -217,6 +231,18 @@ export default async function PickPage({
             }) + " CT"
           : "never yet"}
       </p>
+      {missedLockCount > 0 && (
+        <p className="banner-error">
+          {missedLockCount} selected pick{missedLockCount > 1 ? "s" : ""} {missedLockCount > 1 ? "were" : "was"} never
+          locked before kickoff and {missedLockCount > 1 ? "don't" : "doesn't"} count this week.
+        </p>
+      )}
+      {openPickCount > 0 && isCurrentWeek && (
+        <p className="banner-note">
+          {openPickCount} pick{openPickCount > 1 ? "s are" : " is"} selected but not locked. Lock{" "}
+          {openPickCount > 1 ? "each one" : "it"} before that game&apos;s kickoff or it won&apos;t count.
+        </p>
+      )}
       {voidedGames.length > 0 && (
         <p className="banner-note">
           {voidedGames.length} game{voidedGames.length > 1 ? "s" : ""} this week{" "}
