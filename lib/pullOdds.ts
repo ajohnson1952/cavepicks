@@ -14,8 +14,14 @@ export async function pullOdds(snapshotType: string = "market") {
   // the pick page shows the newest snapshot as the live pill price, and this
   // is the only write path for OddsSnapshot, so this filter is the one guard.
   // See CLAUDE.md gotchas.
+  //
+  // Team identity (abbr/logo/broadcast) is a different story though - it
+  // carries none of that live-line risk, so it's kept on allGames below
+  // rather than this pregame-only list. Otherwise a bad ESPN name-match on a
+  // game's very first pull (e.g. a team ESPN's directory hadn't listed yet)
+  // would freeze that wrong abbr/logo forever the moment the game kicks off,
+  // since a started game is never touched by this function again.
   const now = Date.now();
-  const games = allGames.filter((g) => new Date(g.commenceTime).getTime() > now);
 
   const espnTeams = await fetchEspnTeams(); // one call, reused for every game below
   const results = [];
@@ -23,13 +29,13 @@ export async function pullOdds(snapshotType: string = "market") {
 
   // Fetch broadcast/schedule info for every distinct date in this pull -
   // same scoreboard endpoint grading uses, just for channel info this time.
-  const dates = new Set(games.map((g) => toYyyymmdd(new Date(g.commenceTime))));
+  const dates = new Set(allGames.map((g) => toYyyymmdd(new Date(g.commenceTime))));
   const scoreboardResults: EspnResult[] = [];
   for (const d of dates) {
     scoreboardResults.push(...(await fetchEspnScoreboard(d)));
   }
 
-  for (const g of games) {
+  for (const g of allGames) {
     const homeInfo = findEspnTeamInfo(g.homeTeam, espnTeams);
     const awayInfo = findEspnTeamInfo(g.awayTeam, espnTeams);
     if (!homeInfo) unmatchedTeams.add(g.homeTeam);
@@ -69,32 +75,37 @@ export async function pullOdds(snapshotType: string = "market") {
       },
     });
 
-    await prisma.oddsSnapshot.create({
-      data: {
-        gameId: game.id,
-        snapshotType,
-        spreadHome: g.spreadHome,
-        spreadAway: g.spreadAway,
-        spreadHomePrice: g.spreadHomePrice,
-        spreadAwayPrice: g.spreadAwayPrice,
-        total: g.total,
-        totalOverPrice: g.totalOverPrice,
-        totalUnderPrice: g.totalUnderPrice,
-        mlHome: g.mlHome,
-        mlAway: g.mlAway,
-        favoriteTeam: g.favoriteTeam,
-        underdogTeam: g.underdogTeam,
-        sourceBook: g.sourceBook,
-      },
-    });
+    // Never snapshot a game that's already kicked off - see the comment atop
+    // this function. Team identity/broadcast were already updated above for
+    // every game, past or future; only the actual market line is withheld.
+    if (new Date(g.commenceTime).getTime() > now) {
+      await prisma.oddsSnapshot.create({
+        data: {
+          gameId: game.id,
+          snapshotType,
+          spreadHome: g.spreadHome,
+          spreadAway: g.spreadAway,
+          spreadHomePrice: g.spreadHomePrice,
+          spreadAwayPrice: g.spreadAwayPrice,
+          total: g.total,
+          totalOverPrice: g.totalOverPrice,
+          totalUnderPrice: g.totalUnderPrice,
+          mlHome: g.mlHome,
+          mlAway: g.mlAway,
+          favoriteTeam: g.favoriteTeam,
+          underdogTeam: g.underdogTeam,
+          sourceBook: g.sourceBook,
+        },
+      });
 
-    results.push({
-      game: `${g.awayTeam} @ ${g.homeTeam}`,
-      week: gameWeek.weekNumber,
-      spreadHome: g.spreadHome,
-      total: g.total,
-      sourceBook: g.sourceBook,
-    });
+      results.push({
+        game: `${g.awayTeam} @ ${g.homeTeam}`,
+        week: gameWeek.weekNumber,
+        spreadHome: g.spreadHome,
+        total: g.total,
+        sourceBook: g.sourceBook,
+      });
+    }
   }
 
   const bookCounts: Record<string, number> = {};

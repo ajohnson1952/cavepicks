@@ -151,7 +151,15 @@ Rules page (source of truth for game rules): cavepicks.onrender.com/rules
   the pick page's live pill prices (and anything else reading the newest
   snapshot) would show a number that's really the game's score baked into a
   live line. `/api/debug-live-line-audit` flags any snapshot ever captured
-  after kickoff.
+  after kickoff. That said, the `commenceTime > now` filter only gates the
+  `OddsSnapshot` write - `pullOdds()` still updates every game's
+  homeAbbr/awayAbbr/homeLogo/broadcast (via ESPN name-matching) even after
+  kickoff, on every pull. Team identity carries none of the live-line risk,
+  and gating it too meant a bad ESPN match on a game's first-ever pull (e.g.
+  a team ESPN's `/teams` directory hadn't added yet) froze a wrong
+  abbr/logo permanently the moment the game started, since a started game
+  was never touched again. Real incident: West Georgia and San Jose State
+  briefly showed the wrong team abbreviation this way (Sep 2026).
 - **Spread line-movement arrows: never use raw `now - open`.** A favorite
   going `-9.5 -> -7.5` has gotten *smaller* (▼) but subtracts to `+2` (▲).
   Use `spreadMove(now, open)` in `lib/format.ts` - direction from
