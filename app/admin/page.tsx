@@ -10,6 +10,7 @@ import {
   adminUnlockPick,
   runGradeResultsNow,
   runPullOddsNow,
+  mergeDuplicateGame,
 } from "./actions";
 import { formatSpread } from "@/lib/format";
 import { getJobRuns } from "@/lib/jobRun";
@@ -226,6 +227,26 @@ export default async function AdminPage({
               </button>
             </form>
           </div>
+
+          <div className="meta" style={{ marginTop: "8px" }}>
+            id: <span className="mono">{g.id}</span>
+          </div>
+          <form
+            action={mergeDuplicateGame}
+            style={{ display: "flex", gap: "6px", marginTop: "4px", alignItems: "center" }}
+          >
+            <input type="hidden" name="fromGameId" value={g.id} />
+            <input
+              type="text"
+              name="toGameId"
+              placeholder="Duplicate? Paste the correct game's id here"
+              className="admin-input"
+              style={{ flex: 1 }}
+            />
+            <button type="submit" className="btn btn-ghost">
+              Merge picks in, void this
+            </button>
+          </form>
 
           {(lockedByGame.get(g.id) ?? []).length > 0 && (
             <div style={{ marginTop: "10px" }}>

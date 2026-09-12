@@ -99,6 +99,64 @@ export async function unvoidGame(formData: FormData) {
   revalidatePath("/standings");
 }
 
+// Fixes a rare Odds API bug: a rescheduled game sometimes comes back under
+// a brand-new event id instead of updating the original event's
+// commenceTime, leaving two Game rows for what's really one real-world game
+// - one with the correct kickoff, one a stale phantom ESPN never has a
+// matching game for, so it never grades and just piles up as "unmatched"
+// on every grading run. Moves every pick off the stale row onto the correct
+// one, then voids the stale row. If any pick would collide with one
+// already on the correct row (same user/week/pickType), that one's left in
+// place and the stale row is NOT voided, so nothing silently disappears -
+// check it manually instead.
+export async function mergeDuplicateGame(formData: FormData) {
+  if (!isAuthed()) return;
+  const fromGameId = formData.get("fromGameId");
+  const toGameId = formData.get("toGameId");
+  if (typeof fromGameId !== "string" || typeof toGameId !== "string") return;
+  const to = toGameId.trim();
+  if (!to || to === fromGameId) return;
+
+  const toGame = await prisma.game.findUnique({ where: { id: to } });
+  if (!toGame) return;
+
+  const picks = await prisma.pick.findMany({ where: { gameId: fromGameId } });
+  let skipped = 0;
+  for (const pick of picks) {
+    const conflict = await prisma.pick.findUnique({
+      where: {
+        userId_weekId_gameId_pickType: {
+          userId: pick.userId,
+          weekId: pick.weekId,
+          gameId: toGame.id,
+          pickType: pick.pickType,
+        },
+      },
+    });
+    if (conflict) {
+      skipped++;
+      continue;
+    }
+    await prisma.pick.update({ where: { id: pick.id }, data: { gameId: toGame.id } });
+  }
+
+  if (skipped === 0) {
+    await prisma.game.update({
+      where: { id: fromGameId },
+      data: {
+        voided: true,
+        voidReason: `Duplicate odds-API event, merged into ${toGame.awayTeam} @ ${toGame.homeTeam}`,
+      },
+    });
+  }
+
+  revalidatePath("/admin");
+  revalidatePath("/board");
+  revalidatePath("/standings");
+  revalidatePath("/watch");
+  revalidatePath("/pick");
+}
+
 // Runs the same grading pass the "grade-results" cron hits, on demand -
 // for checking whether the cron is actually keeping up, or just not waiting
 // for the next scheduled run when something looks stuck.

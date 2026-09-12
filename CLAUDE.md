@@ -178,6 +178,20 @@ Rules page (source of truth for game rules): cavepicks.onrender.com/rules
   `|now| - |open|`, magnitude from the real `|now - open|` so a cross-zero
   flip like `-2 -> +2` still reads as 4, not a vanished chip. Totals are
   fine with plain `now - open` (always positive, far from zero).
+- **The Odds API can re-issue a rescheduled game under a brand-new
+  `oddsApiEventId`** instead of updating the original event's
+  `commenceTime` in place. Since `Game.upsert` keys on that id, this creates
+  a SECOND `Game` row for the same real-world matchup - the stale one keeps
+  its old (wrong) kickoff time and, because ESPN never has a game at that
+  phantom time/date, permanently shows up as "unmatched" on every
+  grade-results run instead of ever resolving. Real incident: Cal Poly @
+  San Jose State's actual kickoff moved a full day later; a duplicate Game
+  row appeared with the old time, and a player's already-locked pick was
+  stuck on it. Fix lives in `/admin`: each game card shows its raw `id` and
+  a "Merge picks in, void this" form (`mergeDuplicateGame` in
+  `app/admin/actions.ts`) that moves any picks off the stale row onto the
+  correct one, then voids the stale row. If you see the same matchup twice
+  on `/admin` with different kickoff times, this is almost certainly why.
 - **Never schedule two cron endpoints on the same minute.** Render's free
   512MB instance OOMs when two cold-start Next.js route handlers run at
   once, then serves 502/503 for an hour+ while it thrashes. Symptom looks
