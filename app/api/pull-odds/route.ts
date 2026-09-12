@@ -1,6 +1,7 @@
 // app/api/pull-odds/route.ts
 import { NextResponse } from "next/server";
 import { pullOdds } from "@/lib/pullOdds";
+import { recordJobRun } from "@/lib/jobRun";
 
 export const dynamic = "force-dynamic";
 
@@ -16,6 +17,13 @@ export async function GET(request: Request) {
 
   try {
     const { results, bookCounts, unmatchedTeams, espnTeamsFetched } = await pullOdds(type);
+    const bookSummary = Object.entries(bookCounts).map(([k, v]) => `${k}:${v}`).join(" ");
+    await recordJobRun(
+      "pull-odds",
+      "cron",
+      true,
+      `${results.length} games pulled (${bookSummary})${unmatchedTeams.length ? `, ${unmatchedTeams.length} unmatched teams` : ""}`
+    );
     return NextResponse.json({
       ok: true,
       snapshotType: type,
@@ -28,6 +36,7 @@ export async function GET(request: Request) {
       unmatchedTeams,
     });
   } catch (err: any) {
+    await recordJobRun("pull-odds", "cron", false, err.message);
     return NextResponse.json({ ok: false, error: err.message }, { status: 500 });
   }
 }

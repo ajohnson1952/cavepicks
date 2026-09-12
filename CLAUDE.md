@@ -98,8 +98,20 @@ Rules page (source of truth for game rules): cavepicks.onrender.com/rules
     `America/Chicago` (DST handled natively by cron-job.org, unlike raw
     UTC cron strings).
 - `/admin` is password-gated (`ADMIN_PASSWORD` env var) - lets the owner
-  void postponed/cancelled games, manually correct scores, and unlock a
-  player's locked pick.
+  void postponed/cancelled games, manually correct scores, unlock a
+  player's locked pick, and manually trigger grade-results/pull-odds (see
+  below).
+- **Background jobs and `JobRun`**: `lib/gradeResults.ts` (`runGradeResults`)
+  and `lib/pullOdds.ts` (`pullOdds`) hold the actual grading/odds-pull logic;
+  both the cron-facing API routes (`app/api/grade-results`,
+  `app/api/pull-odds`) and the admin "Run now" buttons
+  (`runGradeResultsNow`/`runPullOddsNow` in `app/admin/actions.ts`) call the
+  same functions - the routes are just a thin HTTP wrapper cron-job.org hits.
+  Every run (cron or manual) upserts one row per job in the `JobRun` table
+  (`lib/jobRun.ts`) recording when it last ran, which trigger fired it, and
+  a one-line summary - `/admin` reads this to show "last ran: ... CT ·
+  auto|manual · <summary>" next to each button. It's one row per job, not a
+  log - see the model comment in `schema.prisma`.
 
 ## Gotchas (all found the hard way - don't reintroduce these)
 

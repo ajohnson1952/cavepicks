@@ -1,8 +1,30 @@
 import { cookies } from "next/headers";
 import { prisma } from "@/lib/db";
 import { getOrCreateCurrentWeek } from "@/lib/currentWeek";
-import { adminLogin, adminLogout, voidGame, unvoidGame, setManualScore, adminUnlockPick } from "./actions";
+import {
+  adminLogin,
+  adminLogout,
+  voidGame,
+  unvoidGame,
+  setManualScore,
+  adminUnlockPick,
+  runGradeResultsNow,
+  runPullOddsNow,
+} from "./actions";
 import { formatSpread } from "@/lib/format";
+import { getJobRuns } from "@/lib/jobRun";
+
+function jobRunDisplay(run: { ranAt: Date; trigger: string; ok: boolean; summary: string } | null): string {
+  if (!run) return "never run";
+  const when = run.ranAt.toLocaleString("en-US", {
+    timeZone: "America/Chicago",
+    weekday: "short",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+  const via = run.trigger === "cron" ? "auto" : "manual";
+  return `${when} CT · ${via}${run.ok ? "" : " — FAILED"} · ${run.summary}`;
+}
 
 export const dynamic = "force-dynamic";
 
@@ -69,6 +91,8 @@ export default async function AdminPage({
     lockedByGame.set(p.gameId, arr);
   }
 
+  const [gradeRun, pullRun] = await getJobRuns(["grade-results", "pull-odds"]);
+
   return (
     <main>
       <div className="row-between">
@@ -80,6 +104,29 @@ export default async function AdminPage({
         </form>
       </div>
       <p className="subtext">Void postponed/cancelled games, or manually fix a score.</p>
+
+      <div className="card">
+        <div className="matchup">Background jobs</div>
+        <div className="divider" />
+        <div style={{ marginBottom: "10px" }}>
+          <div className="meta" style={{ marginBottom: "4px" }}>Grade results</div>
+          <p style={{ fontSize: "13px", margin: "0 0 6px" }}>{jobRunDisplay(gradeRun)}</p>
+          <form action={runGradeResultsNow}>
+            <button type="submit" className="btn btn-lock" style={{ width: "auto" }}>
+              Run grading now
+            </button>
+          </form>
+        </div>
+        <div>
+          <div className="meta" style={{ marginBottom: "4px" }}>Pull odds</div>
+          <p style={{ fontSize: "13px", margin: "0 0 6px" }}>{jobRunDisplay(pullRun)}</p>
+          <form action={runPullOddsNow}>
+            <button type="submit" className="btn btn-lock" style={{ width: "auto" }}>
+              Pull odds now
+            </button>
+          </form>
+        </div>
+      </div>
 
       <div className="row-between" style={{ marginBottom: "12px" }}>
         <a href={`/admin?week=${weekNumber - 1}`} className="btn" style={{ visibility: weekNumber > minWeek ? "visible" : "hidden" }}>

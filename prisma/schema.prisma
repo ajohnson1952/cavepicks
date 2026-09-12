@@ -72,6 +72,21 @@ model OddsSnapshot {
   capturedAt   DateTime @default(now())
 }
 
+// One row per background job ("grade-results", "pull-odds"), always upserted
+// in place rather than appended - the admin panel only ever needs the
+// latest run, and this is a Neon Launch (pay-per-CU/storage) project now so
+// an unbounded log table isn't worth the storage. `trigger` records whether
+// THIS latest run came from the cron hitting the API route, or an admin
+// clicking "Run now" on /admin.
+model JobRun {
+  id      String   @id @default(cuid())
+  jobName String   @unique
+  trigger String   // "cron" | "manual"
+  ranAt   DateTime @default(now())
+  ok      Boolean
+  summary String
+}
+
 enum PickType {
   SPREAD
   TOTAL

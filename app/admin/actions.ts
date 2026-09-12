@@ -4,6 +4,9 @@ import { cookies } from "next/headers";
 import { prisma } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 import { gradePick } from "@/lib/scoring";
+import { runGradeResults, summarizeGradeRun } from "@/lib/gradeResults";
+import { pullOdds } from "@/lib/pullOdds";
+import { recordJobRun } from "@/lib/jobRun";
 
 const ADMIN_COOKIE = "admin_session";
 
@@ -94,6 +97,44 @@ export async function unvoidGame(formData: FormData) {
   revalidatePath("/admin");
   revalidatePath("/board");
   revalidatePath("/standings");
+}
+
+// Runs the same grading pass the "grade-results" cron hits, on demand -
+// for checking whether the cron is actually keeping up, or just not waiting
+// for the next scheduled run when something looks stuck.
+export async function runGradeResultsNow() {
+  if (!isAuthed()) return;
+  try {
+    const result = await runGradeResults();
+    await recordJobRun("grade-results", "manual", true, summarizeGradeRun(result));
+  } catch (err: any) {
+    await recordJobRun("grade-results", "manual", false, err.message);
+  }
+  revalidatePath("/admin");
+  revalidatePath("/board");
+  revalidatePath("/standings");
+  revalidatePath("/watch");
+}
+
+// Runs the same odds pull the "pull-odds" cron hits, on demand.
+export async function runPullOddsNow() {
+  if (!isAuthed()) return;
+  try {
+    const { results, bookCounts, unmatchedTeams } = await pullOdds();
+    const bookSummary = Object.entries(bookCounts).map(([k, v]) => `${k}:${v}`).join(" ");
+    await recordJobRun(
+      "pull-odds",
+      "manual",
+      true,
+      `${results.length} games pulled (${bookSummary})${unmatchedTeams.length ? `, ${unmatchedTeams.length} unmatched teams` : ""}`
+    );
+  } catch (err: any) {
+    await recordJobRun("pull-odds", "manual", false, err.message);
+  }
+  revalidatePath("/admin");
+  revalidatePath("/board");
+  revalidatePath("/pick");
+  revalidatePath("/watch");
 }
 
 // Manually sets a final score and immediately grades every pick tied to

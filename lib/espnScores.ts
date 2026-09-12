@@ -55,6 +55,11 @@ const NAME_ALIASES: Record<string, string> = {
   "liu": "long island university",
   "youngstown st": "youngstown state",
   "citadel": "the citadel",
+  // ESPN lists this program as "Southern Miss", not "Southern Mississippi" -
+  // "mississippi" and "miss" don't share a token, so a game against them was
+  // stuck permanently unmatched/ungraded (found via a real stuck-grading bug,
+  // Sep 2026 - Southern Miss @ Alcorn State never got picked up).
+  "southern mississippi": "southern miss",
 };
 
 function cleanBase(name: string): string {
