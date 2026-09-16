@@ -1,6 +1,6 @@
 # Cavepicks
 
-Private college football pick'em site for 7 friends. Next.js 14 (App Router)
+Private college football pick'em site for 7 friends. Next.js 16 (App Router)
 + Prisma + Neon Postgres, hosted on Vercel, deployed via GitHub. (Moved off
 Render's free tier in Sep 2026 - Render's sleep/cold-start behavior was the
 root cause of several cron-timeout incidents; Vercel's serverless functions
@@ -124,6 +124,16 @@ Rules page (source of truth for game rules): cavepicks.com/rules
   log - see the model comment in `schema.prisma`.
 
 ## Gotchas (all found the hard way - don't reintroduce these)
+
+- **`cookies()`, `params`, and `searchParams` are all async (Next.js 16).**
+  Every one of them must be `await`ed - `await cookies()`, `const { slug } =
+  await params`, `const sp = await searchParams`. This project upgraded
+  from 14.2.5 straight to 16.3.5 (Sep 2026, via `@next/codemod`) specifically
+  to close a batch of Next.js security advisories that had no fix within
+  the 14.x line - `npm audit` went from ~35 flagged advisories down to 0.
+  React is on 19.3.0 to match. No ESLint in this project (removed the
+  codemod's auto-added `eslint`/`eslint-config-next` - never used here,
+  `tsc --noEmit` is the only check that runs).
 
 - **Next.js caches `fetch()` by default.** Every external API call
   (ESPN, The Odds API) must pass `{ cache: "no-store" }` or you'll silently

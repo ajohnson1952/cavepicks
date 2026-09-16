@@ -54,7 +54,8 @@ function kickoffDisplay(date: Date) {
   );
 }
 
-export default async function BoardPage({ searchParams }: { searchParams: { week?: string } }) {
+export default async function BoardPage(props: { searchParams: Promise<{ week?: string }> }) {
+  const searchParams = await props.searchParams;
   await getOrCreateCurrentWeek(); // ensures the current week row exists
   const currentWeekNumber = getWeekNumberForDate();
 

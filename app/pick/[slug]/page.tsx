@@ -6,13 +6,14 @@ import PickForm from "./PickForm";
 import WeekNav from "../../WeekNav";
 import { notFound } from "next/navigation";
 
-export default async function PickPage({
-  params,
-  searchParams,
-}: {
-  params: { slug: string };
-  searchParams: { week?: string };
-}) {
+export default async function PickPage(
+  props: {
+    params: Promise<{ slug: string }>;
+    searchParams: Promise<{ week?: string }>;
+  }
+) {
+  const searchParams = await props.searchParams;
+  const params = await props.params;
   const user = await prisma.user.findUnique({ where: { pickSlug: params.slug } });
   if (!user) return notFound();
 

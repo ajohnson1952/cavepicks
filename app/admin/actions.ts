@@ -13,8 +13,8 @@ import { unlockStaleLocks } from "@/lib/unlockStaleLocks";
 
 const ADMIN_COOKIE = "admin_session";
 
-function isAuthed(): boolean {
-  return cookies().get(ADMIN_COOKIE)?.value === "authenticated";
+async function isAuthed(): Promise<boolean> {
+  return (await cookies()).get(ADMIN_COOKIE)?.value === "authenticated";
 }
 
 export async function adminLogin(formData: FormData) {
@@ -24,7 +24,7 @@ export async function adminLogin(formData: FormData) {
     process.env.ADMIN_PASSWORD &&
     password === process.env.ADMIN_PASSWORD
   ) {
-    cookies().set(ADMIN_COOKIE, "authenticated", {
+    (await cookies()).set(ADMIN_COOKIE, "authenticated", {
       httpOnly: true,
       maxAge: 60 * 60 * 24 * 30,
       path: "/",
@@ -34,14 +34,14 @@ export async function adminLogin(formData: FormData) {
 }
 
 export async function adminLogout() {
-  cookies().delete(ADMIN_COOKIE);
+  (await cookies()).delete(ADMIN_COOKIE);
   revalidatePath("/admin");
 }
 
 // Marks a game postponed/cancelled - it stops blocking its week's pot from
 // resolving, and no picks on it ever get graded (no win, no loss, no push).
 export async function voidGame(formData: FormData) {
-  if (!isAuthed()) return;
+  if (!(await isAuthed())) return;
   const gameId = formData.get("gameId");
   const reason = formData.get("reason");
   if (typeof gameId !== "string") return;
@@ -64,7 +64,7 @@ export async function voidGame(formData: FormData) {
 // grading so the player can re-pick and re-lock (or leave it unlocked, in
 // which case it just won't count).
 export async function adminUnlockPick(formData: FormData) {
-  if (!isAuthed()) return;
+  if (!(await isAuthed())) return;
   const pickId = formData.get("pickId");
   if (typeof pickId !== "string") return;
 
@@ -82,7 +82,7 @@ export async function adminUnlockPick(formData: FormData) {
 // pull refreshed it. Unlocks every currently-locked pick in the given week
 // whose lockedAt is before the given cutoff.
 export async function bulkUnlockStaleLocks(formData: FormData) {
-  if (!isAuthed()) return;
+  if (!(await isAuthed())) return;
   const weekNumber = Number(formData.get("weekNumber"));
   const cutoffRaw = formData.get("cutoff");
   if (!Number.isFinite(weekNumber)) return;
@@ -98,7 +98,7 @@ export async function bulkUnlockStaleLocks(formData: FormData) {
 }
 
 export async function unvoidGame(formData: FormData) {
-  if (!isAuthed()) return;
+  if (!(await isAuthed())) return;
   const gameId = formData.get("gameId");
   if (typeof gameId !== "string") return;
 
@@ -120,7 +120,7 @@ export async function unvoidGame(formData: FormData) {
 // place and the stale row is NOT voided, so nothing silently disappears -
 // check it manually instead.
 export async function mergeDuplicateGame(formData: FormData) {
-  if (!isAuthed()) return;
+  if (!(await isAuthed())) return;
   const fromGameId = formData.get("fromGameId");
   const toGameId = formData.get("toGameId");
   if (typeof fromGameId !== "string" || typeof toGameId !== "string") return;
@@ -143,7 +143,7 @@ export async function mergeDuplicateGame(formData: FormData) {
 // for checking whether the cron is actually keeping up, or just not waiting
 // for the next scheduled run when something looks stuck.
 export async function runGradeResultsNow() {
-  if (!isAuthed()) return;
+  if (!(await isAuthed())) return;
   try {
     const result = await runGradeResults();
     await recordJobRun("grade-results", "manual", true, summarizeGradeRun(result));
@@ -158,7 +158,7 @@ export async function runGradeResultsNow() {
 
 // Runs the same odds pull the "pull-odds" cron hits, on demand.
 export async function runPullOddsNow() {
-  if (!isAuthed()) return;
+  if (!(await isAuthed())) return;
   try {
     const { results, bookCounts, unmatchedTeams, mergedDuplicates } = await pullOdds();
     const bookSummary = Object.entries(bookCounts).map(([k, v]) => `${k}:${v}`).join(" ");
@@ -183,7 +183,7 @@ export async function runPullOddsNow() {
 // that game - for correcting ESPN mismatches or filling in a game the
 // automatic pipeline never caught.
 export async function setManualScore(formData: FormData) {
-  if (!isAuthed()) return;
+  if (!(await isAuthed())) return;
   const gameId = formData.get("gameId");
   const homeScoreRaw = formData.get("homeScore");
   const awayScoreRaw = formData.get("awayScore");

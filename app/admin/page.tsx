@@ -30,12 +30,13 @@ function jobRunDisplay(run: { ranAt: Date; trigger: string; ok: boolean; summary
 
 export const dynamic = "force-dynamic";
 
-export default async function AdminPage({
-  searchParams,
-}: {
-  searchParams: { week?: string; showAll?: string };
-}) {
-  const session = cookies().get("admin_session")?.value;
+export default async function AdminPage(
+  props: {
+    searchParams: Promise<{ week?: string; showAll?: string }>;
+  }
+) {
+  const searchParams = await props.searchParams;
+  const session = (await cookies()).get("admin_session")?.value;
   const isAuthed = session === "authenticated";
 
   if (!isAuthed) {
