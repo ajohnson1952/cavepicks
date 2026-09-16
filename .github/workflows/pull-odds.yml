@@ -13,4 +13,4 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Hit the odds pull endpoint
-        run: curl -sf "https://cavepicks.onrender.com/api/pull-odds?type=market"
+        run: curl -sf "https://www.cavepicks.com/api/pull-odds?type=market"

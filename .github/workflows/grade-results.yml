@@ -12,4 +12,4 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Hit the grading endpoint
-        run: curl -sf "https://cavepicks.onrender.com/api/grade-results"
+        run: curl -sf "https://www.cavepicks.com/api/grade-results"
