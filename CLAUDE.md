@@ -1,22 +1,36 @@
 # Cavepicks
 
 Private college football pick'em site for 7 friends. Next.js 14 (App Router)
-+ Prisma + Neon Postgres, hosted on Render free tier, deployed via GitHub.
++ Prisma + Neon Postgres, hosted on Vercel, deployed via GitHub. (Moved off
+Render's free tier in Sep 2026 - Render's sleep/cold-start behavior was the
+root cause of several cron-timeout incidents; Vercel's serverless functions
+get a 300s timeout even on the free Hobby plan, and don't share one long-
+lived instance the way Render's single container did.)
 
 **The person maintaining this is a coding novice.** No local dev environment.
-Claude commits and pushes changes directly to `main` on GitHub; Render
+Claude commits and pushes changes directly to `main` on GitHub; Vercel
 auto-deploys from `main`. Keep commit messages to a single clear line and
 explain what changed in plain terms when handing back.
 
-Live site: cavepicks.onrender.com
-Rules page (source of truth for game rules): cavepicks.onrender.com/rules
+Live site: cavepicks.com
+Rules page (source of truth for game rules): cavepicks.com/rules
 
 ## Commands
 
-- Build: `npm install && npx prisma generate && npx prisma db push && npm run build`
-  (this is Render's actual build command - `prisma db push` applies schema
-  changes directly, there is no migrations folder)
-- No local dev server is used day-to-day - changes go straight to GitHub -> Render
+- Build: `npm install && npm run build`, where `package.json`'s `build`
+  script is `prisma generate && prisma db push && next build` - `db push`
+  applies schema changes directly, there is no migrations folder. This is
+  Vercel's actual build step (no custom build-command override needed) and
+  it runs on *every* deploy Vercel does - fine today since Claude only ever
+  pushes straight to `main` and there's no branch/PR workflow, but if that
+  ever changes, a preview deploy from a branch would also run `db push`
+  against the same production database.
+- No local dev server is used day-to-day - changes go straight to GitHub -> Vercel
+- `DATABASE_URL` should be Neon's **pooled** (PgBouncer) connection string,
+  not the direct one - Vercel functions are short-lived, so pooling matters
+  here in a way it didn't on Render's one long-lived process. Prisma talks
+  standard Postgres wire protocol either way; this is a connection-string
+  choice, not a code change.
 
 ## Game rules (don't relitigate these without asking)
 
@@ -66,18 +80,14 @@ Rules page (source of truth for game rules): cavepicks.onrender.com/rules
   cron jobs get a 200; those jobs can be deleted).
 - Automation is scheduled via **cron-job.org** (18 jobs across 3 endpoints,
   2 intentionally disabled; API key lives in the cron-job.org account, not
-  in this repo), not Render
-  cron or GitHub Actions - GitHub's `schedule:` trigger turned out to be
-  wildly unreliable in practice (fired ~1/16th as often as configured) and
-  was dropped. `.github/workflows/*.yml` still exist for `workflow_dispatch`
-  (manual runs from the Actions tab) but have no schedule trigger anymore.
-  - The three endpoints are scheduled on **distinct minutes so they never
-    hit the server in the same minute** - two cold-start route handlers at
-    once will OOM Render's 512MB free instance and it returns 502/503 for
-    an hour+ until it stabilises. This actually happened (Sep 1-2 2026)
-    right after the GitHub->cron-job.org move put everything on `:00`.
-    Current split: grade-results `:15/:45`, pull-odds `:25`. Keep new jobs
-    off those collision minutes.
+  in this repo), not Vercel Cron or GitHub Actions. Vercel Cron was
+  considered but the free Hobby plan only allows once-a-day schedules, far
+  too coarse for grade-results/pull-odds - so cron-job.org stays regardless
+  of host. GitHub's `schedule:` trigger was tried before that and turned
+  out to be wildly unreliable in practice (fired ~1/16th as often as
+  configured), which is why it was dropped in favor of cron-job.org in the
+  first place. `.github/workflows/*.yml` still exist for `workflow_dispatch`
+  (manual runs from the Actions tab) but have no schedule trigger.
   - pull-odds: 12 jobs replicating the tuned weekly pattern (tuned to stay
     under 500 odds-API credits/month), all firing at `hh:25`
   - auto-lock-sweep: **retired** (no auto-lock anymore). The cron jobs that
@@ -87,13 +97,13 @@ Rules page (source of truth for game rules): cavepicks.onrender.com/rules
   - Both DB-heavy routes cap games processed per invocation
     (`MAX_GAMES_PER_RUN`) so a backlog can't spike memory; the next run
     picks up any overflow.
-  - Jobs run roughly **8am-12:45am Central** (not 24/7) - Render's free
-    plan caps a workspace at 750 instance-hours/month shared across every
-    free service in that Render account, and pinging around the clock would
-    keep the service permanently awake and risk exhausting that pool
-    (which suspends ALL free services on the account, not just this one).
-    The overnight gap lets it sleep; a visit during that window just eats
-    one ~30-60s cold-start.
+  - Jobs run roughly 8am-12:45am Central, though that schedule was tuned
+    around Render's free-tier constraints (avoiding its 750-instance-hour
+    cap, and its cold-start delay) that don't apply on Vercel - each
+    invocation is an isolated serverless function, not one shared
+    long-lived container, and pricing is usage-based rather than a shared
+    instance-hour pool. No urgent need to widen the overnight gap, but no
+    reason it has to stay that way either.
   - All jobs hit plain GET API routes on the live site, timezone
     `America/Chicago` (DST handled natively by cron-job.org, unlike raw
     UTC cron strings).
@@ -128,8 +138,8 @@ Rules page (source of truth for game rules): cavepicks.onrender.com/rules
   inside an actual string/template literal: `{`foo \u2014 bar`}`. Hit this
   bug three separate times before it stuck.
 - **Timezone: always use `America/Chicago` explicitly via
-  `Intl.DateTimeFormat`, never plain `Date` methods.** Render's server runs
-  in UTC. Plain `.getDay()`/`.setHours()` etc. silently operate in UTC and
+  `Intl.DateTimeFormat`, never plain `Date` methods.** The server runs
+  in UTC (true on both Render and Vercel). Plain `.getDay()`/`.setHours()` etc. silently operate in UTC and
   will compute the wrong wall-clock boundary (week rollover was off by
   ~5 hours before this was fixed).
 - **Team matching must use word-overlap, not substring containment.**
@@ -215,11 +225,14 @@ Rules page (source of truth for game rules): cavepicks.onrender.com/rules
   single `adminUnlockPick`) - exposed both as `/admin`'s "Unlock stale
   locks" form and as `/api/fix-stale-locks?week=N&before=ISO&key=
   <ADMIN_PASSWORD>` for running it outside a browser session.
-- **Never schedule two cron endpoints on the same minute.** Render's free
-  512MB instance OOMs when two cold-start Next.js route handlers run at
-  once, then serves 502/503 for an hour+ while it thrashes. Symptom looks
-  like "cron-job.org is broken" but the job history shows fast 502/503
-  from Render, not timeouts. Keep the minute split documented in
-  Architecture. Also: `snapshotType` on OddsSnapshot is just a label
-  (always `"market"`); grading uses the newest snapshot regardless, so
-  don't build logic that branches on it.
+- **(Historical, Render-only) Two cron endpoints on the same minute used
+  to OOM the whole app.** Render's free 512MB instance ran everything in
+  one shared long-lived container, so two cold-start route handlers firing
+  at once could exhaust it and serve 502/503 for an hour+ while it
+  thrashed - this actually happened Sep 1-2 2026. Vercel gives each
+  invocation its own isolated serverless function, so this specific
+  failure mode shouldn't recur - but it's worth remembering as the
+  explanation if "cron-job.org is broken" symptoms ever show up again with
+  a different host. `snapshotType` on OddsSnapshot is just a label (always
+  `"market"`); grading uses the newest snapshot regardless, so don't build
+  logic that branches on it.
