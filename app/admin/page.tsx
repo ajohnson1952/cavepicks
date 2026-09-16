@@ -16,6 +16,10 @@ import {
 import { formatSpread } from "@/lib/format";
 import { getJobRuns } from "@/lib/jobRun";
 
+// Hardcoded rather than derived from the request - this app has one fixed
+// live domain (see CLAUDE.md), not a multi-environment setup.
+const SITE_URL = "https://www.cavepicks.com";
+
 function jobRunDisplay(run: { ranAt: Date; trigger: string; ok: boolean; summary: string } | null): string {
   if (!run) return "never run";
   const when = run.ranAt.toLocaleString("en-US", {
@@ -95,6 +99,7 @@ export default async function AdminPage(
   }
 
   const [gradeRun, pullRun] = await getJobRuns(["grade-results", "pull-odds"]);
+  const allUsers = await prisma.user.findMany({ orderBy: { name: "asc" } });
 
   return (
     <main>
@@ -107,6 +112,25 @@ export default async function AdminPage(
         </form>
       </div>
       <p className="subtext">Void postponed/cancelled games, or manually fix a score.</p>
+
+      <div className="card">
+        <div className="matchup">Player links</div>
+        <div className="divider" />
+        <p style={{ fontSize: "13px", margin: "0 0 8px" }}>
+          Each player's own link - the "My Picks" nav shortcut only works once their browser has
+          opened this at least once (it's saved to that browser via localStorage, tied to this
+          domain - moving domains, like the Render-&gt;Vercel move, means everyone needs their link
+          again for that shortcut to come back).
+        </p>
+        {allUsers.map((u) => (
+          <p key={u.id} style={{ fontSize: "13px", margin: "0 0 4px" }}>
+            <strong>{u.name}:</strong>{" "}
+            <span className="mono" style={{ userSelect: "all" }}>
+              {SITE_URL}/pick/{u.pickSlug}
+            </span>
+          </p>
+        ))}
+      </div>
 
       <div className="card">
         <div className="matchup">Background jobs</div>
