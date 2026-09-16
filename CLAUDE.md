@@ -192,6 +192,29 @@ Rules page (source of truth for game rules): cavepicks.onrender.com/rules
   `app/admin/actions.ts`) that moves any picks off the stale row onto the
   correct one, then voids the stale row. If you see the same matchup twice
   on `/admin` with different kickoff times, this is almost certainly why.
+  `pullOdds()` also auto-detects and auto-merges this on every pull now
+  (same-week, exact team-name match to a game just seen this pull) - see
+  `mergedDuplicates` in its return value - but that can only catch it while
+  the Odds API still considers the game upcoming; it can't reach back and
+  fix an already-past duplicate, since the API stops returning old events
+  entirely. `/api/void-duplicate-events?eventIds=...&key=<ADMIN_PASSWORD>`
+  is a bulk fixer for past-week duplicates that have no locked picks on
+  them; it refuses (and reports) any that do, since those need the real
+  merge. Unlike `wipe-week-zero`'s bare confirm-token (that's only a
+  link-preview guard, not access control), this writes data, so it
+  requires the real admin password as `?key=`.
+- **Stale locks from a pull-odds outage**: `/api/debug-cron-history`
+  buckets `OddsSnapshot.capturedAt` into distinct pull "runs" so a gap
+  where pull-odds wasn't firing (or was failing) is obvious - `JobRun` only
+  keeps the latest run per job, not history, so this is the only way to see
+  it. `/api/debug-early-locks?week=N` lists every locked pick against how
+  long after its game's first-ever posted line it got locked - useful for
+  spotting picks locked against a stale/thin line during such a gap.
+  `lib/unlockStaleLocks.ts` bulk-unlocks every currently-locked pick in a
+  week locked before a cutoff (wipes the frozen line/grading, same as a
+  single `adminUnlockPick`) - exposed both as `/admin`'s "Unlock stale
+  locks" form and as `/api/fix-stale-locks?week=N&before=ISO&key=
+  <ADMIN_PASSWORD>` for running it outside a browser session.
 - **Never schedule two cron endpoints on the same minute.** Render's free
   512MB instance OOMs when two cold-start Next.js route handlers run at
   once, then serves 502/503 for an hour+ while it thrashes. Symptom looks

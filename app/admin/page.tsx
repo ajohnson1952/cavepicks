@@ -11,6 +11,7 @@ import {
   runGradeResultsNow,
   runPullOddsNow,
   mergeDuplicateGame,
+  bulkUnlockStaleLocks,
 } from "./actions";
 import { formatSpread } from "@/lib/format";
 import { getJobRuns } from "@/lib/jobRun";
@@ -127,6 +128,30 @@ export default async function AdminPage({
             </button>
           </form>
         </div>
+      </div>
+
+      <div className="card">
+        <div className="matchup">Unlock stale locks</div>
+        <div className="divider" />
+        <p style={{ fontSize: "13px", margin: "0 0 8px" }}>
+          If pull-odds went quiet for a stretch (check <span className="mono">/api/debug-cron-history</span>),
+          picks locked during that gap got a stale line. This unlocks every currently-locked pick in the given
+          week whose lock time is before the cutoff below, so those players can re-lock fresh.
+        </p>
+        <form action={bulkUnlockStaleLocks} style={{ display: "flex", gap: "6px", alignItems: "center", flexWrap: "wrap" }}>
+          <input
+            type="number"
+            name="weekNumber"
+            defaultValue={weekNumber}
+            className="admin-input"
+            style={{ width: "70px" }}
+            aria-label="Week number"
+          />
+          <input type="datetime-local" name="cutoff" className="admin-input" aria-label="Unlock everything locked before" />
+          <button type="submit" className="btn btn-ghost">
+            Unlock picks locked before this
+          </button>
+        </form>
       </div>
 
       <div className="row-between" style={{ marginBottom: "12px" }}>

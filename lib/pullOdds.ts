@@ -4,6 +4,7 @@ import { fetchOdds } from "./oddsApi";
 import { fetchEspnTeams, findEspnTeamInfo } from "./espnTeams";
 import { fetchEspnScoreboard, teamNamesMatch, toYyyymmdd, EspnResult } from "./espnScores";
 import { getOrCreateWeekForDate } from "./currentWeek";
+import { mergeGame } from "./mergeGames";
 
 export async function pullOdds(snapshotType: string = "market") {
   const allGames = await fetchOdds();
@@ -26,6 +27,7 @@ export async function pullOdds(snapshotType: string = "market") {
   const espnTeams = await fetchEspnTeams(); // one call, reused for every game below
   const results = [];
   const unmatchedTeams = new Set<string>();
+  const freshGames: { id: string; weekId: string; homeTeam: string; awayTeam: string }[] = [];
 
   // Fetch broadcast/schedule info for every distinct date in this pull -
   // same scoreboard endpoint grading uses, just for channel info this time.
@@ -74,6 +76,7 @@ export async function pullOdds(snapshotType: string = "market") {
         commenceTime: new Date(g.commenceTime),
       },
     });
+    freshGames.push({ id: game.id, weekId: game.weekId, homeTeam: game.homeTeam, awayTeam: game.awayTeam });
 
     // Never snapshot a game that's already kicked off - see the comment atop
     // this function. Team identity/broadcast were already updated above for
@@ -108,11 +111,55 @@ export async function pullOdds(snapshotType: string = "market") {
     }
   }
 
+  // The Odds API can reissue a rescheduled/corrected game under a brand-new
+  // event id instead of updating the original event's commenceTime in
+  // place - see the duplicate-Game-row gotcha in CLAUDE.md. Any OTHER,
+  // still-active Game row that exactly matches a game we just saw this
+  // pull (same week, same team names) is almost certainly that stale
+  // leftover - it'll never appear on ESPN's scoreboard under its old kickoff
+  // time, so grade-results would flag it "unmatched" forever. Auto-merge it
+  // away instead of waiting for someone to notice on /admin. Only reachable
+  // while both rows are still upcoming (the Odds API stops returning an
+  // event once its game is a few days old), so this only prevents new
+  // occurrences going forward - it can't reach back and fix an already
+  // week-old duplicate.
+  const mergedDuplicates: { from: string; to: string; moved: number; skipped: number }[] = [];
+  for (const fresh of freshGames) {
+    const staleCandidates = await prisma.game.findMany({
+      where: {
+        weekId: fresh.weekId,
+        homeTeam: fresh.homeTeam,
+        awayTeam: fresh.awayTeam,
+        voided: false,
+        id: { not: fresh.id },
+      },
+    });
+    for (const stale of staleCandidates) {
+      const mergeResult = await mergeGame(
+        stale.id,
+        fresh.id,
+        `Duplicate odds-API event, auto-merged into ${fresh.awayTeam} @ ${fresh.homeTeam}`
+      );
+      mergedDuplicates.push({
+        from: `${stale.awayTeam} @ ${stale.homeTeam}`,
+        to: `${fresh.awayTeam} @ ${fresh.homeTeam}`,
+        moved: mergeResult.moved,
+        skipped: mergeResult.skipped,
+      });
+    }
+  }
+
   const bookCounts: Record<string, number> = {};
   for (const r of results) {
     const key = r.sourceBook ?? "(no line)";
     bookCounts[key] = (bookCounts[key] ?? 0) + 1;
   }
 
-  return { results, bookCounts, unmatchedTeams: Array.from(unmatchedTeams), espnTeamsFetched: espnTeams.length };
+  return {
+    results,
+    bookCounts,
+    unmatchedTeams: Array.from(unmatchedTeams),
+    espnTeamsFetched: espnTeams.length,
+    mergedDuplicates,
+  };
 }

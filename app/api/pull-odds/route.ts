@@ -16,13 +16,15 @@ export async function GET(request: Request) {
   const type = searchParams.get("type")?.trim() || DEFAULT_SNAPSHOT_TYPE;
 
   try {
-    const { results, bookCounts, unmatchedTeams, espnTeamsFetched } = await pullOdds(type);
+    const { results, bookCounts, unmatchedTeams, espnTeamsFetched, mergedDuplicates } = await pullOdds(type);
     const bookSummary = Object.entries(bookCounts).map(([k, v]) => `${k}:${v}`).join(" ");
     await recordJobRun(
       "pull-odds",
       "cron",
       true,
-      `${results.length} games pulled (${bookSummary})${unmatchedTeams.length ? `, ${unmatchedTeams.length} unmatched teams` : ""}`
+      `${results.length} games pulled (${bookSummary})` +
+        `${unmatchedTeams.length ? `, ${unmatchedTeams.length} unmatched teams` : ""}` +
+        `${mergedDuplicates.length ? `, ${mergedDuplicates.length} duplicate game(s) auto-merged` : ""}`
     );
     return NextResponse.json({
       ok: true,
@@ -34,6 +36,7 @@ export async function GET(request: Request) {
       sample: results.slice(0, 8),
       espnTeamsFetched,
       unmatchedTeams,
+      mergedDuplicates,
     });
   } catch (err: any) {
     await recordJobRun("pull-odds", "cron", false, err.message);

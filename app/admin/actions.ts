@@ -7,6 +7,9 @@ import { gradePick } from "@/lib/scoring";
 import { runGradeResults, summarizeGradeRun } from "@/lib/gradeResults";
 import { pullOdds } from "@/lib/pullOdds";
 import { recordJobRun } from "@/lib/jobRun";
+import { mergeGame } from "@/lib/mergeGames";
+import { UNLOCK_DATA } from "@/lib/unlockPick";
+import { unlockStaleLocks } from "@/lib/unlockStaleLocks";
 
 const ADMIN_COOKIE = "admin_session";
 
@@ -65,21 +68,28 @@ export async function adminUnlockPick(formData: FormData) {
   const pickId = formData.get("pickId");
   if (typeof pickId !== "string") return;
 
-  await prisma.pick.update({
-    where: { id: pickId },
-    data: {
-      locked: false,
-      lockedAt: null,
-      lockedLine: null,
-      lockedOdds: null,
-      dogSpreadValue: null,
-      lockedBook: null,
-      graded: false,
-      isWin: null,
-      isPush: null,
-      pointsEarned: 0,
-    },
-  });
+  await prisma.pick.update({ where: { id: pickId }, data: UNLOCK_DATA });
+
+  revalidatePath("/admin");
+  revalidatePath("/board");
+  revalidatePath("/standings");
+  revalidatePath("/watch");
+}
+
+// Bulk version of adminUnlockPick - for when pull-odds went quiet for a
+// stretch (see /api/debug-cron-history) and several players locked picks
+// against whatever stale line was still on screen before the next real
+// pull refreshed it. Unlocks every currently-locked pick in the given week
+// whose lockedAt is before the given cutoff.
+export async function bulkUnlockStaleLocks(formData: FormData) {
+  if (!isAuthed()) return;
+  const weekNumber = Number(formData.get("weekNumber"));
+  const cutoffRaw = formData.get("cutoff");
+  if (!Number.isFinite(weekNumber)) return;
+  const cutoff = typeof cutoffRaw === "string" && cutoffRaw ? new Date(cutoffRaw) : new Date();
+  if (isNaN(cutoff.getTime())) return;
+
+  await unlockStaleLocks(weekNumber, 2026, cutoff);
 
   revalidatePath("/admin");
   revalidatePath("/board");
@@ -120,35 +130,7 @@ export async function mergeDuplicateGame(formData: FormData) {
   const toGame = await prisma.game.findUnique({ where: { id: to } });
   if (!toGame) return;
 
-  const picks = await prisma.pick.findMany({ where: { gameId: fromGameId } });
-  let skipped = 0;
-  for (const pick of picks) {
-    const conflict = await prisma.pick.findUnique({
-      where: {
-        userId_weekId_gameId_pickType: {
-          userId: pick.userId,
-          weekId: pick.weekId,
-          gameId: toGame.id,
-          pickType: pick.pickType,
-        },
-      },
-    });
-    if (conflict) {
-      skipped++;
-      continue;
-    }
-    await prisma.pick.update({ where: { id: pick.id }, data: { gameId: toGame.id } });
-  }
-
-  if (skipped === 0) {
-    await prisma.game.update({
-      where: { id: fromGameId },
-      data: {
-        voided: true,
-        voidReason: `Duplicate odds-API event, merged into ${toGame.awayTeam} @ ${toGame.homeTeam}`,
-      },
-    });
-  }
+  await mergeGame(fromGameId, toGame.id, `Duplicate odds-API event, merged into ${toGame.awayTeam} @ ${toGame.homeTeam}`);
 
   revalidatePath("/admin");
   revalidatePath("/board");
@@ -178,13 +160,15 @@ export async function runGradeResultsNow() {
 export async function runPullOddsNow() {
   if (!isAuthed()) return;
   try {
-    const { results, bookCounts, unmatchedTeams } = await pullOdds();
+    const { results, bookCounts, unmatchedTeams, mergedDuplicates } = await pullOdds();
     const bookSummary = Object.entries(bookCounts).map(([k, v]) => `${k}:${v}`).join(" ");
     await recordJobRun(
       "pull-odds",
       "manual",
       true,
-      `${results.length} games pulled (${bookSummary})${unmatchedTeams.length ? `, ${unmatchedTeams.length} unmatched teams` : ""}`
+      `${results.length} games pulled (${bookSummary})` +
+        `${unmatchedTeams.length ? `, ${unmatchedTeams.length} unmatched teams` : ""}` +
+        `${mergedDuplicates.length ? `, ${mergedDuplicates.length} duplicate game(s) auto-merged` : ""}`
     );
   } catch (err: any) {
     await recordJobRun("pull-odds", "manual", false, err.message);
