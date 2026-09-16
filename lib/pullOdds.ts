@@ -123,29 +123,37 @@ export async function pullOdds(snapshotType: string = "market") {
   // event once its game is a few days old), so this only prevents new
   // occurrences going forward - it can't reach back and fix an already
   // week-old duplicate.
+  // One batched query instead of one-per-game (this ran ~75-100 extra
+  // sequential round trips per pull otherwise - measured pushing pull-odds
+  // well past 10s even warm, right in cron-job.org timeout territory).
   const mergedDuplicates: { from: string; to: string; moved: number; skipped: number }[] = [];
-  for (const fresh of freshGames) {
-    const staleCandidates = await prisma.game.findMany({
-      where: {
-        weekId: fresh.weekId,
-        homeTeam: fresh.homeTeam,
-        awayTeam: fresh.awayTeam,
-        voided: false,
-        id: { not: fresh.id },
-      },
+  const touchedWeekIds = Array.from(new Set(freshGames.map((g) => g.weekId)));
+  if (touchedWeekIds.length > 0) {
+    const candidateGames = await prisma.game.findMany({
+      where: { weekId: { in: touchedWeekIds }, voided: false },
     });
-    for (const stale of staleCandidates) {
-      const mergeResult = await mergeGame(
-        stale.id,
-        fresh.id,
-        `Duplicate odds-API event, auto-merged into ${fresh.awayTeam} @ ${fresh.homeTeam}`
+    const freshIds = new Set(freshGames.map((g) => g.id));
+    for (const fresh of freshGames) {
+      const staleCandidates = candidateGames.filter(
+        (g) => g.weekId === fresh.weekId && g.homeTeam === fresh.homeTeam && g.awayTeam === fresh.awayTeam && g.id !== fresh.id
       );
-      mergedDuplicates.push({
-        from: `${stale.awayTeam} @ ${stale.homeTeam}`,
-        to: `${fresh.awayTeam} @ ${fresh.homeTeam}`,
-        moved: mergeResult.moved,
-        skipped: mergeResult.skipped,
-      });
+      for (const stale of staleCandidates) {
+        // Both sides of a still-live duplicate pair pass this filter (each
+        // is "stale" relative to the other) - only merge when acting as the
+        // fresher/kept side, so a pair isn't merged into itself twice.
+        if (freshIds.has(stale.id) && stale.id < fresh.id) continue;
+        const mergeResult = await mergeGame(
+          stale.id,
+          fresh.id,
+          `Duplicate odds-API event, auto-merged into ${fresh.awayTeam} @ ${fresh.homeTeam}`
+        );
+        mergedDuplicates.push({
+          from: `${stale.awayTeam} @ ${stale.homeTeam}`,
+          to: `${fresh.awayTeam} @ ${fresh.homeTeam}`,
+          moved: mergeResult.moved,
+          skipped: mergeResult.skipped,
+        });
+      }
     }
   }
 
