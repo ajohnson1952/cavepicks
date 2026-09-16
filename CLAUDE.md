@@ -12,8 +12,15 @@ Claude commits and pushes changes directly to `main` on GitHub; Vercel
 auto-deploys from `main`. Keep commit messages to a single clear line and
 explain what changed in plain terms when handing back.
 
-Live site: cavepicks.com
+Live site: cavepicks.com (Vercel **Hobby/free** plan - see the Vercel Hobby
+limits gotcha below). Note: the bare apex `cavepicks.com` 308-redirects to
+`www.cavepicks.com`, which is the real canonical host - any script/cron job
+hitting API routes should target `www.cavepicks.com` directly to avoid
+depending on redirect-following (see `.github/workflows/*.yml` for the
+pattern).
 Rules page (source of truth for game rules): cavepicks.com/rules
+Neon is on the paid **Launch** plan (pay-per-CU-hour + storage, no free
+allowance) - the user upgraded from Neon's free tier in Sep 2026.
 
 ## Commands
 
@@ -109,8 +116,17 @@ Rules page (source of truth for game rules): cavepicks.com/rules
     UTC cron strings).
 - `/admin` is password-gated (`ADMIN_PASSWORD` env var) - lets the owner
   void postponed/cancelled games, manually correct scores, unlock a
-  player's locked pick, and manually trigger grade-results/pull-odds (see
-  below).
+  player's locked pick, manually trigger grade-results/pull-odds (see
+  below), and look up every player's personal pick link ("Player links"
+  card - each player's "My Picks" nav shortcut is saved via `localStorage`
+  in `app/Nav.tsx`, which is tied to the domain; anyone who bookmarked it
+  before the Render->Vercel domain move needs to re-open their link once
+  on the new domain for that shortcut to come back).
+- **Vercel Web Analytics** is wired in (`@vercel/analytics` package,
+  `<Analytics />` in `app/layout.tsx`) - but the package alone only does
+  the client-side half. It also has to be turned on in the Vercel
+  dashboard (Project -> Analytics -> Enable) for data to actually collect;
+  that's a dashboard-only toggle, nothing in this repo controls it.
 - **Background jobs and `JobRun`**: `lib/gradeResults.ts` (`runGradeResults`)
   and `lib/pullOdds.ts` (`pullOdds`) hold the actual grading/odds-pull logic;
   both the cron-facing API routes (`app/api/grade-results`,
@@ -149,7 +165,7 @@ Rules page (source of truth for game rules): cavepicks.com/rules
   bug three separate times before it stuck.
 - **Timezone: always use `America/Chicago` explicitly via
   `Intl.DateTimeFormat`, never plain `Date` methods.** The server runs
-  in UTC (true on both Render and Vercel). Plain `.getDay()`/`.setHours()` etc. silently operate in UTC and
+  in UTC. Plain `.getDay()`/`.setHours()` etc. silently operate in UTC and
   will compute the wrong wall-clock boundary (week rollover was off by
   ~5 hours before this was fixed).
 - **Team matching must use word-overlap, not substring containment.**
@@ -235,6 +251,22 @@ Rules page (source of truth for game rules): cavepicks.com/rules
   single `adminUnlockPick`) - exposed both as `/admin`'s "Unlock stale
   locks" form and as `/api/fix-stale-locks?week=N&before=ISO&key=
   <ADMIN_PASSWORD>` for running it outside a browser session.
+- **Vercel Hobby (free) plan limits worth knowing** (checked against
+  Vercel's docs directly, Sep 2026 - don't assume older numbers floating
+  around online): function duration is 300s default/max even on Hobby
+  (Fluid Compute, on by default) - not the 10s/60s figures a lot of stale
+  writeups still quote, and comfortably covers this app's actual ~1-12s
+  runs. Native Vercel Cron is capped at once/day on Hobby, which is why
+  cron-job.org stays regardless of host (see Architecture). **Runtime log
+  retention is only 1 hour on Hobby** - if something fails in a way that
+  isn't captured by this app's own `JobRun` tracking or a debug endpoint,
+  Vercel's own function logs are only available for an hour after it
+  happened. **Hobby's terms prohibit commercial use** - broadly defined as
+  any deployment tied to anyone's financial gain, explicitly including
+  "requesting or processing payment from site visitors." Cavepicks itself
+  never processes the $25/$100 buy-ins - money changes hands outside the
+  app entirely - so this should be fine, but don't add any in-app payment
+  flow without re-checking this.
 - **(Historical, Render-only) Two cron endpoints on the same minute used
   to OOM the whole app.** Render's free 512MB instance ran everything in
   one shared long-lived container, so two cold-start route handlers firing
