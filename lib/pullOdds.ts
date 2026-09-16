@@ -3,7 +3,7 @@ import { prisma } from "./db";
 import { fetchOdds } from "./oddsApi";
 import { fetchEspnTeams, findEspnTeamInfo } from "./espnTeams";
 import { fetchEspnScoreboard, teamNamesMatch, toYyyymmdd, EspnResult } from "./espnScores";
-import { getOrCreateWeekForDate } from "./currentWeek";
+import { getOrCreateWeekForDate, getWeekNumberForDate } from "./currentWeek";
 import { mergeGame } from "./mergeGames";
 
 export async function pullOdds(snapshotType: string = "market") {
@@ -37,6 +37,41 @@ export async function pullOdds(snapshotType: string = "market") {
     scoreboardResults.push(...(await fetchEspnScoreboard(d)));
   }
 
+  // A pull's ~75-100 games almost always land in only 1-2 distinct weeks,
+  // but getOrCreateWeekForDate() hits the DB every call - cache by week
+  // number so a pull only ever does that lookup once per distinct week
+  // instead of once per game.
+  const weekCache = new Map<number, Awaited<ReturnType<typeof getOrCreateWeekForDate>>>();
+  async function resolveWeek(commenceTime: Date) {
+    const weekNumber = getWeekNumberForDate(commenceTime);
+    const cached = weekCache.get(weekNumber);
+    if (cached) return cached;
+    const week = await getOrCreateWeekForDate(commenceTime);
+    weekCache.set(weekNumber, week);
+    return week;
+  }
+
+  // OddsSnapshot rows are always pure inserts (never updates), so they're
+  // collected here and written in one createMany() after the loop instead
+  // of one create() per game - previously the single biggest chunk of the
+  // ~150-200 sequential DB round trips a full pull was making.
+  const pendingSnapshots: {
+    gameId: string;
+    snapshotType: string;
+    spreadHome: number | null;
+    spreadAway: number | null;
+    spreadHomePrice: number | null;
+    spreadAwayPrice: number | null;
+    total: number | null;
+    totalOverPrice: number | null;
+    totalUnderPrice: number | null;
+    mlHome: number | null;
+    mlAway: number | null;
+    favoriteTeam: string | null;
+    underdogTeam: string | null;
+    sourceBook: string | null;
+  }[] = [];
+
   for (const g of allGames) {
     const homeInfo = findEspnTeamInfo(g.homeTeam, espnTeams);
     const awayInfo = findEspnTeamInfo(g.awayTeam, espnTeams);
@@ -52,7 +87,7 @@ export async function pullOdds(snapshotType: string = "market") {
     // whatever week happens to be "current" right now. This matters because
     // the odds API can return next week's games early if lines are already
     // posted, and this also self-corrects any past misfiling on every pull.
-    const gameWeek = await getOrCreateWeekForDate(new Date(g.commenceTime));
+    const gameWeek = await resolveWeek(new Date(g.commenceTime));
 
     const game = await prisma.game.upsert({
       where: { oddsApiEventId: g.id },
@@ -82,23 +117,21 @@ export async function pullOdds(snapshotType: string = "market") {
     // this function. Team identity/broadcast were already updated above for
     // every game, past or future; only the actual market line is withheld.
     if (new Date(g.commenceTime).getTime() > now) {
-      await prisma.oddsSnapshot.create({
-        data: {
-          gameId: game.id,
-          snapshotType,
-          spreadHome: g.spreadHome,
-          spreadAway: g.spreadAway,
-          spreadHomePrice: g.spreadHomePrice,
-          spreadAwayPrice: g.spreadAwayPrice,
-          total: g.total,
-          totalOverPrice: g.totalOverPrice,
-          totalUnderPrice: g.totalUnderPrice,
-          mlHome: g.mlHome,
-          mlAway: g.mlAway,
-          favoriteTeam: g.favoriteTeam,
-          underdogTeam: g.underdogTeam,
-          sourceBook: g.sourceBook,
-        },
+      pendingSnapshots.push({
+        gameId: game.id,
+        snapshotType,
+        spreadHome: g.spreadHome,
+        spreadAway: g.spreadAway,
+        spreadHomePrice: g.spreadHomePrice,
+        spreadAwayPrice: g.spreadAwayPrice,
+        total: g.total,
+        totalOverPrice: g.totalOverPrice,
+        totalUnderPrice: g.totalUnderPrice,
+        mlHome: g.mlHome,
+        mlAway: g.mlAway,
+        favoriteTeam: g.favoriteTeam,
+        underdogTeam: g.underdogTeam,
+        sourceBook: g.sourceBook,
       });
 
       results.push({
@@ -109,6 +142,10 @@ export async function pullOdds(snapshotType: string = "market") {
         sourceBook: g.sourceBook,
       });
     }
+  }
+
+  if (pendingSnapshots.length > 0) {
+    await prisma.oddsSnapshot.createMany({ data: pendingSnapshots });
   }
 
   // The Odds API can reissue a rescheduled/corrected game under a brand-new
