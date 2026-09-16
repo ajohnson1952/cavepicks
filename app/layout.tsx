@@ -1,4 +1,5 @@
 import { Manrope, Roboto_Mono } from "next/font/google";
+import { Analytics } from "@vercel/analytics/next";
 import Nav from "./Nav";
 import "./globals.css";
 
@@ -29,6 +30,7 @@ export default function RootLayout({
       <body>
         <Nav />
         {children}
+        <Analytics />
       </body>
     </html>
   );
