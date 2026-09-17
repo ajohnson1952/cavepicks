@@ -6,7 +6,10 @@
 type CronJobOrgJob = {
   jobId: number;
   enabled: boolean;
+  title: string;
   url: string;
+  lastStatus: number;
+  lastExecution: number | null;
   nextExecution: number | null;
 };
 
@@ -25,6 +28,44 @@ async function fetchCronJobs(): Promise<CronJobOrgJob[]> {
   } catch {
     return [];
   }
+}
+
+// cron-job.org's lastStatus enum: 0 = never executed yet, 1 = OK, anything
+// else 2-9 is some flavor of failure (timeout, non-2xx, DNS, etc). Not
+// worth mapping every code by name here - "failing" plus the raw code is
+// enough to point a human at the cron-job.org dashboard for detail.
+function statusLabel(lastStatus: number): string {
+  if (lastStatus === 0) return "never executed";
+  if (lastStatus === 1) return "ok";
+  return `failing (status code ${lastStatus})`;
+}
+
+// Diagnostic dump for the jobs that hit this app - used by
+// /api/debug-cronjob-status. Only returns jobs whose URL points at
+// cavepicks.com (the account may have unrelated jobs for other projects),
+// and never the API key itself.
+export async function getCronJobDiagnostics() {
+  const apiKey = process.env.CRONJOB_API_KEY;
+  if (!apiKey) {
+    return { ok: false as const, error: "CRONJOB_API_KEY is not set" };
+  }
+
+  const jobs = await fetchCronJobs();
+  const relevant = jobs.filter((j) => j.url.includes("cavepicks.com"));
+
+  return {
+    ok: true as const,
+    jobCount: relevant.length,
+    jobs: relevant.map((j) => ({
+      jobId: j.jobId,
+      title: j.title,
+      url: j.url,
+      enabled: j.enabled,
+      status: statusLabel(j.lastStatus),
+      lastExecution: j.lastExecution ? new Date(j.lastExecution * 1000).toISOString() : null,
+      nextExecution: j.nextExecution ? new Date(j.nextExecution * 1000).toISOString() : null,
+    })),
+  };
 }
 
 export async function getNextScheduledRuns(): Promise<{
