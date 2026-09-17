@@ -58,20 +58,28 @@ function toWwwUrl(url: string): string | null {
 // execution, so any job left on apex silently never actually invokes the
 // route - this is what caused the Sep 2026 pull-odds outage. Used by the
 // "Fix cron job URLs" button on /admin (see app/admin/actions.ts).
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 export async function fixApexCronUrls(): Promise<
   | { ok: false; error: string }
-  | { ok: true; fixed: { jobId: number; title: string; from: string; to: string }[] }
+  | {
+      ok: true;
+      fixed: { jobId: number; title: string; from: string; to: string }[];
+      stillBroken: { jobId: number; title: string }[];
+    }
 > {
   const apiKey = process.env.CRONJOB_API_KEY;
   if (!apiKey) return { ok: false, error: "CRONJOB_API_KEY is not set" };
 
   const jobs = await fetchCronJobs();
-  const fixed: { jobId: number; title: string; from: string; to: string }[] = [];
+  const toFix = jobs
+    .map((job) => ({ job, newUrl: toWwwUrl(job.url) }))
+    .filter((x): x is { job: CronJobOrgJob; newUrl: string } => x.newUrl !== null);
 
-  for (const job of jobs) {
-    const newUrl = toWwwUrl(job.url);
-    if (!newUrl) continue;
-    const res = await fetch(`https://api.cron-job.org/jobs/${job.jobId}`, {
+  for (const { job, newUrl } of toFix) {
+    await fetch(`https://api.cron-job.org/jobs/${job.jobId}`, {
       method: "PATCH",
       headers: {
         Authorization: `Bearer ${apiKey}`,
@@ -80,12 +88,28 @@ export async function fixApexCronUrls(): Promise<
       body: JSON.stringify({ job: { url: newUrl } }),
       cache: "no-store",
     });
-    if (res.ok) {
+    // Stay comfortably under cron-job.org's 5-req/sec write limit.
+    await sleep(250);
+  }
+
+  // Re-fetch and check actual current state rather than trusting each
+  // response code - a rate-limited response doesn't necessarily mean the
+  // write didn't land, and trusting response codes alone previously
+  // under-reported a fully-successful run as only 3/18 fixed.
+  const after = await fetchCronJobs();
+  const afterById = new Map(after.map((j) => [j.jobId, j]));
+
+  const fixed: { jobId: number; title: string; from: string; to: string }[] = [];
+  const stillBroken: { jobId: number; title: string }[] = [];
+  for (const { job, newUrl } of toFix) {
+    if (afterById.get(job.jobId)?.url === newUrl) {
       fixed.push({ jobId: job.jobId, title: job.title, from: job.url, to: newUrl });
+    } else {
+      stillBroken.push({ jobId: job.jobId, title: job.title });
     }
   }
 
-  return { ok: true, fixed };
+  return { ok: true, fixed, stillBroken };
 }
 
 // Diagnostic dump for the jobs that hit this app - used by

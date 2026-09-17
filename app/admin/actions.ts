@@ -189,14 +189,16 @@ export async function fixCronJobUrls() {
   try {
     const result = await fixApexCronUrls();
     if (result.ok) {
-      await recordJobRun(
-        "fix-cronjob-urls",
-        "manual",
-        true,
-        result.fixed.length === 0
-          ? "no jobs on apex - nothing to fix"
-          : `fixed ${result.fixed.length} job(s): ${result.fixed.map((f) => f.title).join(", ")}`
-      );
+      const parts: string[] = [];
+      if (result.fixed.length === 0 && result.stillBroken.length === 0) {
+        parts.push("no jobs on apex - nothing to fix");
+      } else {
+        if (result.fixed.length > 0) parts.push(`fixed ${result.fixed.length} job(s)`);
+        if (result.stillBroken.length > 0) {
+          parts.push(`${result.stillBroken.length} still on apex: ${result.stillBroken.map((f) => f.title).join(", ")}`);
+        }
+      }
+      await recordJobRun("fix-cronjob-urls", "manual", result.stillBroken.length === 0, parts.join(" · "));
     } else {
       await recordJobRun("fix-cronjob-urls", "manual", false, result.error);
     }
