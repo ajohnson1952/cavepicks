@@ -12,6 +12,7 @@ import {
   runPullOddsNow,
   mergeDuplicateGame,
   bulkUnlockStaleLocks,
+  fixCronJobUrls,
 } from "./actions";
 import { formatSpread } from "@/lib/format";
 import { getJobRuns } from "@/lib/jobRun";
@@ -110,7 +111,7 @@ export default async function AdminPage(
     lockedByGame.set(p.gameId, arr);
   }
 
-  const [gradeRun, pullRun] = await getJobRuns(["grade-results", "pull-odds"]);
+  const [gradeRun, pullRun, cronFixRun] = await getJobRuns(["grade-results", "pull-odds", "fix-cronjob-urls"]);
   const nextRuns = await getNextScheduledRuns();
   const allUsers = await prisma.user.findMany({ orderBy: { name: "asc" } });
 
@@ -173,6 +174,15 @@ export default async function AdminPage(
           <form action={runPullOddsNow}>
             <button type="submit" className="btn btn-lock" style={{ width: "auto" }}>
               Pull odds now
+            </button>
+          </form>
+        </div>
+        <div style={{ marginTop: "10px" }}>
+          <div className="meta" style={{ marginBottom: "4px" }}>Fix cron job URLs (apex → www)</div>
+          <p style={{ fontSize: "13px", margin: "0 0 6px" }}>{jobRunDisplay(cronFixRun)}</p>
+          <form action={fixCronJobUrls}>
+            <button type="submit" className="btn btn-ghost">
+              Fix cron job URLs
             </button>
           </form>
         </div>

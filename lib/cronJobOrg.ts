@@ -40,6 +40,54 @@ function statusLabel(lastStatus: number): string {
   return `failing (status code ${lastStatus})`;
 }
 
+function toWwwUrl(url: string): string | null {
+  try {
+    const u = new URL(url);
+    if (u.hostname !== "cavepicks.com") return null; // already www, or unrelated
+    u.hostname = "www.cavepicks.com";
+    return u.toString();
+  } catch {
+    return null;
+  }
+}
+
+// One-time (but safe to re-run - it's a no-op once nothing's on bare apex
+// anymore) fix for jobs created pointing at https://cavepicks.com instead
+// of https://www.cavepicks.com. The apex 308-redirects to www (see
+// CLAUDE.md), and cron-job.org doesn't treat that redirect as a successful
+// execution, so any job left on apex silently never actually invokes the
+// route - this is what caused the Sep 2026 pull-odds outage. Used by the
+// "Fix cron job URLs" button on /admin (see app/admin/actions.ts).
+export async function fixApexCronUrls(): Promise<
+  | { ok: false; error: string }
+  | { ok: true; fixed: { jobId: number; title: string; from: string; to: string }[] }
+> {
+  const apiKey = process.env.CRONJOB_API_KEY;
+  if (!apiKey) return { ok: false, error: "CRONJOB_API_KEY is not set" };
+
+  const jobs = await fetchCronJobs();
+  const fixed: { jobId: number; title: string; from: string; to: string }[] = [];
+
+  for (const job of jobs) {
+    const newUrl = toWwwUrl(job.url);
+    if (!newUrl) continue;
+    const res = await fetch(`https://api.cron-job.org/jobs/${job.jobId}`, {
+      method: "PATCH",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ job: { url: newUrl } }),
+      cache: "no-store",
+    });
+    if (res.ok) {
+      fixed.push({ jobId: job.jobId, title: job.title, from: job.url, to: newUrl });
+    }
+  }
+
+  return { ok: true, fixed };
+}
+
 // Diagnostic dump for the jobs that hit this app - used by
 // /api/debug-cronjob-status. Only returns jobs whose URL points at
 // cavepicks.com (the account may have unrelated jobs for other projects),

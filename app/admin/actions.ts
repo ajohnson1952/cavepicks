@@ -10,6 +10,7 @@ import { recordJobRun } from "@/lib/jobRun";
 import { mergeGame } from "@/lib/mergeGames";
 import { UNLOCK_DATA } from "@/lib/unlockPick";
 import { unlockStaleLocks } from "@/lib/unlockStaleLocks";
+import { fixApexCronUrls } from "@/lib/cronJobOrg";
 
 const ADMIN_COOKIE = "admin_session";
 
@@ -177,6 +178,32 @@ export async function runPullOddsNow() {
   revalidatePath("/board");
   revalidatePath("/pick");
   revalidatePath("/watch");
+}
+
+// One-time fix (safe to re-run - a no-op once nothing's left on apex) for
+// cron-job.org jobs pointing at the bare https://cavepicks.com instead of
+// https://www.cavepicks.com. See lib/cronJobOrg.ts for why apex silently
+// breaks cron - this caused the Sep 2026 pull-odds outage.
+export async function fixCronJobUrls() {
+  if (!(await isAuthed())) return;
+  try {
+    const result = await fixApexCronUrls();
+    if (result.ok) {
+      await recordJobRun(
+        "fix-cronjob-urls",
+        "manual",
+        true,
+        result.fixed.length === 0
+          ? "no jobs on apex - nothing to fix"
+          : `fixed ${result.fixed.length} job(s): ${result.fixed.map((f) => f.title).join(", ")}`
+      );
+    } else {
+      await recordJobRun("fix-cronjob-urls", "manual", false, result.error);
+    }
+  } catch (err: any) {
+    await recordJobRun("fix-cronjob-urls", "manual", false, err.message);
+  }
+  revalidatePath("/admin");
 }
 
 // Manually sets a final score and immediately grades every pick tied to
