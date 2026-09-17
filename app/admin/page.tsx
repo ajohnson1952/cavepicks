@@ -15,6 +15,7 @@ import {
 } from "./actions";
 import { formatSpread } from "@/lib/format";
 import { getJobRuns } from "@/lib/jobRun";
+import { getNextScheduledRuns } from "@/lib/cronJobOrg";
 
 // Hardcoded rather than derived from the request - this app has one fixed
 // live domain (see CLAUDE.md), not a multi-environment setup.
@@ -30,6 +31,17 @@ function jobRunDisplay(run: { ranAt: Date; trigger: string; ok: boolean; summary
   });
   const via = run.trigger === "cron" ? "auto" : "manual";
   return `${when} CT · ${via}${run.ok ? "" : " — FAILED"} · ${run.summary}`;
+}
+
+function nextRunDisplay(next: Date | null): string | null {
+  if (!next) return null;
+  const when = next.toLocaleString("en-US", {
+    timeZone: "America/Chicago",
+    weekday: "short",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+  return `next scheduled: ${when} CT`;
 }
 
 export const dynamic = "force-dynamic";
@@ -99,6 +111,7 @@ export default async function AdminPage(
   }
 
   const [gradeRun, pullRun] = await getJobRuns(["grade-results", "pull-odds"]);
+  const nextRuns = await getNextScheduledRuns();
   const allUsers = await prisma.user.findMany({ orderBy: { name: "asc" } });
 
   return (
@@ -137,7 +150,12 @@ export default async function AdminPage(
         <div className="divider" />
         <div style={{ marginBottom: "10px" }}>
           <div className="meta" style={{ marginBottom: "4px" }}>Grade results</div>
-          <p style={{ fontSize: "13px", margin: "0 0 6px" }}>{jobRunDisplay(gradeRun)}</p>
+          <p style={{ fontSize: "13px", margin: "0 0 2px" }}>{jobRunDisplay(gradeRun)}</p>
+          {nextRunDisplay(nextRuns.gradeResults) && (
+            <p style={{ fontSize: "12px", margin: "0 0 6px", opacity: 0.7 }}>
+              {nextRunDisplay(nextRuns.gradeResults)}
+            </p>
+          )}
           <form action={runGradeResultsNow}>
             <button type="submit" className="btn btn-lock" style={{ width: "auto" }}>
               Run grading now
@@ -146,7 +164,12 @@ export default async function AdminPage(
         </div>
         <div>
           <div className="meta" style={{ marginBottom: "4px" }}>Pull odds</div>
-          <p style={{ fontSize: "13px", margin: "0 0 6px" }}>{jobRunDisplay(pullRun)}</p>
+          <p style={{ fontSize: "13px", margin: "0 0 2px" }}>{jobRunDisplay(pullRun)}</p>
+          {nextRunDisplay(nextRuns.pullOdds) && (
+            <p style={{ fontSize: "12px", margin: "0 0 6px", opacity: 0.7 }}>
+              {nextRunDisplay(nextRuns.pullOdds)}
+            </p>
+          )}
           <form action={runPullOddsNow}>
             <button type="submit" className="btn btn-lock" style={{ width: "auto" }}>
               Pull odds now

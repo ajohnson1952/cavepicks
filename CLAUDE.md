@@ -86,8 +86,15 @@ allowance) - the user upgraded from Neon's free tier in Sep 2026.
   `app/api/auto-lock-sweep/route.ts` is a retired no-op (kept only so old
   cron jobs get a 200; those jobs can be deleted).
 - Automation is scheduled via **cron-job.org** (18 jobs across 3 endpoints,
-  2 intentionally disabled; API key lives in the cron-job.org account, not
-  in this repo), not Vercel Cron or GitHub Actions. Vercel Cron was
+  2 intentionally disabled), not Vercel Cron or GitHub Actions. A read-only
+  cron-job.org API key is stored as the `CRONJOB_API_KEY` env var in Vercel
+  (not in this repo) so `/admin` can show each job's real next-scheduled-run
+  time (`lib/cronJobOrg.ts`, calls `GET api.cron-job.org/jobs` and reads its
+  `nextExecution` field - cron-job.org is the actual source of truth for the
+  schedule, so this reads it live rather than re-deriving it from the
+  pattern described below). If `CRONJOB_API_KEY` is unset or the call fails,
+  the next-run line just doesn't render - it never breaks the rest of
+  `/admin`. Vercel Cron was
   considered but the free Hobby plan only allows once-a-day schedules, far
   too coarse for grade-results/pull-odds - so cron-job.org stays regardless
   of host. GitHub's `schedule:` trigger was tried before that and turned
