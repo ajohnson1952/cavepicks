@@ -13,6 +13,7 @@ import {
   mergeDuplicateGame,
   bulkUnlockStaleLocks,
   fixCronJobUrls,
+  seedHistoricalSeason2025,
 } from "./actions";
 import { formatSpread } from "@/lib/format";
 import { getJobRuns } from "@/lib/jobRun";
@@ -111,7 +112,12 @@ export default async function AdminPage(
     lockedByGame.set(p.gameId, arr);
   }
 
-  const [gradeRun, pullRun, cronFixRun] = await getJobRuns(["grade-results", "pull-odds", "fix-cronjob-urls"]);
+  const [gradeRun, pullRun, cronFixRun, seedRun] = await getJobRuns([
+    "grade-results",
+    "pull-odds",
+    "fix-cronjob-urls",
+    "seed-historical-2025",
+  ]);
   const nextRuns = await getNextScheduledRuns();
   const allUsers = await prisma.user.findMany({ orderBy: { name: "asc" } });
 
@@ -186,6 +192,21 @@ export default async function AdminPage(
             </button>
           </form>
         </div>
+      </div>
+
+      <div className="card">
+        <div className="matchup">Historical data</div>
+        <div className="divider" />
+        <p style={{ fontSize: "13px", margin: "0 0 8px" }}>
+          Seeds the 2025 season (hand-entered, pre-app) into <span className="mono">/history</span>. Safe to
+          re-run - overwrites with the same numbers rather than duplicating.
+        </p>
+        <p style={{ fontSize: "13px", margin: "0 0 6px" }}>{jobRunDisplay(seedRun)}</p>
+        <form action={seedHistoricalSeason2025}>
+          <button type="submit" className="btn btn-ghost">
+            Seed 2025 season
+          </button>
+        </form>
       </div>
 
       <div className="card">

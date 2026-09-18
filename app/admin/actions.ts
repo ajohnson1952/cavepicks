@@ -271,3 +271,78 @@ export async function setManualScore(formData: FormData) {
   revalidatePath("/board");
   revalidatePath("/standings");
 }
+
+// One-time seed for the 2025 season (before this app existed) into
+// HistoricalSeasonRecord, for /history. Numbers are from the group's own
+// old records, hand-entered - name mapping (old nickname -> current name)
+// confirmed with the site owner directly since the group's names changed
+// between seasons. Safe to re-run - upserts on [userId, seasonYear], so
+// running it again just overwrites with the same numbers rather than
+// duplicating rows.
+const SEASON_2025_DATA: {
+  name: string;
+  weeksWon: number;
+  sideWins: number;
+  sidePushes: number;
+  sideLosses: number;
+  dogPoints: number;
+  dogWins: number;
+  dogLosses: number;
+}[] = [
+  { name: "Johnson", weeksWon: 0, sideWins: 35, sidePushes: 1, sideLosses: 34, dogPoints: 40, dogWins: 8, dogLosses: 6 },
+  { name: "Jordan", weeksWon: 2, sideWins: 33, sidePushes: 1, sideLosses: 36, dogPoints: 24, dogWins: 2, dogLosses: 12 },
+  { name: "Buck", weeksWon: 4, sideWins: 40, sidePushes: 1, sideLosses: 29, dogPoints: 0, dogWins: 0, dogLosses: 14 },
+  { name: "Bazz", weeksWon: 1, sideWins: 24, sidePushes: 1, sideLosses: 45, dogPoints: 20, dogWins: 3, dogLosses: 11 },
+  { name: "Sterns", weeksWon: 2, sideWins: 33, sidePushes: 1, sideLosses: 36, dogPoints: 14, dogWins: 1, dogLosses: 13 },
+];
+
+export async function seedHistoricalSeason2025() {
+  if (!(await isAuthed())) return;
+  try {
+    let seeded = 0;
+    const missing: string[] = [];
+    for (const row of SEASON_2025_DATA) {
+      const user = await prisma.user.findFirst({ where: { name: row.name } });
+      if (!user) {
+        missing.push(row.name);
+        continue;
+      }
+      await prisma.historicalSeasonRecord.upsert({
+        where: { userId_seasonYear: { userId: user.id, seasonYear: 2025 } },
+        update: {
+          weeksWon: row.weeksWon,
+          sideWins: row.sideWins,
+          sidePushes: row.sidePushes,
+          sideLosses: row.sideLosses,
+          dogPoints: row.dogPoints,
+          dogWins: row.dogWins,
+          dogLosses: row.dogLosses,
+        },
+        create: {
+          userId: user.id,
+          seasonYear: 2025,
+          weeksWon: row.weeksWon,
+          sideWins: row.sideWins,
+          sidePushes: row.sidePushes,
+          sideLosses: row.sideLosses,
+          dogPoints: row.dogPoints,
+          dogWins: row.dogWins,
+          dogLosses: row.dogLosses,
+        },
+      });
+      seeded++;
+    }
+    await recordJobRun(
+      "seed-historical-2025",
+      "manual",
+      missing.length === 0,
+      missing.length === 0
+        ? `seeded ${seeded} user(s)`
+        : `seeded ${seeded} user(s), no match found for: ${missing.join(", ")}`
+    );
+  } catch (err: any) {
+    await recordJobRun("seed-historical-2025", "manual", false, err.message);
+  }
+  revalidatePath("/history");
+  revalidatePath("/admin");
+}
