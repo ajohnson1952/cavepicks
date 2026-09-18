@@ -178,11 +178,11 @@ export default async function AdminPage(
           </form>
         </div>
         <div style={{ marginTop: "10px" }}>
-          <div className="meta" style={{ marginBottom: "4px" }}>Fix cron job URLs (apex → www)</div>
+          <div className="meta" style={{ marginBottom: "4px" }}>Fix cron jobs (apex URLs + accidentally-disabled)</div>
           <p style={{ fontSize: "13px", margin: "0 0 6px" }}>{jobRunDisplay(cronFixRun)}</p>
           <form action={fixCronJobUrls}>
             <button type="submit" className="btn btn-ghost">
-              Fix cron job URLs
+              Fix cron jobs
             </button>
           </form>
         </div>

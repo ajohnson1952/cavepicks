@@ -10,7 +10,7 @@ import { recordJobRun } from "@/lib/jobRun";
 import { mergeGame } from "@/lib/mergeGames";
 import { UNLOCK_DATA } from "@/lib/unlockPick";
 import { unlockStaleLocks } from "@/lib/unlockStaleLocks";
-import { fixApexCronUrls } from "@/lib/cronJobOrg";
+import { fixApexCronUrls, reactivateAccidentallyDisabledJobs } from "@/lib/cronJobOrg";
 
 const ADMIN_COOKIE = "admin_session";
 
@@ -180,28 +180,51 @@ export async function runPullOddsNow() {
   revalidatePath("/watch");
 }
 
-// One-time fix (safe to re-run - a no-op once nothing's left on apex) for
-// cron-job.org jobs pointing at the bare https://cavepicks.com instead of
-// https://www.cavepicks.com. See lib/cronJobOrg.ts for why apex silently
-// breaks cron - this caused the Sep 2026 pull-odds outage.
+// One-time fix (safe to re-run - a no-op once there's nothing left to fix)
+// for two cron-job.org issues found during the Sep 2026 pull-odds outage:
+// jobs left pointing at the bare https://cavepicks.com instead of
+// https://www.cavepicks.com (apex silently breaks cron - see
+// lib/cronJobOrg.ts), and jobs cron-job.org itself auto-disabled after
+// enough consecutive failures while the outage was ongoing.
 export async function fixCronJobUrls() {
   if (!(await isAuthed())) return;
   try {
-    const result = await fixApexCronUrls();
-    if (result.ok) {
-      const parts: string[] = [];
-      if (result.fixed.length === 0 && result.stillBroken.length === 0) {
-        parts.push("no jobs on apex - nothing to fix");
+    const urlResult = await fixApexCronUrls();
+    const urlParts: string[] = [];
+    if (urlResult.ok) {
+      if (urlResult.fixed.length === 0 && urlResult.stillBroken.length === 0) {
+        urlParts.push("no jobs on apex");
       } else {
-        if (result.fixed.length > 0) parts.push(`fixed ${result.fixed.length} job(s)`);
-        if (result.stillBroken.length > 0) {
-          parts.push(`${result.stillBroken.length} still on apex: ${result.stillBroken.map((f) => f.title).join(", ")}`);
+        if (urlResult.fixed.length > 0) urlParts.push(`fixed ${urlResult.fixed.length} URL(s)`);
+        if (urlResult.stillBroken.length > 0) {
+          urlParts.push(`${urlResult.stillBroken.length} still on apex: ${urlResult.stillBroken.map((f) => f.title).join(", ")}`);
         }
       }
-      await recordJobRun("fix-cronjob-urls", "manual", result.stillBroken.length === 0, parts.join(" · "));
     } else {
-      await recordJobRun("fix-cronjob-urls", "manual", false, result.error);
+      urlParts.push(`URL fix error: ${urlResult.error}`);
     }
+
+    const enableResult = await reactivateAccidentallyDisabledJobs();
+    const enableParts: string[] = [];
+    if (enableResult.ok) {
+      if (enableResult.reactivated.length === 0 && enableResult.stillDisabled.length === 0) {
+        enableParts.push("no accidentally-disabled jobs");
+      } else {
+        if (enableResult.reactivated.length > 0) {
+          enableParts.push(`re-enabled ${enableResult.reactivated.length} job(s): ${enableResult.reactivated.map((f) => f.title).join(", ")}`);
+        }
+        if (enableResult.stillDisabled.length > 0) {
+          enableParts.push(`${enableResult.stillDisabled.length} still disabled: ${enableResult.stillDisabled.map((f) => f.title).join(", ")}`);
+        }
+      }
+    } else {
+      enableParts.push(`enable fix error: ${enableResult.error}`);
+    }
+
+    const ok =
+      (!urlResult.ok || urlResult.stillBroken.length === 0) &&
+      (!enableResult.ok || enableResult.stillDisabled.length === 0);
+    await recordJobRun("fix-cronjob-urls", "manual", ok, [...urlParts, ...enableParts].join(" · "));
   } catch (err: any) {
     await recordJobRun("fix-cronjob-urls", "manual", false, err.message);
   }

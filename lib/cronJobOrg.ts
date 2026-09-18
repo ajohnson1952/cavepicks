@@ -112,6 +112,59 @@ export async function fixApexCronUrls(): Promise<
   return { ok: true, fixed, stillBroken };
 }
 
+// cron-job.org auto-disables a job after enough consecutive failures (this
+// is what happened to several jobs during the Sep 2026 outage - not
+// something this app's code did). Re-enables any disabled job that isn't
+// meant to be off: by convention every intentionally-disabled job here is
+// titled with a "[off]" prefix (see CLAUDE.md's Architecture section on the
+// retired auto-lock-sweep jobs) - anything disabled *without* that prefix
+// was disabled by cron-job.org itself, not on purpose, and should come back
+// on. Used by the same "Fix cron job URLs" button on /admin.
+export async function reactivateAccidentallyDisabledJobs(): Promise<
+  | { ok: false; error: string }
+  | {
+      ok: true;
+      reactivated: { jobId: number; title: string }[];
+      stillDisabled: { jobId: number; title: string }[];
+    }
+> {
+  const apiKey = process.env.CRONJOB_API_KEY;
+  if (!apiKey) return { ok: false, error: "CRONJOB_API_KEY is not set" };
+
+  const jobs = await fetchCronJobs();
+  const toReactivate = jobs.filter(
+    (j) => !j.enabled && j.url.includes("cavepicks.com") && !j.title.startsWith("[off]")
+  );
+
+  for (const job of toReactivate) {
+    await fetch(`https://api.cron-job.org/jobs/${job.jobId}`, {
+      method: "PATCH",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ job: { enabled: true } }),
+      cache: "no-store",
+    });
+    await sleep(250);
+  }
+
+  const after = await fetchCronJobs();
+  const afterById = new Map(after.map((j) => [j.jobId, j]));
+
+  const reactivated: { jobId: number; title: string }[] = [];
+  const stillDisabled: { jobId: number; title: string }[] = [];
+  for (const job of toReactivate) {
+    if (afterById.get(job.jobId)?.enabled) {
+      reactivated.push({ jobId: job.jobId, title: job.title });
+    } else {
+      stillDisabled.push({ jobId: job.jobId, title: job.title });
+    }
+  }
+
+  return { ok: true, reactivated, stillDisabled };
+}
+
 // Diagnostic dump for the jobs that hit this app - used by
 // /api/debug-cronjob-status. Only returns jobs whose URL points at
 // cavepicks.com (the account may have unrelated jobs for other projects),
