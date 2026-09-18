@@ -135,6 +135,23 @@ export default async function StandingsPage() {
 
   const dogPotTotal = DOG_BUYIN * users.length;
 
+  // Group totals - "how do we do as a group" rows at the bottom of each
+  // leaderboard. Sum of every user's own wins/pushes/losses, not a
+  // re-derivation - same numbers either way, this is just cheaper.
+  const groupSideTotals = cavepicksStats.reduce(
+    (acc, s) => ({ wins: acc.wins + s.wins, pushes: acc.pushes + s.pushes, losses: acc.losses + s.losses }),
+    { wins: 0, pushes: 0, losses: 0 }
+  );
+  const groupSideDenom = groupSideTotals.wins + groupSideTotals.losses;
+  const groupSidePct = groupSideDenom > 0 ? (groupSideTotals.wins / groupSideDenom) * 100 : 0;
+
+  const groupDogTotals = cavedogsStats.reduce(
+    (acc, s) => ({ points: acc.points + s.points, wins: acc.wins + s.wins, losses: acc.losses + s.losses }),
+    { points: 0, wins: 0, losses: 0 }
+  );
+  const groupDogDenom = groupDogTotals.wins + groupDogTotals.losses;
+  const groupDogPct = groupDogDenom > 0 ? (groupDogTotals.wins / groupDogDenom) * 100 : 0;
+
   return (
     <main>
       <h1>Standings</h1>
@@ -197,6 +214,15 @@ export default async function StandingsPage() {
                 <td>{s.pct.toFixed(1)}%</td>
               </tr>
             ))}
+            <tr className="totals-row">
+              <td></td>
+              <td>Group Total</td>
+              <td></td>
+              <td>{groupSideTotals.wins}</td>
+              <td>{groupSideTotals.pushes}</td>
+              <td>{groupSideTotals.losses}</td>
+              <td>{groupSidePct.toFixed(1)}%</td>
+            </tr>
           </tbody>
         </table>
       </div>
@@ -261,6 +287,15 @@ export default async function StandingsPage() {
                 </tr>
               );
             })}
+            <tr className="totals-row">
+              <td></td>
+              <td>Group Total</td>
+              <td>{groupDogTotals.points}</td>
+              <td>{groupDogTotals.wins}</td>
+              <td>{groupDogTotals.losses}</td>
+              <td>{groupDogPct.toFixed(1)}%</td>
+              <td></td>
+            </tr>
           </tbody>
         </table>
       </div>

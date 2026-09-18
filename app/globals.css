@@ -398,6 +398,12 @@ h1 {
   font-weight: 700;
 }
 
+.stat-table tr.totals-row td {
+  border-top: 2px solid var(--border);
+  font-weight: 700;
+  color: var(--dim);
+}
+
 .admin-input {
   font-family: inherit;
   font-size: 13px;
