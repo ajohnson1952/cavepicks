@@ -8,11 +8,33 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(cuid())
-  name      String
-  pickSlug  String   @unique // long random token, e.g. "x7v9qz3m2k4p" - this is their private link, not guessable
-  createdAt DateTime @default(now())
-  picks     Pick[]
+  id                String                   @id @default(cuid())
+  name              String
+  pickSlug          String                   @unique // long random token, e.g. "x7v9qz3m2k4p" - this is their private link, not guessable
+  createdAt         DateTime                 @default(now())
+  picks             Pick[]
+  historicalSeasons HistoricalSeasonRecord[]
+}
+
+// Summarized (not pick-by-pick) season records from before this app
+// existed, entered by hand from the group's own old records - there are no
+// real Game/Pick rows backing these seasons, so /history reads this table
+// directly instead of computing from picks the way the live season does
+// (see lib/seasonStats.ts). One row per user per season.
+model HistoricalSeasonRecord {
+  id         String @id @default(cuid())
+  userId     String
+  user       User   @relation(fields: [userId], references: [id])
+  seasonYear Int
+  weeksWon   Int    @default(0)
+  sideWins   Int    @default(0)
+  sidePushes Int    @default(0)
+  sideLosses Int    @default(0)
+  dogPoints  Int    @default(0)
+  dogWins    Int    @default(0)
+  dogLosses  Int    @default(0)
+
+  @@unique([userId, seasonYear])
 }
 
 model Week {

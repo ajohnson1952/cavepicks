@@ -1,6 +1,5 @@
-import { prisma } from "@/lib/db";
-import { WEEKLY_BUYIN, DOG_BUYIN, DOG_PAYOUTS } from "@/lib/pot";
-import { getWeekNumberForDate } from "@/lib/currentWeek";
+import { DOG_BUYIN, DOG_PAYOUTS } from "@/lib/pot";
+import { computeCurrentSeasonStats } from "@/lib/seasonStats";
 
 export const dynamic = "force-dynamic";
 
@@ -12,126 +11,18 @@ function rankLabel(i: number): string {
 }
 
 export default async function StandingsPage() {
-  const allWeeks = await prisma.week.findMany({
-    where: { seasonYear: 2026 },
-    orderBy: { weekNumber: "asc" },
-  });
-  const users = await prisma.user.findMany({ orderBy: { name: "asc" } });
-  const allPicks = await prisma.pick.findMany({ where: { week: { seasonYear: 2026 } } });
-  const allGames = await prisma.game.findMany({ where: { week: { seasonYear: 2026 } } });
-
   // Week 1 is the real start of the season - Week 0 was test/setup data and
   // never counted for money. Future weeks that already have a placeholder
   // row (because a marquee game's line posted early) don't count as "real"
   // yet either - only weeks up through the actual current week matter here.
-  const currentWeekNumber = getWeekNumberForDate();
-  const weeks = allWeeks.filter((w) => w.weekNumber >= 1 && w.weekNumber <= currentWeekNumber);
-
-  // --- Weekly pot, week by week, carrying the pot forward through ties ---
-  type WeekResult = {
-    weekNumber: number;
-    potAmount: number;
-    leader: string | null;
-    rollover: boolean;
-    inProgress: boolean;
-    standings: { name: string; correct: number }[];
-  };
-
-  const weekResults: WeekResult[] = [];
-  let potCarry = 0;
-
-  for (const week of weeks) {
-    const weekGames = allGames.filter((g) => g.weekId === week.id);
-    // Voided (postponed/cancelled) games don't count toward completeness -
-    // otherwise one postponed game would permanently block that week's pot
-    // from ever resolving.
-    const countableGames = weekGames.filter((g) => !g.voided);
-    const weekFullyGraded = countableGames.length > 0 && countableGames.every((g) => g.isFinal);
-
-    const weekPicks = allPicks.filter(
-      (p) => p.weekId === week.id && (p.pickType === "SPREAD" || p.pickType === "TOTAL")
-    );
-
-    const correctByUser = new Map<string, number>();
-    for (const u of users) correctByUser.set(u.id, 0);
-    for (const p of weekPicks) {
-      if (p.isWin) correctByUser.set(p.userId, (correctByUser.get(p.userId) ?? 0) + 1);
-    }
-
-    const standings = users
-      .map((u) => ({ name: u.name, correct: correctByUser.get(u.id) ?? 0 }))
-      .sort((a, b) => b.correct - a.correct);
-
-    const potAmount = potCarry + WEEKLY_BUYIN * users.length;
-
-    let leader: string | null = null;
-    let rollover = false;
-
-    if (weekFullyGraded) {
-      const maxCorrect = Math.max(...standings.map((s) => s.correct));
-      const leaders = standings.filter((s) => s.correct === maxCorrect);
-      if (leaders.length === 1 && maxCorrect > 0) {
-        leader = leaders[0].name;
-        potCarry = 0;
-      } else {
-        rollover = true;
-        potCarry = potAmount;
-      }
-    }
-    // If the week isn't fully graded yet, potCarry is left untouched -
-    // there's nothing to resolve yet, so nothing should roll forward.
-
-    weekResults.push({
-      weekNumber: week.weekNumber,
-      potAmount,
-      leader,
-      rollover,
-      inProgress: !weekFullyGraded,
-      standings,
-    });
-  }
+  const { users, currentWeekNumber, weekResults, cavepicksStats, cavedogsStats } =
+    await computeCurrentSeasonStats(2026);
 
   // The "current" week is the one matching today's actual date - not just
   // whichever week happens to be last in the list (that assumption broke
   // once future placeholder weeks started existing in the database).
   const currentWeek = weekResults.find((w) => w.weekNumber === currentWeekNumber) ?? null;
   const pastWeeks = weekResults.filter((w) => w.weekNumber !== currentWeekNumber);
-
-  // --- Cavepicks Leaderboard: season-long spread/total record (Week 1+ only) ---
-  const sideTotalPicks = allPicks.filter(
-    (p) =>
-      (p.pickType === "SPREAD" || p.pickType === "TOTAL") &&
-      p.graded &&
-      weeks.some((w) => w.id === p.weekId)
-  );
-  const cavepicksStats = users
-    .map((u) => {
-      const userPicks = sideTotalPicks.filter((p) => p.userId === u.id);
-      const wins = userPicks.filter((p) => p.isWin === true).length;
-      const pushes = userPicks.filter((p) => p.isPush === true).length;
-      const losses = userPicks.filter((p) => p.isWin === false && !p.isPush).length;
-      const weeksWon = weekResults.filter((w) => w.leader === u.name).length;
-      const denom = wins + losses;
-      const pct = denom > 0 ? (wins / denom) * 100 : 0;
-      return { name: u.name, weeksWon, wins, pushes, losses, pct };
-    })
-    .sort((a, b) => b.pct - a.pct);
-
-  // --- Cavedogs Leaderboard: season-long dog pick record (Week 1+ only) ---
-  const dogPicksGraded = allPicks.filter(
-    (p) => p.pickType === "DOG" && p.graded && weeks.some((w) => w.id === p.weekId)
-  );
-  const cavedogsStats = users
-    .map((u) => {
-      const userDogPicks = dogPicksGraded.filter((p) => p.userId === u.id);
-      const wins = userDogPicks.filter((p) => p.isWin === true).length;
-      const losses = userDogPicks.filter((p) => p.isWin === false).length;
-      const points = userDogPicks.reduce((sum, p) => sum + (p.isWin ? p.pointsEarned : 0), 0);
-      const denom = wins + losses;
-      const pct = denom > 0 ? (wins / denom) * 100 : 0;
-      return { name: u.name, points, wins, losses, pct };
-    })
-    .sort((a, b) => b.points - a.points);
 
   const dogPotTotal = DOG_BUYIN * users.length;
 
