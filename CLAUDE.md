@@ -145,6 +145,19 @@ allowance) - the user upgraded from Neon's free tier in Sep 2026.
   a one-line summary - `/admin` reads this to show "last ran: ... CT ·
   auto|manual · <summary>" next to each button. It's one row per job, not a
   log - see the model comment in `schema.prisma`.
+- **`/history`**: career/all-time leaderboards plus a table per past season.
+  `lib/seasonStats.ts` (`computeCurrentSeasonStats`) holds the live-season
+  stat computation shared by `/standings` and `/history` - extracted so both
+  pages compute this season's numbers identically instead of duplicating
+  the Pick/Game filtering logic. Seasons before this app existed have no
+  real Game/Pick rows, so they're entered by hand as one row per
+  user/season in `HistoricalSeasonRecord` (summarized W-L-P/points, not
+  pick-by-pick - see the model comment in `schema.prisma`) - `/history`
+  sums those rows together with the live current season's numbers for the
+  all-time tables. `CURRENT_SEASON_YEAR` is hardcoded in
+  `app/history/page.tsx` (matching the `seasonYear: 2026` hardcoded
+  elsewhere) - bump it, and add that season's users to
+  `HistoricalSeasonRecord`, when a season ends and the next one starts.
 
 ## Gotchas (all found the hard way - don't reintroduce these)
 
