@@ -140,6 +140,65 @@ export async function getCronJobDiagnostics() {
   };
 }
 
+type HistoryItem = {
+  identifier: string;
+  date: number;
+  httpStatus: number;
+  status: number;
+  duration: number;
+};
+
+// Full detail (headers/body) for one execution - cron-job.org only
+// populates these on the single-item endpoint, not the list. Used to see
+// what the target actually sent back on a failing execution (e.g. a
+// firewall/challenge page's status+body), which the job list's bare
+// "status code" alone can't show.
+export async function getJobExecutionDetail(jobId: number, identifier: string) {
+  const apiKey = process.env.CRONJOB_API_KEY;
+  if (!apiKey) return { ok: false as const, error: "CRONJOB_API_KEY is not set" };
+
+  try {
+    const res = await fetch(`https://api.cron-job.org/jobs/${jobId}/history/${identifier}`, {
+      headers: { Authorization: `Bearer ${apiKey}` },
+      cache: "no-store",
+    });
+    if (!res.ok) return { ok: false as const, error: `cron-job.org returned ${res.status}` };
+    const data = await res.json();
+    return { ok: true as const, detail: data?.jobHistoryDetails ?? data };
+  } catch (err: any) {
+    return { ok: false as const, error: err.message };
+  }
+}
+
+// Recent execution history (list) for one job - includes the real
+// httpStatus the target returned, not just cron-job.org's own status enum.
+export async function getJobHistory(jobId: number, limit = 5) {
+  const apiKey = process.env.CRONJOB_API_KEY;
+  if (!apiKey) return { ok: false as const, error: "CRONJOB_API_KEY is not set" };
+
+  try {
+    const res = await fetch(`https://api.cron-job.org/jobs/${jobId}/history`, {
+      headers: { Authorization: `Bearer ${apiKey}` },
+      cache: "no-store",
+    });
+    if (!res.ok) return { ok: false as const, error: `cron-job.org returned ${res.status}` };
+    const data = await res.json();
+    const items: HistoryItem[] = Array.isArray(data?.history) ? data.history : [];
+    return {
+      ok: true as const,
+      history: items.slice(0, limit).map((h) => ({
+        identifier: h.identifier,
+        date: new Date(h.date * 1000).toISOString(),
+        httpStatus: h.httpStatus,
+        status: statusLabel(h.status),
+        durationMs: h.duration,
+      })),
+    };
+  } catch (err: any) {
+    return { ok: false as const, error: err.message };
+  }
+}
+
 export async function getNextScheduledRuns(): Promise<{
   pullOdds: Date | null;
   gradeResults: Date | null;
