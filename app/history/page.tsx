@@ -163,7 +163,7 @@ export default async function HistoryPage() {
           {funStats.lastSecondLarry && (
             <p style={{ fontSize: "13px", margin: "0 0 6px" }}>
               ⏰ Last-Second Larry: <strong>{funStats.lastSecondLarry.name}</strong> &mdash; averages just{" "}
-              {Math.round(funStats.lastSecondLarry.avgMinutesBefore)} min before kickoff
+              {(funStats.lastSecondLarry.avgMinutesBefore / 60).toFixed(1)}h before kickoff
             </p>
           )}
           {funStats.buzzerBeater && (
@@ -226,7 +226,7 @@ export default async function HistoryPage() {
           {funStats.quickDraw && (
             <p style={{ fontSize: "13px", margin: "0 0 6px" }}>
               ⚡ Quick Draw: <strong>{funStats.quickDraw.name}</strong> &mdash; locks a pick in just{" "}
-              {Math.round(funStats.quickDraw.avgMinutes)} min after first selecting it, on average
+              {Math.round(funStats.quickDraw.avgMinutes * 60)} sec after first selecting it, on average
             </p>
           )}
           {funStats.ponderer && funStats.ponderer.name !== funStats.quickDraw?.name && (
