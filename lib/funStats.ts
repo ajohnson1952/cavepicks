@@ -16,6 +16,7 @@ export type BuzzerBeaterStat = {
 export type LeanStat = { name: string; pct: number; count: number };
 export type MissedStat = { name: string; missedWeeks: number };
 export type FlipFlopStat = { name: string; avgChanges: number; totalChanges: number; count: number };
+export type DeliberationStat = { name: string; avgMinutes: number; count: number };
 
 // Below this many locked side/total picks, a player's average lock-timing
 // is too small a sample to fairly call "earliest" or "latest".
@@ -120,6 +121,21 @@ export async function computeFunStats(seasonYear: number) {
   const chalkLover = chalkStats.length > 0 ? chalkStats.reduce((a, b) => (b.pct > a.pct ? b : a)) : null;
   const contrarian = chalkStats.length > 0 ? chalkStats.reduce((a, b) => (b.pct < a.pct ? b : a)) : null;
 
+  // --- Home Cookin': % of SPREAD picks taken on the home team ---
+  const homeByUser = new Map<string, { home: number; count: number }>();
+  for (const p of spreadPicks) {
+    const isHome = p.selection === p.game.homeTeam;
+    const cur = homeByUser.get(p.user.name) ?? { home: 0, count: 0 };
+    cur.count++;
+    if (isHome) cur.home++;
+    homeByUser.set(p.user.name, cur);
+  }
+  const homeStats: LeanStat[] = Array.from(homeByUser.entries())
+    .map(([name, { home, count }]) => ({ name, pct: (home / count) * 100, count }))
+    .filter((s) => s.count >= MIN_PICKS_FOR_LEAN);
+  const homeCookin = homeStats.length > 0 ? homeStats.reduce((a, b) => (b.pct > a.pct ? b : a)) : null;
+  const roadWarrior = homeStats.length > 0 ? homeStats.reduce((a, b) => (b.pct < a.pct ? b : a)) : null;
+
   // --- Missed picks: completed weeks (strictly before the current one, so
   // an in-progress week with games still to lock isn't wrongly flagged)
   // where a player locked fewer than the full 5 side/total picks. ---
@@ -158,6 +174,31 @@ export async function computeFunStats(seasonYear: number) {
       ? flipFlopStats.reduce((a, b) => (b.avgChanges > a.avgChanges ? b : a))
       : null;
 
+  // --- Quick Draw / Ponderer: minutes between first selecting a pick
+  // (createdAt, set on the first autosave) and actually locking it in. Not
+  // pure "thinking time" for someone who selects a game weeks ahead and
+  // locks it later, but a fun proxy regardless. ---
+  const deliberationByUser = new Map<string, number[]>();
+  for (const p of allLockedPicks) {
+    if (!p.lockedAt) continue;
+    const minutes = (p.lockedAt.getTime() - p.createdAt.getTime()) / 60000;
+    if (minutes < 0) continue; // defensive - shouldn't happen
+    const arr = deliberationByUser.get(p.user.name) ?? [];
+    arr.push(minutes);
+    deliberationByUser.set(p.user.name, arr);
+  }
+  const deliberationStats: DeliberationStat[] = Array.from(deliberationByUser.entries())
+    .map(([name, arr]) => ({ name, avgMinutes: arr.reduce((a, b) => a + b, 0) / arr.length, count: arr.length }))
+    .filter((s) => s.count >= MIN_PICKS_FOR_LEAN);
+  const quickDraw =
+    deliberationStats.length > 0
+      ? deliberationStats.reduce((a, b) => (b.avgMinutes < a.avgMinutes ? b : a))
+      : null;
+  const ponderer =
+    deliberationStats.length > 0
+      ? deliberationStats.reduce((a, b) => (b.avgMinutes > a.avgMinutes ? b : a))
+      : null;
+
   return {
     earlyBird,
     lastSecondLarry,
@@ -169,5 +210,9 @@ export async function computeFunStats(seasonYear: number) {
     contrarian,
     ghostAward,
     flipFlopper,
+    homeCookin,
+    roadWarrior,
+    quickDraw,
+    ponderer,
   };
 }

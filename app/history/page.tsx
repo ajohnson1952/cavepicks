@@ -146,7 +146,9 @@ export default async function HistoryPage() {
         funStats.overLover ||
         funStats.chalkLover ||
         funStats.ghostAward ||
-        funStats.flipFlopper) && (
+        funStats.flipFlopper ||
+        funStats.homeCookin ||
+        funStats.quickDraw) && (
         <div className="card">
           <div className="matchup">🎭 Behavior Awards</div>
           <p className="subtext" style={{ margin: "4px 0 10px" }}>
@@ -183,6 +185,18 @@ export default async function HistoryPage() {
               {funStats.contrarian.pct.toFixed(0)}% of the time
             </p>
           )}
+          {funStats.homeCookin && (
+            <p style={{ fontSize: "13px", margin: "0 0 6px" }}>
+              🏟️ Home Cookin&apos;: <strong>{funStats.homeCookin.name}</strong> &mdash; takes the home team{" "}
+              {funStats.homeCookin.pct.toFixed(0)}% of the time
+            </p>
+          )}
+          {funStats.roadWarrior && funStats.roadWarrior.name !== funStats.homeCookin?.name && (
+            <p style={{ fontSize: "13px", margin: "0 0 6px" }}>
+              🛣️ Road Warrior: <strong>{funStats.roadWarrior.name}</strong> &mdash; only takes the home team{" "}
+              {funStats.roadWarrior.pct.toFixed(0)}% of the time
+            </p>
+          )}
           {funStats.overLover && (
             <p style={{ fontSize: "13px", margin: "0 0 6px" }}>
               📈 Over Lover: <strong>{funStats.overLover.name}</strong> &mdash; takes the over{" "}
@@ -203,10 +217,22 @@ export default async function HistoryPage() {
             </p>
           )}
           {funStats.flipFlopper && (
-            <p style={{ fontSize: "13px", margin: "0" }}>
+            <p style={{ fontSize: "13px", margin: "0 0 6px" }}>
               🔄 Flip-Flopper: <strong>{funStats.flipFlopper.name}</strong> &mdash; changes their mind{" "}
               {funStats.flipFlopper.avgChanges.toFixed(1)}x per pick on average ({funStats.flipFlopper.totalChanges}{" "}
               total changes this season)
+            </p>
+          )}
+          {funStats.quickDraw && (
+            <p style={{ fontSize: "13px", margin: "0 0 6px" }}>
+              ⚡ Quick Draw: <strong>{funStats.quickDraw.name}</strong> &mdash; locks a pick in just{" "}
+              {Math.round(funStats.quickDraw.avgMinutes)} min after first selecting it, on average
+            </p>
+          )}
+          {funStats.ponderer && funStats.ponderer.name !== funStats.quickDraw?.name && (
+            <p style={{ fontSize: "13px", margin: "0" }}>
+              🤔 Ponderer: <strong>{funStats.ponderer.name}</strong> &mdash; sits on a pick for{" "}
+              {Math.round(funStats.ponderer.avgMinutes / 60)}h on average before locking it in
             </p>
           )}
         </div>
