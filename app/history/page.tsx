@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db";
 import { computeCurrentSeasonStats } from "@/lib/seasonStats";
+import { computeFunStats } from "@/lib/funStats";
 
 export const dynamic = "force-dynamic";
 
@@ -28,6 +29,7 @@ export default async function HistoryPage() {
   });
   const { cavepicksStats: currentSide, cavedogsStats: currentDog } =
     await computeCurrentSeasonStats(CURRENT_SEASON_YEAR);
+  const funStats = await computeFunStats(CURRENT_SEASON_YEAR);
 
   const historicalSeasonYears = Array.from(new Set(historicalRows.map((r) => r.seasonYear))).sort(
     (a, b) => b - a
@@ -133,6 +135,70 @@ export default async function HistoryPage() {
             <p style={{ fontSize: "13px", margin: "0" }}>
               Career Cavedogs points leader: <strong>{careerDogLeader.name}</strong> &mdash;{" "}
               {careerDogLeader.points} pts
+            </p>
+          )}
+        </div>
+      )}
+
+      {(funStats.earlyBird ||
+        funStats.lastSecondLarry ||
+        funStats.buzzerBeater ||
+        funStats.overLover ||
+        funStats.chalkLover ||
+        funStats.ghostAward) && (
+        <div className="card">
+          <div className="matchup">🎭 Behavior Awards</div>
+          <p className="subtext" style={{ margin: "4px 0 10px" }}>
+            {CURRENT_SEASON_YEAR} only &mdash; how everyone actually picks, not just how they score
+          </p>
+          {funStats.earlyBird && (
+            <p style={{ fontSize: "13px", margin: "0 0 6px" }}>
+              🌅 Early Bird: <strong>{funStats.earlyBird.name}</strong> &mdash; locks in an average of{" "}
+              {Math.round(funStats.earlyBird.avgMinutesBefore / 60)}h before kickoff
+            </p>
+          )}
+          {funStats.lastSecondLarry && (
+            <p style={{ fontSize: "13px", margin: "0 0 6px" }}>
+              ⏰ Last-Second Larry: <strong>{funStats.lastSecondLarry.name}</strong> &mdash; averages just{" "}
+              {Math.round(funStats.lastSecondLarry.avgMinutesBefore)} min before kickoff
+            </p>
+          )}
+          {funStats.buzzerBeater && (
+            <p style={{ fontSize: "13px", margin: "0 0 6px" }}>
+              🚨 Buzzer Beater record: <strong>{funStats.buzzerBeater.name}</strong> locked{" "}
+              {funStats.buzzerBeater.game} just {Math.round(funStats.buzzerBeater.minutesBefore)} min before
+              kickoff (Week {funStats.buzzerBeater.weekNumber})
+            </p>
+          )}
+          {funStats.chalkLover && (
+            <p style={{ fontSize: "13px", margin: "0 0 6px" }}>
+              🟢 Chalk Lover: <strong>{funStats.chalkLover.name}</strong> &mdash; picks the favorite{" "}
+              {funStats.chalkLover.pct.toFixed(0)}% of the time
+            </p>
+          )}
+          {funStats.contrarian && funStats.contrarian.name !== funStats.chalkLover?.name && (
+            <p style={{ fontSize: "13px", margin: "0 0 6px" }}>
+              🎲 Contrarian: <strong>{funStats.contrarian.name}</strong> &mdash; only picks the favorite{" "}
+              {funStats.contrarian.pct.toFixed(0)}% of the time
+            </p>
+          )}
+          {funStats.overLover && (
+            <p style={{ fontSize: "13px", margin: "0 0 6px" }}>
+              📈 Over Lover: <strong>{funStats.overLover.name}</strong> &mdash; takes the over{" "}
+              {funStats.overLover.pct.toFixed(0)}% of the time (group average: {funStats.groupOverPct.toFixed(0)}%)
+            </p>
+          )}
+          {funStats.underLover && funStats.underLover.name !== funStats.overLover?.name && (
+            <p style={{ fontSize: "13px", margin: "0 0 6px" }}>
+              📉 Under Lover: <strong>{funStats.underLover.name}</strong> &mdash; takes the over only{" "}
+              {funStats.underLover.pct.toFixed(0)}% of the time
+            </p>
+          )}
+          {funStats.ghostAward && (
+            <p style={{ fontSize: "13px", margin: "0" }}>
+              👻 Ghost Award: <strong>{funStats.ghostAward.name}</strong> &mdash; missed a full slate of picks{" "}
+              {funStats.ghostAward.missedWeeks} {funStats.ghostAward.missedWeeks === 1 ? "week" : "weeks"} this
+              season
             </p>
           )}
         </div>
