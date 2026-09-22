@@ -145,7 +145,8 @@ export default async function HistoryPage() {
         funStats.buzzerBeater ||
         funStats.overLover ||
         funStats.chalkLover ||
-        funStats.ghostAward) && (
+        funStats.ghostAward ||
+        funStats.flipFlopper) && (
         <div className="card">
           <div className="matchup">🎭 Behavior Awards</div>
           <p className="subtext" style={{ margin: "4px 0 10px" }}>
@@ -195,10 +196,17 @@ export default async function HistoryPage() {
             </p>
           )}
           {funStats.ghostAward && (
-            <p style={{ fontSize: "13px", margin: "0" }}>
+            <p style={{ fontSize: "13px", margin: "0 0 6px" }}>
               👻 Ghost Award: <strong>{funStats.ghostAward.name}</strong> &mdash; missed a full slate of picks{" "}
               {funStats.ghostAward.missedWeeks} {funStats.ghostAward.missedWeeks === 1 ? "week" : "weeks"} this
               season
+            </p>
+          )}
+          {funStats.flipFlopper && (
+            <p style={{ fontSize: "13px", margin: "0" }}>
+              🔄 Flip-Flopper: <strong>{funStats.flipFlopper.name}</strong> &mdash; changes their mind{" "}
+              {funStats.flipFlopper.avgChanges.toFixed(1)}x per pick on average ({funStats.flipFlopper.totalChanges}{" "}
+              total changes this season)
             </p>
           )}
         </div>

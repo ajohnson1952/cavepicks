@@ -60,9 +60,14 @@ export async function autosaveSelection(
     }
   }
 
+  // Only counts as a "change" (for the Flip-Flopper fun stat) if they'd
+  // already picked something different in this slot before - not the
+  // first-ever selection.
+  const isRealChange = !!existingForSlot && existingForSlot.selection !== selection;
+
   await prisma.pick.upsert({
     where: { userId_weekId_gameId_pickType: { userId: user.id, weekId, gameId, pickType } },
-    update: { selection },
+    update: isRealChange ? { selection, selectionChanges: { increment: 1 } } : { selection },
     create: { userId: user.id, weekId, gameId, pickType, selection },
   });
 

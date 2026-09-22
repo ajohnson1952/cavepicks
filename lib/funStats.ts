@@ -15,6 +15,7 @@ export type BuzzerBeaterStat = {
 };
 export type LeanStat = { name: string; pct: number; count: number };
 export type MissedStat = { name: string; missedWeeks: number };
+export type FlipFlopStat = { name: string; avgChanges: number; totalChanges: number; count: number };
 
 // Below this many locked side/total picks, a player's average lock-timing
 // is too small a sample to fairly call "earliest" or "latest".
@@ -39,6 +40,13 @@ export async function computeFunStats(seasonYear: number) {
       lockedAt: { not: null },
     },
     include: { game: true, user: true, week: true },
+  });
+
+  // All locked picks (any type) - used for the Flip-Flopper stat, since
+  // changing your mind matters just as much on a dog pick as a spread pick.
+  const allLockedPicks = await prisma.pick.findMany({
+    where: { weekId: { in: weekIds }, locked: true },
+    include: { user: true },
   });
 
   // --- Lock timing: minutes between locking a pick and that game's kickoff ---
@@ -134,6 +142,22 @@ export async function computeFunStats(seasonYear: number) {
     .sort((a, b) => b.missedWeeks - a.missedWeeks);
   const ghostAward = missedStats.length > 0 && missedStats[0].missedWeeks > 0 ? missedStats[0] : null;
 
+  // --- Flip-Flopper: who changes their mind the most before locking a pick in ---
+  const changesByUser = new Map<string, { total: number; count: number }>();
+  for (const p of allLockedPicks) {
+    const cur = changesByUser.get(p.user.name) ?? { total: 0, count: 0 };
+    cur.total += p.selectionChanges;
+    cur.count++;
+    changesByUser.set(p.user.name, cur);
+  }
+  const flipFlopStats: FlipFlopStat[] = Array.from(changesByUser.entries())
+    .map(([name, { total, count }]) => ({ name, avgChanges: total / count, totalChanges: total, count }))
+    .filter((s) => s.count >= MIN_PICKS_FOR_LEAN);
+  const flipFlopper =
+    flipFlopStats.length > 0 && flipFlopStats.some((s) => s.totalChanges > 0)
+      ? flipFlopStats.reduce((a, b) => (b.avgChanges > a.avgChanges ? b : a))
+      : null;
+
   return {
     earlyBird,
     lastSecondLarry,
@@ -144,5 +168,6 @@ export async function computeFunStats(seasonYear: number) {
     chalkLover,
     contrarian,
     ghostAward,
+    flipFlopper,
   };
 }

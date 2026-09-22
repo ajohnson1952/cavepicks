@@ -133,6 +133,7 @@ model Pick {
   lockedBook     String?   // which sportsbook the frozen line/odds came from, at lock time
   locked         Boolean   @default(false) // true once manually locked or auto-locked
   lockedAt       DateTime?
+  selectionChanges Int     @default(0) // times the selection was changed via autosave before locking - feeds the "Flip-Flopper" fun stat
 
   graded       Boolean @default(false)
   isWin        Boolean? // SPREAD/TOTAL: covered or not. DOG: won outright or not.
