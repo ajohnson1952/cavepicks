@@ -30,6 +30,9 @@ export default function Nav() {
       <a href="/watch" className={`nav-link${isActive("/watch") ? " active" : ""}`}>
         Watch
       </a>
+      <a href="/guide" className={`nav-link${isActive("/guide") ? " active" : ""}`}>
+        Guide
+      </a>
       <a href="/standings" className={`nav-link${isActive("/standings") ? " active" : ""}`}>
         Standings
       </a>
