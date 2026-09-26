@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/db";
 import { computeCurrentSeasonStats } from "@/lib/seasonStats";
 import { computeFunStats } from "@/lib/funStats";
+import { computeGroupTrends } from "@/lib/groupTrends";
 
 export const dynamic = "force-dynamic";
 
@@ -21,6 +22,62 @@ function rankLabel(i: number): string {
   return String(i + 1);
 }
 
+type SplitRecord = { wins: number; losses: number; pushes: number; pct: number; count: number };
+
+// Side-by-side comparison of two opposing splits (favorites vs underdogs,
+// home vs road, over vs under) - a compact "how does the group do on each
+// side of this coin" row.
+function SplitCompareRow({
+  leftLabel,
+  left,
+  rightLabel,
+  right,
+}: {
+  leftLabel: string;
+  left: SplitRecord;
+  rightLabel: string;
+  right: SplitRecord;
+}) {
+  if (left.count === 0 && right.count === 0) return null;
+  return (
+    <div className="row-between" style={{ fontSize: "13px", margin: "0 0 8px" }}>
+      <span>
+        {leftLabel}: <strong>{left.pct.toFixed(1)}%</strong>{" "}
+        <span className="subtext">
+          ({left.wins}-{left.losses}
+          {left.pushes > 0 ? `-${left.pushes}` : ""})
+        </span>
+      </span>
+      <span>
+        {rightLabel}: <strong>{right.pct.toFixed(1)}%</strong>{" "}
+        <span className="subtext">
+          ({right.wins}-{right.losses}
+          {right.pushes > 0 ? `-${right.pushes}` : ""})
+        </span>
+      </span>
+    </div>
+  );
+}
+
+// A single horizontal bar for one week's group-wide pick accuracy - a quick
+// visual read on hot/cold stretches across the season.
+function WeekAccuracyBar({ weekNumber, correct, total, pct }: { weekNumber: number; correct: number; total: number; pct: number }) {
+  const barColor = pct >= 55 ? "var(--up)" : pct <= 45 ? "var(--down)" : "var(--action)";
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: "8px", margin: "0 0 6px" }}>
+      <span className="subtext" style={{ width: "44px", flexShrink: 0 }}>
+        Wk {weekNumber}
+      </span>
+      <div style={{ flex: 1, background: "var(--border-soft)", borderRadius: "4px", height: "8px", overflow: "hidden" }}>
+        <div style={{ width: `${Math.min(100, pct)}%`, background: barColor, height: "100%", borderRadius: "4px" }} />
+      </div>
+      <span className="subtext" style={{ width: "68px", flexShrink: 0, textAlign: "right" }}>
+        {correct}/{total} ({pct.toFixed(0)}%)
+      </span>
+    </div>
+  );
+}
+
 export default async function HistoryPage() {
   const users = await prisma.user.findMany({ orderBy: { name: "asc" } });
   const historicalRows = await prisma.historicalSeasonRecord.findMany({
@@ -30,6 +87,7 @@ export default async function HistoryPage() {
   const { cavepicksStats: currentSide, cavedogsStats: currentDog } =
     await computeCurrentSeasonStats(CURRENT_SEASON_YEAR);
   const funStats = await computeFunStats(CURRENT_SEASON_YEAR);
+  const groupTrends = await computeGroupTrends(CURRENT_SEASON_YEAR);
 
   const historicalSeasonYears = Array.from(new Set(historicalRows.map((r) => r.seasonYear))).sort(
     (a, b) => b - a
@@ -237,6 +295,72 @@ export default async function HistoryPage() {
           )}
         </div>
       )}
+
+      <div className="card">
+        <div className="matchup">📈 Group Trends</div>
+        <p className="subtext" style={{ margin: "4px 0 10px" }}>
+          {CURRENT_SEASON_YEAR} only &mdash; how the group as a whole picks and performs
+        </p>
+
+        <SplitCompareRow
+          leftLabel="🟢 Favorites (ATS)"
+          left={groupTrends.favoriteRecord}
+          rightLabel="🎲 Underdogs (ATS)"
+          right={groupTrends.underdogRecord}
+        />
+        <SplitCompareRow
+          leftLabel="🏟️ Home picks"
+          left={groupTrends.homeRecord}
+          rightLabel="🛣️ Road picks"
+          right={groupTrends.awayRecord}
+        />
+        <SplitCompareRow
+          leftLabel="📈 Overs"
+          left={groupTrends.overRecord}
+          rightLabel="📉 Unders"
+          right={groupTrends.underRecord}
+        />
+
+        {groupTrends.mostPickedTeams.length > 0 && (
+          <>
+            <div className="divider" />
+            <p style={{ fontSize: "13px", fontWeight: 600, margin: "0 0 6px" }}>Most-picked teams (ATS)</p>
+            <table className="stat-table">
+              <thead>
+                <tr>
+                  <th>Team</th>
+                  <th># Picks</th>
+                  <th>Record</th>
+                  <th>%</th>
+                </tr>
+              </thead>
+              <tbody>
+                {groupTrends.mostPickedTeams.map((t) => (
+                  <tr key={t.team}>
+                    <td>{t.team}</td>
+                    <td>{t.count}</td>
+                    <td>
+                      {t.wins}-{t.losses}
+                      {t.pushes > 0 ? `-${t.pushes}` : ""}
+                    </td>
+                    <td>{t.pct.toFixed(0)}%</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </>
+        )}
+
+        {groupTrends.weeklyAccuracy.length > 0 && (
+          <>
+            <div className="divider" />
+            <p style={{ fontSize: "13px", fontWeight: 600, margin: "0 0 8px" }}>Group accuracy by week</p>
+            {groupTrends.weeklyAccuracy.map((w) => (
+              <WeekAccuracyBar key={w.weekNumber} {...w} />
+            ))}
+          </>
+        )}
+      </div>
 
       <div className="card">
         <div className="matchup">📊 All-Time Cavepicks Leaderboard</div>
