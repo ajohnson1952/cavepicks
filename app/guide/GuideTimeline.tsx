@@ -105,11 +105,22 @@ function GameBar({ g, expanded, onToggle }: { g: GuideGame; expanded: boolean; o
   );
 }
 
-function GamePanel({ g }: { g: GuideGame }) {
+function GamePanel({ g, onClose }: { g: GuideGame; onClose: () => void }) {
   return (
-    <div className="card" style={{ marginTop: "6px" }}>
-      <div className="matchup">
-        {g.away} @ {g.home}
+    <div className="card" style={{ margin: 0 }}>
+      <div className="row-between">
+        <div className="matchup">
+          {g.away} @ {g.home}
+        </div>
+        <button
+          type="button"
+          className="btn btn-ghost"
+          onClick={onClose}
+          style={{ width: "auto", padding: "2px 10px" }}
+          aria-label="Close"
+        >
+          ✕
+        </button>
       </div>
       <div className="meta" style={{ marginTop: "2px" }}>
         {g.phase === "pre"
@@ -151,10 +162,20 @@ export default function GuideTimeline({ days, pxPerHour }: { days: GuideDay[]; p
     return () => clearInterval(id);
   }, []);
 
+  useEffect(() => {
+    if (!expandedId) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setExpandedId(null);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [expandedId]);
+
+  const expandedGame = days.flatMap((d) => d.games).find((g) => g.id === expandedId);
+
   return (
     <>
       {days.map((day) => {
-        const expandedGame = day.games.find((g) => g.id === expandedId);
         const nowLeftPx =
           day.isToday && nowMinutes != null ? ((nowMinutes - day.minMinutes) / 60) * pxPerHour : null;
         const showNowLine = nowLeftPx != null && nowLeftPx >= 0 && nowLeftPx <= day.totalWidthPx;
@@ -182,10 +203,32 @@ export default function GuideTimeline({ days, pxPerHour }: { days: GuideDay[]; p
                 ))}
               </div>
             </div>
-            {expandedGame && <GamePanel g={expandedGame} />}
           </section>
         );
       })}
+
+      {expandedGame && (
+        <div
+          onClick={() => setExpandedId(null)}
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(0, 0, 0, 0.6)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "16px",
+            zIndex: 1000,
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{ width: "100%", maxWidth: "480px", maxHeight: "80vh", overflowY: "auto" }}
+          >
+            <GamePanel g={expandedGame} onClose={() => setExpandedId(null)} />
+          </div>
+        </div>
+      )}
     </>
   );
 }
