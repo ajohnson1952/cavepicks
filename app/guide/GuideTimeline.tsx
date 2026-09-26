@@ -91,6 +91,16 @@ function GameBar({ g, expanded, onToggle }: { g: GuideGame; expanded: boolean; o
         {g.phase === "pre" ? g.timeLabel : g.phase === "live" ? g.detail ?? "Live" : "Final"}
         {scoreLabel ? ` · ${scoreLabel}` : ""}
       </div>
+      {g.picks.length > 0 && (
+        <div className="guide-bar-picks">
+          {g.picks.map((p, i) => (
+            <span key={p.id} style={{ opacity: p.alive ? 1 : 0.5, fontWeight: p.alive ? 600 : 400 }}>
+              {p.name.split(" ")[0]}
+              {i < g.picks.length - 1 ? ", " : ""}
+            </span>
+          ))}
+        </div>
+      )}
     </button>
   );
 }
@@ -153,7 +163,7 @@ export default function GuideTimeline({ days, pxPerHour }: { days: GuideDay[]; p
           <section key={day.key} style={{ marginTop: "18px" }}>
             <h3 className="guide-day-header">{day.label}</h3>
             <div className="guide-scroll">
-              <div className="guide-track" style={{ width: day.totalWidthPx, height: day.games.length * 52 + 24 }}>
+              <div className="guide-track" style={{ width: day.totalWidthPx, height: day.games.length * 66 + 24 }}>
                 {day.hourTicks.map((t) => (
                   <div key={t.label + t.leftPx} className="guide-hour-tick" style={{ left: t.leftPx }}>
                     <div className="guide-hour-label">{t.label}</div>
@@ -166,7 +176,7 @@ export default function GuideTimeline({ days, pxPerHour }: { days: GuideDay[]; p
                   </div>
                 )}
                 {day.games.map((g, i) => (
-                  <div key={g.id} style={{ position: "absolute", top: 24 + i * 52, left: 0, right: 0, height: 44 }}>
+                  <div key={g.id} style={{ position: "absolute", top: 24 + i * 66, left: 0, right: 0, height: 58 }}>
                     <GameBar g={g} expanded={g.id === expandedId} onToggle={() => setExpandedId(g.id === expandedId ? null : g.id)} />
                   </div>
                 ))}

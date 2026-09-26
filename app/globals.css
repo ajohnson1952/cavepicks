@@ -521,7 +521,7 @@ h1 {
   all: unset;
   position: absolute;
   top: 0;
-  height: 44px;
+  height: 58px;
   border-radius: 8px;
   padding: 5px 8px;
   cursor: pointer;
@@ -541,6 +541,15 @@ h1 {
   color: var(--dim);
   margin-top: 2px;
   font-family: var(--font-mono), ui-monospace, monospace;
+}
+
+.guide-bar-picks {
+  font-size: 10px;
+  color: var(--dim);
+  margin-top: 3px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .guide-bar-live {
