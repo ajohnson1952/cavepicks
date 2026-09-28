@@ -16,9 +16,10 @@ import {
   seedHistoricalSeason2025,
   recordPayment,
   deletePayment,
+  settleAllOwing,
 } from "./actions";
 import { computeLedger } from "@/lib/ledger";
-import { BANKER_NAME } from "@/lib/pot";
+import { BANKER_NAME, isBanker } from "@/lib/pot";
 import { formatSpread } from "@/lib/format";
 import { getJobRuns } from "@/lib/jobRun";
 import { getNextScheduledRuns } from "@/lib/cronJobOrg";
@@ -146,14 +147,36 @@ export default async function AdminPage(
           balances: <strong>negative</strong> = they owe {BANKER_NAME}, <strong>positive</strong> ={" "}
           {BANKER_NAME} owes them.
         </p>
-        {ledger.players.map((p) => (
-          <div key={p.userId} className="row-between" style={{ fontSize: "13px", marginBottom: "2px" }}>
-            <span>{p.name}</span>
-            <span className="mono" style={{ color: p.balance < 0 ? "var(--down)" : p.balance > 0 ? "var(--action-soft)" : "var(--up)" }}>
-              {p.balance === 0 ? "settled" : p.balance < 0 ? `owes $${-p.balance}` : `gets $${p.balance}`}
-            </span>
-          </div>
-        ))}
+        {ledger.players
+          .filter((p) => !isBanker(p.name))
+          .map((p) => (
+            <div key={p.userId} className="row-between" style={{ fontSize: "13px", marginBottom: "2px", alignItems: "center" }}>
+              <span>{p.name}</span>
+              <span style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                <span className="mono" style={{ color: p.balance < 0 ? "var(--down)" : p.balance > 0 ? "var(--action-soft)" : "var(--up)" }}>
+                  {p.balance === 0 ? "settled" : p.balance < 0 ? `owes $${-p.balance}` : `gets $${p.balance}`}
+                </span>
+                {p.balance !== 0 && (
+                  <form action={recordPayment}>
+                    <input type="hidden" name="userId" value={p.userId} />
+                    <input type="hidden" name="direction" value={p.balance < 0 ? "in" : "out"} />
+                    <input type="hidden" name="amount" value={Math.abs(p.balance)} />
+                    <input type="hidden" name="note" value={`Week ${ledger.currentWeekNumber} settle-up`} />
+                    <button type="submit" className="btn btn-ghost">
+                      {p.balance < 0 ? "mark paid" : "mark sent"}
+                    </button>
+                  </form>
+                )}
+              </span>
+            </div>
+          ))}
+        {ledger.players.some((p) => !isBanker(p.name) && p.balance < 0) && (
+          <form action={settleAllOwing} style={{ marginTop: "8px" }}>
+            <button type="submit" className="btn btn-lock" style={{ width: "auto", marginTop: 0 }}>
+              Everyone who owes has paid
+            </button>
+          </form>
+        )}
         <form action={recordPayment} style={{ display: "flex", gap: "6px", flexWrap: "wrap", marginTop: "10px" }}>
           <select name="userId" className="admin-input" required>
             {allUsers.map((u) => (
@@ -199,8 +222,8 @@ export default async function AdminPage(
         )}
       </div>
 
-      <div className="card">
-        <div className="matchup">Player links</div>
+      <details className="card">
+        <summary className="matchup" style={{ cursor: "pointer" }}>Player links</summary>
         <div className="divider" />
         <p style={{ fontSize: "13px", margin: "0 0 8px" }}>
           Each player's own link - the "My Picks" nav shortcut only works once their browser has
@@ -216,7 +239,7 @@ export default async function AdminPage(
             </span>
           </p>
         ))}
-      </div>
+      </details>
 
       <div className="card">
         <div className="matchup">Background jobs</div>
@@ -249,6 +272,11 @@ export default async function AdminPage(
             </button>
           </form>
         </div>
+      </div>
+
+      <details className="card">
+        <summary className="matchup" style={{ cursor: "pointer" }}>Maintenance tools</summary>
+        <p className="meta" style={{ margin: "8px 0 0" }}>One-off fixes - rarely needed.</p>
         <div style={{ marginTop: "10px" }}>
           <div className="meta" style={{ marginBottom: "4px" }}>Fix cron jobs (apex URLs + accidentally-disabled)</div>
           <p style={{ fontSize: "13px", margin: "0 0 6px" }}>{jobRunDisplay(cronFixRun)}</p>
@@ -258,11 +286,8 @@ export default async function AdminPage(
             </button>
           </form>
         </div>
-      </div>
-
-      <div className="card">
-        <div className="matchup">Historical data</div>
-        <div className="divider" />
+      <div style={{ marginTop: "14px" }}>
+        <div className="meta" style={{ marginBottom: "4px", fontWeight: 700 }}>Historical data</div>
         <p style={{ fontSize: "13px", margin: "0 0 8px" }}>
           Seeds the 2025 season (hand-entered, pre-app) into <span className="mono">/history</span>. Safe to
           re-run - overwrites with the same numbers rather than duplicating.
@@ -275,9 +300,8 @@ export default async function AdminPage(
         </form>
       </div>
 
-      <div className="card">
-        <div className="matchup">Unlock stale locks</div>
-        <div className="divider" />
+      <div style={{ marginTop: "14px" }}>
+        <div className="meta" style={{ marginBottom: "4px", fontWeight: 700 }}>Unlock stale locks</div>
         <p style={{ fontSize: "13px", margin: "0 0 8px" }}>
           If pull-odds went quiet for a stretch (check <span className="mono">/api/debug-cron-history</span>),
           picks locked during that gap got a stale line. This unlocks every currently-locked pick in the given
@@ -298,6 +322,8 @@ export default async function AdminPage(
           </button>
         </form>
       </div>
+
+      </details>
 
       <div className="row-between" style={{ marginBottom: "12px" }}>
         <a href={`/admin?week=${weekNumber - 1}`} className="btn" style={{ visibility: weekNumber > minWeek ? "visible" : "hidden" }}>

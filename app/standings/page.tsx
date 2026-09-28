@@ -1,4 +1,4 @@
-import { DOG_BUYIN, DOG_PAYOUTS } from "@/lib/pot";
+import { dogPayouts } from "@/lib/pot";
 import { computeCurrentSeasonStats } from "@/lib/seasonStats";
 
 export const dynamic = "force-dynamic";
@@ -24,7 +24,8 @@ export default async function StandingsPage() {
   const currentWeek = weekResults.find((w) => w.weekNumber === currentWeekNumber) ?? null;
   const pastWeeks = weekResults.filter((w) => w.weekNumber !== currentWeekNumber);
 
-  const dogPotTotal = DOG_BUYIN * users.length;
+  const DOG_PAYOUTS = dogPayouts(users.length);
+  const dogPotTotal = DOG_PAYOUTS.total;
 
   // Group totals - "how do we do as a group" rows at the bottom of each
   // leaderboard. Sum of every user's own wins/pushes/losses, not a

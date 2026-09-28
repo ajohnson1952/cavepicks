@@ -1,12 +1,10 @@
 import { computeLedger } from "@/lib/ledger";
-import { BANKER_NAME, TIE_SPLIT_START_WEEK, WEEKLY_BUYIN } from "@/lib/pot";
+import { BANKER_NAME, isBanker, TIE_SPLIT_START_WEEK, WEEKLY_BUYIN } from "@/lib/pot";
 
 export const dynamic = "force-dynamic";
 
 const money = (n: number) => (n < 0 ? `-$${-n}` : `$${n}`);
 const signed = (n: number) => (n > 0 ? `+$${n}` : n < 0 ? `-$${-n}` : "$0");
-
-const isBanker = (name: string) => name.split(" ")[0].toLowerCase() === BANKER_NAME.toLowerCase();
 
 function StatusChip({ balance }: { balance: number }) {
   if (balance === 0) {

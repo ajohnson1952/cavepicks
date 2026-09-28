@@ -134,7 +134,20 @@ export async function computeWatchData() {
     return "cold";
   };
 
+  // Drives Saturday auto-refresh (app/watch/RefreshButton.tsx): something is
+  // live, or about to kick off within 15 minutes (so a page opened before
+  // noon starts updating on its own once games begin).
+  const soon = Date.now() + 15 * 60 * 1000;
+  const hasActiveGame = pickedGames.some((g) => {
+    const st = statusOf.get(g.id);
+    const t = g.commenceTime.getTime();
+    // Lower bound: a game ESPN never matched stays "pre" forever - don't let
+    // that keep refreshing all day.
+    return st?.phase === "live" || (st?.phase === "pre" && t <= soon && t > Date.now() - 5 * 60 * 60 * 1000);
+  });
+
   return {
+    hasActiveGame,
     week,
     users,
     games,

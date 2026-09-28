@@ -68,8 +68,9 @@ allowance) - the user upgraded from Neon's free tier in Sep 2026.
 - Settling up is **net** (buy-in comes out of winnings). `/pot` shows each
   player's running balance from Week 4 on (`lib/ledger.ts`), settled by
   `Payment` rows the admin records on `/admin`. Money never moves in-app.
-- Season-long "Cavedogs" pot: $100/head, pays $400/$200/$100 to 1st/2nd/3rd
-  at season's end - NOT winner-take-all
+- Season-long "Cavedogs" pot: $100/head, NOT winner-take-all. 3rd gets
+  $100; 1st/2nd get $400/$200 plus an even split of whatever the pot holds
+  beyond $700 (`dogPayouts()` in `lib/pot.ts`)
 - Week 0 was test/setup data - permanently excluded from all pot and
   leaderboard math. Week 1 is the real start of the season.
 - Players can browse and select picks ahead on future weeks, but **locking
@@ -168,6 +169,22 @@ allowance) - the user upgraded from Neon's free tier in Sep 2026.
   `app/history/page.tsx` (matching the `seasonYear: 2026` hardcoded
   elsewhere) - bump it, and add that season's users to
   `HistoricalSeasonRecord`, when a season ends and the next one starts.
+
+- **Branding / home-screen app**: the caveman logo's source is
+  `design/caveman-logo.svg` (link-preview card: `design/og-card.svg`). The
+  PNGs Next serves (`app/icon.png`, `app/apple-icon.png`,
+  `app/opengraph-image.png`, `public/icon-*.png`) are rendered from those
+  with `sharp` (already in node_modules) - re-render them if the SVG changes.
+  `app/manifest.ts` + `appleWebApp` metadata make "Add to Home Screen" open
+  it like an app. **A home-screen app has its own localStorage, separate
+  from Safari's**, so players should add it *from their own /pick/<slug>
+  link* - the manifest deliberately has no `start_url` so it opens to the
+  page it was added from.
+- **Saturday auto-refresh** on /watch and /guide (`app/watch/RefreshButton.tsx`):
+  every 90s, only on Saturdays CT, only while a picked game is live or
+  kicking off within 15 min (`hasActiveGame` in `lib/watchData.ts`), only
+  while the tab is visible. Cheap on purpose - it's DB reads + free ESPN
+  calls, never The Odds API.
 
 ## Gotchas (all found the hard way - don't reintroduce these)
 

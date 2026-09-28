@@ -1,3 +1,4 @@
+import type { Metadata, Viewport } from "next";
 import { Manrope, Roboto_Mono } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import Nav, { Footer } from "./Nav";
@@ -15,9 +16,19 @@ const robotoMono = Roboto_Mono({
   variable: "--font-mono",
 });
 
-export const metadata = {
+export const metadata: Metadata = {
+  metadataBase: new URL("https://www.cavepicks.com"),
   title: "Cavepicks",
   description: "College football pick'em with friends",
+  // Home-screen app on iOS: full-screen, dark status bar, "Cavepicks" label.
+  // The icon itself comes from app/apple-icon.png, the link-preview card
+  // from app/opengraph-image.png (both generated from design/*.svg).
+  appleWebApp: { capable: true, title: "Cavepicks", statusBarStyle: "black" },
+  openGraph: { title: "Cavepicks", description: "College football pick'em with friends", siteName: "Cavepicks" },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#0a0e0d",
 };
 
 export default function RootLayout({

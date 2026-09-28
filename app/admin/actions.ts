@@ -11,6 +11,8 @@ import { mergeGame } from "@/lib/mergeGames";
 import { UNLOCK_DATA } from "@/lib/unlockPick";
 import { unlockStaleLocks } from "@/lib/unlockStaleLocks";
 import { fixApexCronUrls, reactivateAccidentallyDisabledJobs } from "@/lib/cronJobOrg";
+import { computeLedger } from "@/lib/ledger";
+import { isBanker } from "@/lib/pot";
 
 const ADMIN_COOKIE = "admin_session";
 
@@ -375,6 +377,26 @@ export async function deletePayment(formData: FormData) {
   const paymentId = formData.get("paymentId");
   if (typeof paymentId !== "string") return;
   await prisma.payment.delete({ where: { id: paymentId } });
+  revalidatePath("/admin");
+  revalidatePath("/pot");
+}
+
+// One tap: record a payment from every player (other than the banker) who
+// currently owes, for exactly what they owe - e.g. after everyone Venmos
+// their buy-in. Winners with a positive balance are left alone.
+export async function settleAllOwing() {
+  if (!(await isAuthed())) return;
+  const { players, currentWeekNumber } = await computeLedger(2026);
+  const owing = players.filter((p) => !isBanker(p.name) && p.balance < 0);
+  if (owing.length === 0) return;
+  await prisma.payment.createMany({
+    data: owing.map((p) => ({
+      userId: p.userId,
+      direction: "in",
+      amount: -p.balance,
+      note: `Week ${currentWeekNumber} settle-up`,
+    })),
+  });
   revalidatePath("/admin");
   revalidatePath("/pot");
 }

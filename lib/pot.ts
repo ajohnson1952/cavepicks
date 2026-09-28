@@ -3,13 +3,20 @@
 export const WEEKLY_BUYIN = 25;
 export const DOG_BUYIN = 100;
 
-// Season-end Cavedogs payout: NOT winner-take-all - a fixed 3-way split.
-// This assumes the standard 7-player group ($700 total pot); if the group
-// size changes, this split may need revisiting.
-export const DOG_PAYOUTS = { first: 400, second: 200, third: 100 };
+// Season-end Cavedogs payout: NOT winner-take-all - a 3-way split. The base
+// split is $400/$200/$100 (a 7-player, $700 pot); anything the pot holds
+// beyond $700 is split evenly between 1st and 2nd (league's call, Sep 2026).
+// 3rd stays $100. Whole dollars, rounded down; any odd dollar goes to 1st.
+export function dogPayouts(playerCount: number) {
+  const total = DOG_BUYIN * playerCount;
+  const extra = Math.max(0, total - 700);
+  const half = Math.floor(extra / 2);
+  return { total, first: 400 + (extra - half), second: 200 + half, third: 100 };
+}
 
 // Who holds the weekly pot money - everyone settles up with this person.
 export const BANKER_NAME = "Drew";
+export const isBanker = (name: string) => name.split(" ")[0].toLowerCase() === BANKER_NAME.toLowerCase();
 
 // Weekly-pot tie rule changed starting this week (2026 season). Before it, a
 // tie rolled the whole pot. From this week on, a tie splits half of THAT

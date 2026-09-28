@@ -100,8 +100,9 @@ export default function RulesPage() {
         </p>
         <p style={{ fontSize: "13px", margin: 0 }}>
           <strong>$100 for the season</strong> buys into the Cavedogs competition &mdash; your dog pick
-          points accumulate all year. At season&apos;s end, it pays $400 to 1st place, $200 to 2nd, and
-          $100 to 3rd.
+          points accumulate all year. At season&apos;s end, 3rd place gets $100, and 1st and 2nd get
+          $400 and $200 plus an even split of everything else in the pot. Standings shows this
+          year&apos;s exact payouts.
         </p>
       </div>
 

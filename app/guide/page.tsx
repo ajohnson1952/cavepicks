@@ -38,7 +38,7 @@ function abbrOf(selection: string, g: { homeTeam: string; homeAbbr: string | nul
 }
 
 export default async function GuidePage() {
-  const { week, pickedGames, statusOf, gameById, lineFor, outcome, aliveIds, blurb, picksByGame, relevanceOf } =
+  const { hasActiveGame, week, pickedGames, statusOf, gameById, lineFor, outcome, aliveIds, blurb, picksByGame, relevanceOf } =
     await computeWatchData();
 
   const todayLabel = CT(new Date(), { weekday: "long", month: "short", day: "numeric" });
@@ -129,7 +129,10 @@ export default async function GuidePage() {
   return (
     <main>
       <h1>Guide &mdash; Week {week.weekNumber}</h1>
-      <RefreshButton asOf={CT(new Date(), { hour: "numeric", minute: "2-digit", second: "2-digit" }) + " CT"} />
+      <RefreshButton
+        asOf={CT(new Date(), { hour: "numeric", minute: "2-digit", second: "2-digit" }) + " CT"}
+        hasLiveGame={hasActiveGame}
+      />
 
       <div className="card" style={{ borderColor: "var(--action)" }}>
         <p style={{ margin: 0, lineHeight: 1.5 }}>{blurb}</p>

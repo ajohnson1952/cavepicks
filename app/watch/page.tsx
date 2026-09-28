@@ -27,6 +27,7 @@ const OUTCOME_UI: Record<PickOutcome, { label: string; cls: string }> = {
 
 export default async function WatchPage() {
   const {
+    hasActiveGame,
     week,
     games,
     pickedGames,
@@ -164,7 +165,7 @@ export default async function WatchPage() {
   return (
     <main>
       <h1>Watch &mdash; Week {week.weekNumber}</h1>
-      <RefreshButton asOf={asOf} />
+      <RefreshButton asOf={asOf} hasLiveGame={hasActiveGame} />
 
       <div className="card" style={{ borderColor: "var(--action)" }}>
         <p style={{ margin: 0, lineHeight: 1.5 }}>{blurb}</p>
