@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useTransition } from "react";
 import { hapticTap } from "@/lib/haptics";
+import HapticButton from "../HapticButton";
 
 // Saturday auto-refresh: re-pulls every AUTO_REFRESH_MS, but only on a
 // Saturday (Central), only while a picked game is actually live, and only
@@ -44,17 +45,16 @@ export default function RefreshButton({ asOf, hasLiveGame = false }: { asOf: str
         as of {asOf}
         {pending ? " · refreshing…" : autoOn ? " · auto-updating" : ""}
       </span>
-      <button
-        type="button"
+      <HapticButton
         className="btn"
         disabled={pending}
-        onClick={() => {
+        onPress={() => {
           hapticTap();
           startTransition(() => router.refresh());
         }}
       >
         {pending ? "…" : "Refresh"}
-      </button>
+      </HapticButton>
     </div>
   );
 }

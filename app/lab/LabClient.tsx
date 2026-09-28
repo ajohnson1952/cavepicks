@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { hapticCelebrate, hapticError, hapticSuccess, hapticTap } from "@/lib/haptics";
 import MoneyShower from "../pick/[slug]/MoneyShower";
+import HapticButton from "../HapticButton";
 
 type Env = { ios: string | null; standalone: boolean; vibrate: boolean };
 
@@ -58,7 +59,9 @@ export default function LabClient({ renderedAt }: { renderedAt: string }) {
           </div>
         )}
         <p className="meta" style={{ margin: "8px 0 0" }}>
-          No buzz on iOS 18+? Check Settings → Sounds &amp; Haptics → System Haptics is on.
+          On iPhone, every button gives exactly one tick when your finger taps it - that&apos;s the only haptic iOS
+          lets a website play. Multi-tick patterns below only differ on Android. No tick at all? Check Settings →
+          Sounds &amp; Haptics → System Haptics is on.
         </p>
       </div>
 
@@ -66,10 +69,10 @@ export default function LabClient({ renderedAt }: { renderedAt: string }) {
         <div className="matchup">〰️ Haptic patterns</div>
         <div className="divider" />
         <div className="pill-grid">
-          <button className="btn" onClick={() => hapticTap()}>Tap (1)</button>
-          <button className="btn" onClick={() => hapticSuccess()}>Success (2)</button>
-          <button className="btn" onClick={() => hapticError()}>Error (3 quick)</button>
-          <button className="btn" onClick={() => hapticCelebrate()}>Celebrate (3)</button>
+          <HapticButton className="btn" onPress={() => hapticTap()}>Tap (1)</HapticButton>
+          <HapticButton className="btn" onPress={() => hapticSuccess()}>Success (2)</HapticButton>
+          <HapticButton className="btn" onPress={() => hapticError()}>Error (3 quick)</HapticButton>
+          <HapticButton className="btn" onPress={() => hapticCelebrate()}>Celebrate (3)</HapticButton>
         </div>
       </div>
 
@@ -80,25 +83,25 @@ export default function LabClient({ renderedAt }: { renderedAt: string }) {
         </p>
         <div className="pill-grid">
           {(["away", "home"] as const).map((s) => (
-            <button
+            <HapticButton
               key={s}
               className={`pill-btn${side === s ? " selected" : ""}`}
-              onClick={() => {
+              onPress={() => {
                 hapticTap();
                 setSide(s);
               }}
             >
               <div className="pill-label">{s === "away" ? "Cavemen" : "Dinosaurs"}</div>
               <div className="pill-value">{s === "away" ? "+7.5" : "-7.5"}</div>
-            </button>
+            </HapticButton>
           ))}
         </div>
         {side && (
           <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
-            <button
+            <HapticButton
               className="btn btn-lock"
               style={{ flex: 1 }}
-              onClick={() => {
+              onPress={() => {
                 const finishing = locked === 4;
                 if (finishing) {
                   hapticCelebrate();
@@ -113,17 +116,16 @@ export default function LabClient({ renderedAt }: { renderedAt: string }) {
               }}
             >
               Lock in ({locked}/5 locked)
-            </button>
-            <button
-              type="button"
+            </HapticButton>
+            <HapticButton
               className="btn btn-ghost"
-              onClick={() => {
+              onPress={() => {
                 hapticTap();
                 setSide(null);
               }}
             >
               clear
-            </button>
+            </HapticButton>
           </div>
         )}
       </div>
@@ -131,16 +133,16 @@ export default function LabClient({ renderedAt }: { renderedAt: string }) {
       <div className="card">
         <div className="matchup">💵 Money shower</div>
         <div className="divider" />
-        <button
+        <HapticButton
           className="btn btn-lock"
           style={{ marginTop: 0 }}
-          onClick={() => {
+          onPress={() => {
             hapticCelebrate();
             setShowering(true);
           }}
         >
           Make it rain
-        </button>
+        </HapticButton>
       </div>
 
       <div className="card">

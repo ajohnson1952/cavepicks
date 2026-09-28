@@ -193,14 +193,15 @@ allowance) - the user upgraded from Neon's free tier in Sep 2026.
   `.ptr-content` at rest, or every `position: fixed` element inside it (the
   /guide modal) gets positioned relative to the wrapper instead of the
   screen. Add `data-no-ptr` to any overlay that should ignore the gesture.
-- **Haptics** (`lib/haptics.ts`): iOS has no `navigator.vibrate`; iOS 18+
-  plays a haptic when an `<input type="checkbox" switch>` is toggled via its
-  label. The switch must be nested INSIDE a fresh, display:none label that's
-  appended, clicked and removed per tick - a persistent off-screen
-  htmlFor-linked switch did not buzz on a real iPhone. Only reliable when
-  called synchronously inside a tap handler - after an `await` iOS may drop
-  it (which is why the "fully locked in" celebration decides on the tap,
-  `beginLock()` in PickForm, and shows `MoneyShower` after the lock saves).
+- **Haptics**: iOS web has NO haptics API and ignores every programmatic
+  trick (script-clicking a hidden `<input type="checkbox" switch>` is
+  silent - confirmed on a real iPhone, iOS 18.7 standalone, and the same
+  finding in the owner's other project, the-yahngorithm). The only thing
+  that ticks is a real finger toggling a switch. So every tappable control
+  that should tick is an `app/HapticButton.tsx`: a `<label>` styled like the
+  button, with an invisible switch stretched over it. One tick per real tap
+  - no multi-tick patterns, nothing mid-drag or after an `await` on iOS.
+  `lib/haptics.ts` is Android-only (`navigator.vibrate`) patterns.
 
 ## Gotchas (all found the hard way - don't reintroduce these)
 

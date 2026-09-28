@@ -266,6 +266,45 @@ h1 {
   padding: 4px 0;
 }
 
+/* HapticButton (app/HapticButton.tsx): a label with an invisible iOS switch
+   stretched over it - a real finger on a switch is the only thing that
+   ticks the iPhone's haptics from a web page. */
+.haptic-toggle {
+  position: relative;
+  display: inline-block;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.haptic-toggle.btn {
+  text-align: center;
+}
+
+.haptic-toggle.btn-lock {
+  display: block;
+}
+
+.haptic-input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0.01;
+  cursor: pointer;
+}
+
+.haptic-input:disabled {
+  cursor: default;
+}
+
+.haptic-toggle:has(.haptic-input:focus-visible) {
+  outline: 2px solid var(--action-soft);
+  outline-offset: 2px;
+}
+
 .input {
   font-family: inherit;
   font-size: 13px;

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { hapticTap } from "@/lib/haptics";
+import HapticButton from "../HapticButton";
 
 export type GuidePick = {
   id: string;
@@ -73,8 +74,8 @@ function GameBar({ g, expanded, onToggle }: { g: GuideGame; expanded: boolean; o
     g.homeScore != null && g.awayScore != null ? `${g.away} ${g.awayScore}–${g.homeScore} ${g.home}` : null;
 
   return (
-    <button
-      onClick={onToggle}
+    <HapticButton
+      onPress={onToggle}
       className={g.phase === "live" ? "guide-bar guide-bar-live" : "guide-bar"}
       style={{
         position: "absolute",
@@ -102,7 +103,7 @@ function GameBar({ g, expanded, onToggle }: { g: GuideGame; expanded: boolean; o
           ))}
         </div>
       )}
-    </button>
+    </HapticButton>
   );
 }
 
@@ -113,15 +114,14 @@ function GamePanel({ g, onClose }: { g: GuideGame; onClose: () => void }) {
         <div className="matchup">
           {g.away} @ {g.home}
         </div>
-        <button
-          type="button"
+        <HapticButton
           className="btn btn-ghost"
-          onClick={onClose}
+          onPress={onClose}
           style={{ width: "auto", padding: "2px 10px" }}
-          aria-label="Close"
+          label="Close"
         >
           ✕
-        </button>
+        </HapticButton>
       </div>
       <div className="meta" style={{ marginTop: "2px" }}>
         {g.phase === "pre"

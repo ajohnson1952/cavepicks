@@ -4,9 +4,9 @@ import { useEffect, useMemo } from "react";
 
 // "Fully locked in" celebration: shown the moment a player's lock completes
 // all 5 side picks + the dog pick for the week. Bills rain down over a
-// center card, then it all fades on its own (or on tap). The triple-tick
-// haptic is fired by the caller, on the Lock In tap itself - iOS drops
-// haptics fired this long after a tap.
+// center card, then it all fades on its own (or on tap). Haptics come from
+// the Lock In tap itself (a HapticButton: one tick on iPhone, a triple
+// buzz via hapticCelebrate on Android).
 const BILLS = 44;
 const AUTO_CLOSE_MS = 4200;
 

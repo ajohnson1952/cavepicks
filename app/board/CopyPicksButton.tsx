@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { hapticSuccess } from "@/lib/haptics";
+import HapticButton from "../HapticButton";
 
 // The little "copy picks" link next to each name on the Board. Opens a box
 // with that player's picks as plain text, ready to paste into iMessage.
@@ -35,14 +36,13 @@ export default function CopyPicksButton({ name, text }: { name: string; text: st
 
   return (
     <span ref={wrapRef} style={{ position: "relative", display: "inline-block", fontWeight: 400 }}>
-      <button
-        type="button"
-        onClick={() => setOpen((o) => !o)}
+      <HapticButton
+        onPress={() => setOpen((o) => !o)}
         className="btn btn-ghost"
         style={{ width: "auto", padding: "1px 7px", fontSize: "11px", marginLeft: "8px", verticalAlign: "1px" }}
       >
         {open ? "close" : "copy picks"}
-      </button>
+      </HapticButton>
       {open && (
         <div
           style={{
@@ -76,14 +76,13 @@ export default function CopyPicksButton({ name, text }: { name: string; text: st
               padding: "6px",
             }}
           />
-          <button
-            type="button"
-            onClick={copy}
+          <HapticButton
+            onPress={copy}
             className="btn btn-lock"
             style={{ width: "auto", marginTop: "6px", padding: "3px 12px", fontSize: "12px" }}
           >
             {copied ? "Copied ✓" : "Copy"}
-          </button>
+          </HapticButton>
         </div>
       )}
     </span>

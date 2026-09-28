@@ -5,6 +5,7 @@ import { clearPick, lockValue, autosaveSelection } from "./actions";
 import { hapticCelebrate, hapticError, hapticSuccess, hapticTap } from "@/lib/haptics";
 import MoneyShower from "./MoneyShower";
 import { formatSpread, formatOdds, bookLabel } from "@/lib/format";
+import HapticButton from "../../HapticButton";
 
 type Snap = {
   spreadHome: number | null;
@@ -173,8 +174,8 @@ export default function PickForm({
   const [search, setSearch] = useState("");
 
   // Would this lock finish the week (5 locked side picks + a locked dog)?
-  // Decided on the tap - before the server round-trip - so the celebration
-  // haptic fires inside the gesture, where iOS actually honors it.
+  // Decided on the tap, before the server round-trip, so Android's
+  // celebration buzz fires with the tap (iPhones get HapticButton's tick).
   const lockedSides = games.reduce((n, g) => n + (g.spread.locked ? 1 : 0) + (g.total.locked ? 1 : 0), 0);
   const dogLocked = hasLockedDog || games.some((g) => g.dog?.locked);
   function beginLock(kind: "side" | "dog"): boolean {
@@ -272,11 +273,9 @@ export default function PickForm({
             onChange={(e) => setSearch(e.target.value)}
             style={{ flex: 1, minWidth: 0 }}
           />
-          <button
-            type="button"
+          <HapticButton
             className="btn"
-            aria-pressed={onlyMine}
-            onClick={() => setOnlyMine((v) => !v)}
+            onPress={() => setOnlyMine((v) => !v)}
             style={{
               width: "auto",
               whiteSpace: "nowrap",
@@ -285,7 +284,7 @@ export default function PickForm({
             }}
           >
             My picks ({myCount})
-          </button>
+          </HapticButton>
         </div>
       )}
 
@@ -399,10 +398,9 @@ export default function PickForm({
                 ) : (
                   <>
                     <div className="pill-grid">
-                      <button
-                        type="button"
+                      <HapticButton
                         className={`pill-btn${spreadChoice[g.id] === "away" ? " selected" : ""}`}
-                        onClick={() => pickSpread(g, "away")}
+                        onPress={() => pickSpread(g, "away")}
                       >
                         <div className="pill-label">
                           <TeamLogo src={g.awayLogo} alt={g.awayTeam} />
@@ -415,11 +413,10 @@ export default function PickForm({
                         {g.snap.spreadAwayPrice != null && (
                           <div className="pill-juice">{formatOdds(g.snap.spreadAwayPrice)}</div>
                         )}
-                      </button>
-                      <button
-                        type="button"
+                      </HapticButton>
+                      <HapticButton
                         className={`pill-btn${spreadChoice[g.id] === "home" ? " selected" : ""}`}
-                        onClick={() => pickSpread(g, "home")}
+                        onPress={() => pickSpread(g, "home")}
                       >
                         <div className="pill-label">
                           <TeamLogo src={g.homeLogo} alt={g.homeTeam} />
@@ -432,15 +429,15 @@ export default function PickForm({
                         {g.snap.spreadHomePrice != null && (
                           <div className="pill-juice">{formatOdds(g.snap.spreadHomePrice)}</div>
                         )}
-                      </button>
+                      </HapticButton>
                     </div>
                     {spreadChoice[g.id] && (
                       <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
                         {isCurrentWeek ? (
-                          <button
+                          <HapticButton
                             className="btn btn-lock"
                             style={{ width: "auto", flex: 1 }}
-                            onClick={async () => {
+                            onPress={async () => {
                               const finishing = beginLock("side");
                               const isHome = spreadChoice[g.id] === "home";
                               const value = isHome ? g.homeTeam : g.awayTeam;
@@ -460,21 +457,20 @@ export default function PickForm({
                             }}
                           >
                             Lock in
-                          </button>
+                          </HapticButton>
                         ) : (
                           <span className="meta">Locking opens once this is the current week</span>
                         )}
-                        <button
-                          type="button"
+                        <HapticButton
                           className="btn btn-ghost"
-                          onClick={() => {
+                          onPress={() => {
                             hapticTap();
                             setSpreadChoice((s) => ({ ...s, [g.id]: undefined }));
                             if (g.spread.pickId) clearPick(slug, g.id, "SPREAD");
                           }}
                         >
                           clear
-                        </button>
+                        </HapticButton>
                       </div>
                     )}
                   </>
@@ -511,10 +507,9 @@ export default function PickForm({
                 ) : (
                   <>
                     <div className="pill-grid">
-                      <button
-                        type="button"
+                      <HapticButton
                         className={`pill-btn${totalChoice[g.id] === "over" ? " selected" : ""}`}
-                        onClick={() => pickTotal(g, "over")}
+                        onPress={() => pickTotal(g, "over")}
                       >
                         <div className="pill-label">Over</div>
                         <div className="pill-value">
@@ -524,11 +519,10 @@ export default function PickForm({
                         {g.snap.totalOverPrice != null && (
                           <div className="pill-juice">{formatOdds(g.snap.totalOverPrice)}</div>
                         )}
-                      </button>
-                      <button
-                        type="button"
+                      </HapticButton>
+                      <HapticButton
                         className={`pill-btn${totalChoice[g.id] === "under" ? " selected" : ""}`}
-                        onClick={() => pickTotal(g, "under")}
+                        onPress={() => pickTotal(g, "under")}
                       >
                         <div className="pill-label">Under</div>
                         <div className="pill-value">
@@ -538,15 +532,15 @@ export default function PickForm({
                         {g.snap.totalUnderPrice != null && (
                           <div className="pill-juice">{formatOdds(g.snap.totalUnderPrice)}</div>
                         )}
-                      </button>
+                      </HapticButton>
                     </div>
                     {totalChoice[g.id] && (
                       <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
                         {isCurrentWeek ? (
-                          <button
+                          <HapticButton
                             className="btn btn-lock"
                             style={{ width: "auto", flex: 1 }}
-                            onClick={async () => {
+                            onPress={async () => {
                               const finishing = beginLock("side");
                               const value = totalChoice[g.id];
                               if (!value) return;
@@ -565,21 +559,20 @@ export default function PickForm({
                             }}
                           >
                             Lock in
-                          </button>
+                          </HapticButton>
                         ) : (
                           <span className="meta">Locking opens once this is the current week</span>
                         )}
-                        <button
-                          type="button"
+                        <HapticButton
                           className="btn btn-ghost"
-                          onClick={() => {
+                          onPress={() => {
                             hapticTap();
                             setTotalChoice((s) => ({ ...s, [g.id]: undefined }));
                             if (g.total.pickId) clearPick(slug, g.id, "TOTAL");
                           }}
                         >
                           clear
-                        </button>
+                        </HapticButton>
                       </div>
                     )}
                   </>
@@ -629,12 +622,11 @@ export default function PickForm({
                       ) : null
                     ) : hasLockedDog ? null : (
                       <>
-                        <button
-                          type="button"
+                        <HapticButton
                           className={`pill-btn${
                             dogChoice === `${g.id}|${g.snap?.underdogTeam}` ? " selected" : ""
                           }`}
-                          onClick={() => pickDog(g)}
+                          onPress={() => pickDog(g)}
                         >
                           <div className="pill-label">Dog pick</div>
                           <div className="pill-value">
@@ -647,14 +639,14 @@ export default function PickForm({
                               {formatOdds(g.snap?.underdogTeam === g.homeTeam ? g.snap?.mlHome : g.snap?.mlAway)} ML
                             </div>
                           )}
-                        </button>
+                        </HapticButton>
                         {dogChoice === `${g.id}|${g.snap?.underdogTeam}` && (
                           <div style={{ display: "flex", gap: "10px", alignItems: "center", marginTop: "8px" }}>
                             {isCurrentWeek ? (
-                              <button
+                              <HapticButton
                                 className="btn btn-lock"
                                 style={{ width: "auto", flex: 1 }}
-                                onClick={async () => {
+                                onPress={async () => {
                                   const finishing = beginLock("dog");
                                   if (!g.snap?.underdogTeam) return;
                                   const isHome = g.snap.underdogTeam === g.homeTeam;
@@ -683,21 +675,20 @@ export default function PickForm({
                                 }}
                               >
                                 Lock in
-                              </button>
+                              </HapticButton>
                             ) : (
                               <span className="meta">Locking opens once this is the current week</span>
                             )}
-                            <button
-                              type="button"
+                            <HapticButton
                               className="btn btn-ghost"
-                              onClick={() => {
+                              onPress={() => {
                                 hapticTap();
                                 setDogChoice(undefined);
                                 if (g.dog?.pickId) clearPick(slug, g.id, "DOG");
                               }}
                             >
                               clear
-                            </button>
+                            </HapticButton>
                           </div>
                         )}
                       </>
