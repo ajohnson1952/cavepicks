@@ -1,6 +1,6 @@
 import { Manrope, Roboto_Mono } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
-import Nav from "./Nav";
+import Nav, { Footer } from "./Nav";
 import "./globals.css";
 
 const manrope = Manrope({
@@ -30,6 +30,7 @@ export default function RootLayout({
       <body>
         <Nav />
         {children}
+        <Footer />
         <Analytics />
       </body>
     </html>

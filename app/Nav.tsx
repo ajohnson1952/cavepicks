@@ -3,6 +3,35 @@
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 
+// Four main tabs. Related pages live under one tab as sub-tabs (shown only
+// while you're in that section) so the top bar doesn't sprawl. Rules and
+// Admin are footer links - see Footer below.
+type Section = { label: string; href: string; subs?: { label: string; href: string }[] };
+
+const SECTIONS: Section[] = [
+  { label: "My Picks", href: "/pick" },
+  { label: "Board", href: "/board" },
+  {
+    label: "Live",
+    href: "/watch",
+    subs: [
+      { label: "Watch", href: "/watch" },
+      { label: "Guide", href: "/guide" },
+    ],
+  },
+  {
+    label: "Standings",
+    href: "/standings",
+    subs: [
+      { label: "Standings", href: "/standings" },
+      { label: "Pot", href: "/pot" },
+      { label: "History", href: "/history" },
+    ],
+  },
+];
+
+const startsWith = (pathname: string, path: string) => pathname === path || pathname.startsWith(path + "/");
+
 export default function Nav() {
   const pathname = usePathname();
   const [mySlug, setMySlug] = useState<string | null>(null);
@@ -17,37 +46,41 @@ export default function Nav() {
     }
   }, [pathname]);
 
-  const isActive = (path: string) => pathname === path || (path !== "/" && pathname.startsWith(path));
+  const inSection = (s: Section) =>
+    s.subs ? s.subs.some((sub) => startsWith(pathname, sub.href)) : startsWith(pathname, s.href);
+  const activeSection = SECTIONS.find(inSection);
 
   return (
     <nav className="nav-bar">
-      <a href={mySlug ? `/pick/${mySlug}` : "/"} className={`nav-link${isActive("/pick") ? " active" : ""}`}>
-        My Picks
-      </a>
-      <a href="/board" className={`nav-link${isActive("/board") ? " active" : ""}`}>
-        Board
-      </a>
-      <a href="/watch" className={`nav-link${isActive("/watch") ? " active" : ""}`}>
-        Watch
-      </a>
-      <a href="/guide" className={`nav-link${isActive("/guide") ? " active" : ""}`}>
-        Guide
-      </a>
-      <a href="/standings" className={`nav-link${isActive("/standings") ? " active" : ""}`}>
-        Standings
-      </a>
-      <a href="/pot" className={`nav-link${isActive("/pot") ? " active" : ""}`}>
-        Pot
-      </a>
-      <a href="/history" className={`nav-link${isActive("/history") ? " active" : ""}`}>
-        History
-      </a>
-      <a href="/rules" className={`nav-link${isActive("/rules") ? " active" : ""}`}>
-        Rules
-      </a>
-      <a href="/admin" className={`nav-link${isActive("/admin") ? " active" : ""}`}>
-        Admin
-      </a>
+      <div className="nav-main">
+        {SECTIONS.map((s) => {
+          const href = s.href === "/pick" ? (mySlug ? `/pick/${mySlug}` : "/") : s.href;
+          return (
+            <a key={s.label} href={href} className={`nav-link${s === activeSection ? " active" : ""}`}>
+              {s.label}
+            </a>
+          );
+        })}
+      </div>
+      {activeSection?.subs && (
+        <div className="nav-sub">
+          {activeSection.subs.map((sub) => (
+            <a key={sub.href} href={sub.href} className={`nav-sublink${startsWith(pathname, sub.href) ? " active" : ""}`}>
+              {sub.label}
+            </a>
+          ))}
+        </div>
+      )}
     </nav>
+  );
+}
+
+export function Footer() {
+  return (
+    <footer className="site-footer">
+      <a href="/rules">Rules</a>
+      <span>&middot;</span>
+      <a href="/admin">Admin</a>
+    </footer>
   );
 }

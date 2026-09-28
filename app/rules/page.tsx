@@ -118,12 +118,13 @@ export default function RulesPage() {
           locked what, who&apos;s covering, who&apos;s not.
         </p>
         <p style={{ fontSize: "13px", marginBottom: "8px" }}>
-          <strong>Standings</strong> &mdash; the weekly pot status, season records for every player, and
-          the Cavedogs leaderboard.
+          <strong>Live</strong> &mdash; follow the games that matter while they&apos;re on. <em>Watch</em> is
+          the detailed list; <em>Guide</em> is a TV-guide style timeline of who&apos;s on each game.
         </p>
         <p style={{ fontSize: "13px", margin: 0 }}>
-          <strong>Pot</strong> &mdash; the current weekly pot, everyone&apos;s running balance (who owes and who
-          gets paid), and a log of every payment.
+          <strong>Standings</strong> &mdash; the weekly pot status, season records, and the Cavedogs
+          leaderboard. Its <em>Pot</em> sub-tab shows everyone&apos;s running balance (who owes, who gets
+          paid) and every payment; <em>History</em> has all-time records and fun stats.
         </p>
       </div>
     </main>
