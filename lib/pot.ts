@@ -15,8 +15,11 @@ export function dogPayouts(playerCount: number) {
 }
 
 // Who holds the weekly pot money - everyone settles up with this person.
-export const BANKER_NAME = "Drew";
-export const isBanker = (name: string) => name.split(" ")[0].toLowerCase() === BANKER_NAME.toLowerCase();
+// Must match the banker's name in the User table (any single word of it) -
+// the banker is left out of balances since they can't owe themselves.
+export const BANKER_NAME = "Johnson";
+export const isBanker = (name: string) =>
+  name.toLowerCase().split(/\s+/).includes(BANKER_NAME.toLowerCase());
 
 // Weekly-pot tie rule changed starting this week (2026 season). Before it, a
 // tie rolled the whole pot. From this week on, a tie splits half of THAT

@@ -144,8 +144,9 @@ export default async function AdminPage(
         <div className="divider" />
         <p style={{ fontSize: "13px", margin: "0 0 8px" }}>
           Record money as it changes hands - everyone sees the result on <a href="/pot">/pot</a>. Net
-          balances: <strong>negative</strong> = they owe {BANKER_NAME}, <strong>positive</strong> ={" "}
-          {BANKER_NAME} owes them.
+          balances: <strong>negative</strong> = they owe {BANKER_NAME}, <strong>positive</strong> = credit you&apos;re
+          holding for them (winnings or a prepayment - it covers their next buy-ins automatically). For a prepayment,
+          just record &quot;paid {BANKER_NAME}&quot; with the full amount. &quot;Cash out&quot; records paying their credit back.
         </p>
         {ledger.players
           .filter((p) => !isBanker(p.name))
@@ -154,7 +155,7 @@ export default async function AdminPage(
               <span>{p.name}</span>
               <span style={{ display: "flex", gap: "8px", alignItems: "center" }}>
                 <span className="mono" style={{ color: p.balance < 0 ? "var(--down)" : p.balance > 0 ? "var(--action-soft)" : "var(--up)" }}>
-                  {p.balance === 0 ? "settled" : p.balance < 0 ? `owes $${-p.balance}` : `gets $${p.balance}`}
+                  {p.balance === 0 ? "settled" : p.balance < 0 ? `owes $${-p.balance}` : `credit $${p.balance}`}
                 </span>
                 {p.balance !== 0 && (
                   <form action={recordPayment}>
@@ -163,7 +164,7 @@ export default async function AdminPage(
                     <input type="hidden" name="amount" value={Math.abs(p.balance)} />
                     <input type="hidden" name="note" value={`Week ${ledger.currentWeekNumber} settle-up`} />
                     <button type="submit" className="btn btn-ghost">
-                      {p.balance < 0 ? "mark paid" : "mark sent"}
+                      {p.balance < 0 ? "mark paid" : "cash out"}
                     </button>
                   </form>
                 )}

@@ -18,7 +18,7 @@ function StatusChip({ balance }: { balance: number }) {
   if (balance < 0) return <span className="miss-badge">OWES {money(-balance)}</span>;
   return (
     <span className="locked-text" style={{ color: "var(--action-soft)", background: "rgba(47, 107, 255, 0.14)", padding: "3px 8px", borderRadius: "4px" }}>
-      GETS {money(balance)}
+      CREDIT {money(balance)}
     </span>
   );
 }
@@ -79,15 +79,20 @@ export default async function PotPage() {
         </p>
         <p style={{ fontSize: "13px", margin: 0, lineHeight: 1.5 }}>
           Your balance below is your running total. <span className="pick-loss">OWES</span> means send {BANKER_NAME}{" "}
-          that amount. <span style={{ color: "var(--action-soft)" }}>GETS</span> means {BANKER_NAME} sends it to you.
-          Payouts round down to whole dollars; the leftover cents go toward the site&apos;s hosting.
+          that amount. <span style={{ color: "var(--action-soft)" }}>CREDIT</span> means {BANKER_NAME} is holding money
+          for you &mdash; winnings or a prepayment. It covers your next buy-ins automatically, or ask {BANKER_NAME} to cash
+          it out any time. Payouts round down to whole dollars; the leftover cents go toward the site&apos;s hosting.
+        </p>
+        <p style={{ fontSize: "13px", margin: "8px 0 0", lineHeight: 1.5 }}>
+          <strong>Want to prepay?</strong> Send {BANKER_NAME} a few weeks at once (e.g. {money(WEEKLY_BUYIN * 4)} for 4
+          weeks). It shows as credit and each week&apos;s {money(WEEKLY_BUYIN)} comes out of it.
         </p>
       </div>
 
       <div className="card">
         <div className="matchup">💵 Balances</div>
         <p className="subtext" style={{ margin: "4px 0 0" }}>
-          Players owe {money(owedToBank)} &middot; {BANKER_NAME} owes {money(owedToPlayers)}
+          Players owe {money(owedToBank)} &middot; {BANKER_NAME} is holding {money(owedToPlayers)} in credit
         </p>
         <table className="stat-table">
           <thead>
@@ -110,6 +115,11 @@ export default async function PotPage() {
                 <td>{p.paidOut ? money(p.paidOut) : "—"}</td>
                 <td>
                   <StatusChip balance={p.balance} />
+                  {p.balance >= WEEKLY_BUYIN && (
+                    <div className="meta" style={{ marginTop: "3px" }}>
+                      covers {Math.floor(p.balance / WEEKLY_BUYIN)} wk{Math.floor(p.balance / WEEKLY_BUYIN) === 1 ? "" : "s"}
+                    </div>
+                  )}
                 </td>
               </tr>
             ))}
