@@ -12,6 +12,11 @@ export default function manifest(): MetadataRoute.Manifest {
     name: "Cavepicks",
     short_name: "Cavepicks",
     description: "College football pick'em with friends",
+    // Whole site is "inside the app". Without this, scope defaults to the
+    // folder of the page it was added from - add it from /pick/<slug> and
+    // every other page (/board, /pot...) counted as leaving the app, so iOS
+    // showed Safari's navigation bar there.
+    scope: "/",
     display: "standalone",
     background_color: "#0a0e0d",
     theme_color: "#0a0e0d",
