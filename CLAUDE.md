@@ -194,10 +194,13 @@ allowance) - the user upgraded from Neon's free tier in Sep 2026.
   /guide modal) gets positioned relative to the wrapper instead of the
   screen. Add `data-no-ptr` to any overlay that should ignore the gesture.
 - **Haptics** (`lib/haptics.ts`): iOS has no `navigator.vibrate`; iOS 18+
-  plays a haptic when a hidden `<input type="checkbox" switch>` is toggled
-  via its label, which is what `hapticTap/Success/Error` do. Only reliable
-  when called synchronously inside a tap handler - after an `await` iOS
-  may drop it.
+  plays a haptic when an `<input type="checkbox" switch>` is toggled via its
+  label. The switch must be nested INSIDE a fresh, display:none label that's
+  appended, clicked and removed per tick - a persistent off-screen
+  htmlFor-linked switch did not buzz on a real iPhone. Only reliable when
+  called synchronously inside a tap handler - after an `await` iOS may drop
+  it (which is why the "fully locked in" celebration decides on the tap,
+  `beginLock()` in PickForm, and shows `MoneyShower` after the lock saves).
 
 ## Gotchas (all found the hard way - don't reintroduce these)
 

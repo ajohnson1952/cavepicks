@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { clearPick, lockValue, autosaveSelection } from "./actions";
-import { hapticError, hapticSuccess, hapticTap } from "@/lib/haptics";
+import { hapticCelebrate, hapticError, hapticSuccess, hapticTap } from "@/lib/haptics";
+import MoneyShower from "./MoneyShower";
 import { formatSpread, formatOdds, bookLabel } from "@/lib/format";
 
 type Snap = {
@@ -167,7 +168,21 @@ export default function PickForm({
   );
   const [dogChoice, setDogChoice] = useState<string | undefined>(() => computeInitialState(games).dog);
   const [error, setError] = useState<string | null>(null);
+  const [celebrating, setCelebrating] = useState(false);
+  const endCelebration = useCallback(() => setCelebrating(false), []);
   const [search, setSearch] = useState("");
+
+  // Would this lock finish the week (5 locked side picks + a locked dog)?
+  // Decided on the tap - before the server round-trip - so the celebration
+  // haptic fires inside the gesture, where iOS actually honors it.
+  const lockedSides = games.reduce((n, g) => n + (g.spread.locked ? 1 : 0) + (g.total.locked ? 1 : 0), 0);
+  const dogLocked = hasLockedDog || games.some((g) => g.dog?.locked);
+  function beginLock(kind: "side" | "dog"): boolean {
+    const finishing = kind === "side" ? lockedSides === 4 && dogLocked : lockedSides >= 5 && !dogLocked;
+    if (finishing) hapticCelebrate();
+    else hapticTap();
+    return finishing;
+  }
   const [onlyMine, setOnlyMine] = useState(false);
 
   useEffect(() => {
@@ -274,6 +289,7 @@ export default function PickForm({
         </div>
       )}
 
+      {celebrating && <MoneyShower onDone={endCelebration} />}
       {error && <div className="banner-error">{error}</div>}
 
       {games.length === 0 && <p className="subtext">No games in this week&apos;s slate yet.</p>}
@@ -425,7 +441,7 @@ export default function PickForm({
                             className="btn btn-lock"
                             style={{ width: "auto", flex: 1 }}
                             onClick={async () => {
-                              hapticTap();
+                              const finishing = beginLock("side");
                               const isHome = spreadChoice[g.id] === "home";
                               const value = isHome ? g.homeTeam : g.awayTeam;
                               const lockedLine = isHome ? g.snap?.spreadHome ?? null : g.snap?.spreadAway ?? null;
@@ -437,7 +453,8 @@ export default function PickForm({
                                 hapticError();
                                 setError(res.error);
                               } else {
-                                hapticSuccess();
+                                if (finishing) setCelebrating(true);
+                                else hapticSuccess();
                                 setError(null);
                               }
                             }}
@@ -530,7 +547,7 @@ export default function PickForm({
                             className="btn btn-lock"
                             style={{ width: "auto", flex: 1 }}
                             onClick={async () => {
-                              hapticTap();
+                              const finishing = beginLock("side");
                               const value = totalChoice[g.id];
                               if (!value) return;
                               const lockedLine = g.snap?.total ?? null;
@@ -541,7 +558,8 @@ export default function PickForm({
                                 hapticError();
                                 setError(res.error);
                               } else {
-                                hapticSuccess();
+                                if (finishing) setCelebrating(true);
+                                else hapticSuccess();
                                 setError(null);
                               }
                             }}
@@ -637,7 +655,7 @@ export default function PickForm({
                                 className="btn btn-lock"
                                 style={{ width: "auto", flex: 1 }}
                                 onClick={async () => {
-                                  hapticTap();
+                                  const finishing = beginLock("dog");
                                   if (!g.snap?.underdogTeam) return;
                                   const isHome = g.snap.underdogTeam === g.homeTeam;
                                   const dogSpreadValue = Math.abs(
@@ -658,7 +676,8 @@ export default function PickForm({
                                     hapticError();
                                     setError(res.error);
                                   } else {
-                                    hapticSuccess();
+                                    if (finishing) setCelebrating(true);
+                                    else hapticSuccess();
                                     setError(null);
                                   }
                                 }}
