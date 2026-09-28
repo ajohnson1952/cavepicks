@@ -186,6 +186,19 @@ allowance) - the user upgraded from Neon's free tier in Sep 2026.
   while the tab is visible. Cheap on purpose - it's DB reads + free ESPN
   calls, never The Odds API.
 
+- **Pull-to-refresh** (`app/PullToRefresh.tsx`, wraps everything in
+  `layout.tsx`): custom, only active in the iOS home-screen app (Safari has
+  its own). Uses `router.refresh()`, not a reload. It sets a CSS transform on
+  the page wrapper while pulling - never leave a transform/`will-change` on
+  `.ptr-content` at rest, or every `position: fixed` element inside it (the
+  /guide modal) gets positioned relative to the wrapper instead of the
+  screen. Add `data-no-ptr` to any overlay that should ignore the gesture.
+- **Haptics** (`lib/haptics.ts`): iOS has no `navigator.vibrate`; iOS 18+
+  plays a haptic when a hidden `<input type="checkbox" switch>` is toggled
+  via its label, which is what `hapticTap/Success/Error` do. Only reliable
+  when called synchronously inside a tap handler - after an `await` iOS
+  may drop it.
+
 ## Gotchas (all found the hard way - don't reintroduce these)
 
 - **`cookies()`, `params`, and `searchParams` are all async (Next.js 16).**

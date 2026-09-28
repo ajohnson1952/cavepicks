@@ -613,3 +613,51 @@ h1 {
     animation: none;
   }
 }
+
+/* Pull-to-refresh (app/PullToRefresh.tsx) - only active in the iOS
+   home-screen app. Kill iOS's own overscroll bounce there so our
+   rubber-band is the only one. */
+html.ptr-enabled,
+html.ptr-enabled body {
+  overscroll-behavior-y: none;
+}
+
+.ptr-spinner {
+  position: fixed;
+  top: 0;
+  left: 50%;
+  width: 28px;
+  height: 28px;
+  opacity: 0;
+  transform: translate3d(-50%, 0, 0);
+  z-index: 20;
+  pointer-events: none;
+}
+
+.ptr-wheel {
+  position: relative;
+  width: 28px;
+  height: 28px;
+}
+
+/* iOS activity-indicator spokes: 8 rounded bars around a center */
+.ptr-spoke {
+  position: absolute;
+  left: 12.5px;
+  top: 1px;
+  width: 3px;
+  height: 8px;
+  border-radius: 2px;
+  background: var(--ink);
+  transform-origin: 1.5px 13px;
+}
+
+.ptr-spinning .ptr-wheel {
+  animation: ptr-spin 0.8s steps(8) infinite;
+}
+
+@keyframes ptr-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

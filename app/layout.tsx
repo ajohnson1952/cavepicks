@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Manrope, Roboto_Mono } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import Nav, { Footer } from "./Nav";
+import PullToRefresh from "./PullToRefresh";
 import "./globals.css";
 
 const manrope = Manrope({
@@ -39,9 +40,11 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${manrope.variable} ${robotoMono.variable}`}>
       <body>
-        <Nav />
-        {children}
-        <Footer />
+        <PullToRefresh>
+          <Nav />
+          {children}
+          <Footer />
+        </PullToRefresh>
         <Analytics />
       </body>
     </html>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { hapticSuccess } from "@/lib/haptics";
 
 // The little "copy picks" link next to each name on the Board. Opens a box
 // with that player's picks as plain text, ready to paste into iMessage.
@@ -19,6 +20,7 @@ export default function CopyPicksButton({ name, text }: { name: string; text: st
   }, [open]);
 
   async function copy() {
+    hapticSuccess();
     try {
       await navigator.clipboard.writeText(text);
       setCopied(true);

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { hapticTap } from "@/lib/haptics";
 
 export type GuidePick = {
   id: string;
@@ -198,7 +199,14 @@ export default function GuideTimeline({ days, pxPerHour }: { days: GuideDay[]; p
                 )}
                 {day.games.map((g, i) => (
                   <div key={g.id} style={{ position: "absolute", top: 24 + i * 66, left: 0, right: 0, height: 58 }}>
-                    <GameBar g={g} expanded={g.id === expandedId} onToggle={() => setExpandedId(g.id === expandedId ? null : g.id)} />
+                    <GameBar
+                      g={g}
+                      expanded={g.id === expandedId}
+                      onToggle={() => {
+                        hapticTap();
+                        setExpandedId(g.id === expandedId ? null : g.id);
+                      }}
+                    />
                   </div>
                 ))}
               </div>
@@ -209,6 +217,7 @@ export default function GuideTimeline({ days, pxPerHour }: { days: GuideDay[]; p
 
       {expandedGame && (
         <div
+          data-no-ptr
           onClick={() => setExpandedId(null)}
           style={{
             position: "fixed",

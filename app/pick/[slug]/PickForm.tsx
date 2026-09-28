@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { clearPick, lockValue, autosaveSelection } from "./actions";
+import { hapticError, hapticSuccess, hapticTap } from "@/lib/haptics";
 import { formatSpread, formatOdds, bookLabel } from "@/lib/format";
 
 type Snap = {
@@ -177,10 +178,12 @@ export default function PickForm({
   }, [games]);
 
   async function pickSpread(g: GameView, value: "home" | "away") {
+    hapticTap();
     const prev = spreadChoice[g.id];
     setSpreadChoice((s) => ({ ...s, [g.id]: value }));
     const res = await autosaveSelection(slug, g.id, "SPREAD", value === "home" ? g.homeTeam : g.awayTeam);
     if (res.error) {
+      hapticError();
       setError(res.error);
       setSpreadChoice((s) => ({ ...s, [g.id]: prev }));
     } else {
@@ -189,10 +192,12 @@ export default function PickForm({
   }
 
   async function pickTotal(g: GameView, value: "over" | "under") {
+    hapticTap();
     const prev = totalChoice[g.id];
     setTotalChoice((s) => ({ ...s, [g.id]: value }));
     const res = await autosaveSelection(slug, g.id, "TOTAL", value);
     if (res.error) {
+      hapticError();
       setError(res.error);
       setTotalChoice((s) => ({ ...s, [g.id]: prev }));
     } else {
@@ -202,10 +207,12 @@ export default function PickForm({
 
   async function pickDog(g: GameView) {
     if (!g.snap?.underdogTeam) return;
+    hapticTap();
     const prev = dogChoice;
     setDogChoice(`${g.id}|${g.snap.underdogTeam}`);
     const res = await autosaveSelection(slug, g.id, "DOG", g.snap.underdogTeam);
     if (res.error) {
+      hapticError();
       setError(res.error);
       setDogChoice(prev);
     } else {
@@ -418,6 +425,7 @@ export default function PickForm({
                             className="btn btn-lock"
                             style={{ width: "auto", flex: 1 }}
                             onClick={async () => {
+                              hapticTap();
                               const isHome = spreadChoice[g.id] === "home";
                               const value = isHome ? g.homeTeam : g.awayTeam;
                               const lockedLine = isHome ? g.snap?.spreadHome ?? null : g.snap?.spreadAway ?? null;
@@ -425,8 +433,13 @@ export default function PickForm({
                                 ? g.snap?.spreadHomePrice ?? null
                                 : g.snap?.spreadAwayPrice ?? null;
                               const res = await lockValue(slug, g.id, "SPREAD", value, lockedLine, lockedOdds, null, g.snap?.sourceBook ?? null);
-                              if (res.error) setError(res.error);
-                              else setError(null);
+                              if (res.error) {
+                                hapticError();
+                                setError(res.error);
+                              } else {
+                                hapticSuccess();
+                                setError(null);
+                              }
                             }}
                           >
                             Lock in
@@ -438,6 +451,7 @@ export default function PickForm({
                           type="button"
                           className="btn btn-ghost"
                           onClick={() => {
+                            hapticTap();
                             setSpreadChoice((s) => ({ ...s, [g.id]: undefined }));
                             if (g.spread.pickId) clearPick(slug, g.id, "SPREAD");
                           }}
@@ -516,14 +530,20 @@ export default function PickForm({
                             className="btn btn-lock"
                             style={{ width: "auto", flex: 1 }}
                             onClick={async () => {
+                              hapticTap();
                               const value = totalChoice[g.id];
                               if (!value) return;
                               const lockedLine = g.snap?.total ?? null;
                               const lockedOdds =
                                 value === "over" ? g.snap?.totalOverPrice ?? null : g.snap?.totalUnderPrice ?? null;
                               const res = await lockValue(slug, g.id, "TOTAL", value, lockedLine, lockedOdds, null, g.snap?.sourceBook ?? null);
-                              if (res.error) setError(res.error);
-                              else setError(null);
+                              if (res.error) {
+                                hapticError();
+                                setError(res.error);
+                              } else {
+                                hapticSuccess();
+                                setError(null);
+                              }
                             }}
                           >
                             Lock in
@@ -535,6 +555,7 @@ export default function PickForm({
                           type="button"
                           className="btn btn-ghost"
                           onClick={() => {
+                            hapticTap();
                             setTotalChoice((s) => ({ ...s, [g.id]: undefined }));
                             if (g.total.pickId) clearPick(slug, g.id, "TOTAL");
                           }}
@@ -616,6 +637,7 @@ export default function PickForm({
                                 className="btn btn-lock"
                                 style={{ width: "auto", flex: 1 }}
                                 onClick={async () => {
+                                  hapticTap();
                                   if (!g.snap?.underdogTeam) return;
                                   const isHome = g.snap.underdogTeam === g.homeTeam;
                                   const dogSpreadValue = Math.abs(
@@ -632,8 +654,13 @@ export default function PickForm({
                                     dogSpreadValue,
                                     g.snap.sourceBook
                                   );
-                                  if (res.error) setError(res.error);
-                                  else setError(null);
+                                  if (res.error) {
+                                    hapticError();
+                                    setError(res.error);
+                                  } else {
+                                    hapticSuccess();
+                                    setError(null);
+                                  }
                                 }}
                               >
                                 Lock in
@@ -645,6 +672,7 @@ export default function PickForm({
                               type="button"
                               className="btn btn-ghost"
                               onClick={() => {
+                                hapticTap();
                                 setDogChoice(undefined);
                                 if (g.dog?.pickId) clearPick(slug, g.id, "DOG");
                               }}
