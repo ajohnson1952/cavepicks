@@ -57,9 +57,12 @@ export default async function StandingsPage() {
               Week {currentWeek.weekNumber} &middot;{" "}
               {currentWeek.inProgress
                 ? "in progress"
+                : currentWeek.tiedLeaders.length > 0 && currentWeek.payouts.length > 0
+                ? `${currentWeek.tiedLeaders.join(" & ")} tied - $${currentWeek.payouts[0].amount} each, $${currentWeek.carryOut} rolls`
                 : currentWeek.rollover
                 ? "tied - rolled over to next week"
-                : `won by ${currentWeek.leader}`}
+                : `won by ${currentWeek.leader}`}{" "}
+              &middot; <a href="/pot">balances</a>
             </p>
             <div className="divider" />
             {currentWeek.standings.map((s, i) => (
@@ -130,6 +133,11 @@ export default async function StandingsPage() {
                 Week {w.weekNumber}:{" "}
                 {w.inProgress ? (
                   <span className="meta">in progress</span>
+                ) : w.tiedLeaders.length > 0 && w.payouts.length > 0 ? (
+                  <span>
+                    {w.tiedLeaders.join(" & ")} split <span className="mono">${w.payouts[0].amount}</span> each
+                    <span className="meta"> &middot; ${w.carryOut} rolled</span>
+                  </span>
                 ) : w.rollover ? (
                   <span className="meta">tied, rolled over</span>
                 ) : (

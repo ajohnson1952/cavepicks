@@ -57,8 +57,17 @@ allowance) - the user upgraded from Neon's free tier in Sep 2026.
 - Manual Lock In freezes **exactly the line/odds shown on screen at the
   moment of the click** - it must never re-fetch a fresher line
   server-side. This was a real bug once (see Gotchas).
-- Weekly pot: $25/head, winner-take-all (most correct picks that week),
-  ties roll the pot into next week (stacks with next week's buy-ins)
+- Weekly pot: $25/head, most correct picks that week. A solo winner takes
+  the whole pot (buy-ins + any rollover). **Ties (from Week 4 of 2026 on,
+  `TIE_SPLIT_START_WEEK`)**: the tied players split half of *that week's*
+  buy-ins; the other half rolls. Rolled money is never split - only a solo
+  winner collects it. Nobody scoring (0 correct) rolls everything. Payouts
+  round DOWN to whole dollars; the leftover cents are the banker's (for
+  hosting), not rolled. Weeks 1-3 keep the old full-rollover rule.
+  Math: `resolveWeekPot()` in `lib/pot.ts`.
+- Settling up is **net** (buy-in comes out of winnings). `/pot` shows each
+  player's running balance from Week 4 on (`lib/ledger.ts`), settled by
+  `Payment` rows the admin records on `/admin`. Money never moves in-app.
 - Season-long "Cavedogs" pot: $100/head, pays $400/$200/$100 to 1st/2nd/3rd
   at season's end - NOT winner-take-all
 - Week 0 was test/setup data - permanently excluded from all pot and
@@ -77,9 +86,10 @@ allowance) - the user upgraded from Neon's free tier in Sep 2026.
   finished game's score. Pure function, no DB access.
 - `lib/espnScores.ts` - team name matching between The Odds API and ESPN
   (two vendors, no shared IDs). Uses word-overlap matching, see Gotchas.
-- `lib/pot.ts` - constants only (WEEKLY_BUYIN, DOG_BUYIN, DOG_PAYOUTS). The
-  actual pot/standings math lives inline in `app/standings/page.tsx`,
-  computed fresh on every page load - there is no persisted "pot" table.
+- `lib/pot.ts` - constants (WEEKLY_BUYIN, DOG_BUYIN, DOG_PAYOUTS,
+  BANKER_NAME, TIE_SPLIT_START_WEEK) plus the pure `resolveWeekPot()`.
+  Weekly results are computed fresh on every load in `lib/seasonStats.ts` -
+  there is no persisted "pot" table. Only payments are stored (`Payment`).
 - **Only one code path locks a pick**: `app/pick/[slug]/actions.ts`
   `lockValue()`, from the manual Lock In button. Nothing force-locks
   anymore - `grade-results` skips any pick that isn't locked, and

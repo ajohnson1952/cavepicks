@@ -36,6 +36,9 @@ export default function Nav() {
       <a href="/standings" className={`nav-link${isActive("/standings") ? " active" : ""}`}>
         Standings
       </a>
+      <a href="/pot" className={`nav-link${isActive("/pot") ? " active" : ""}`}>
+        Pot
+      </a>
       <a href="/history" className={`nav-link${isActive("/history") ? " active" : ""}`}>
         History
       </a>

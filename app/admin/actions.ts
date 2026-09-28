@@ -346,3 +346,35 @@ export async function seedHistoricalSeason2025() {
   revalidatePath("/history");
   revalidatePath("/admin");
 }
+
+// Weekly-pot bookkeeping (see lib/ledger.ts) - money moves outside the app,
+// this just records it so /pot shows everyone's balance.
+export async function recordPayment(formData: FormData) {
+  if (!(await isAuthed())) return;
+  const userId = formData.get("userId");
+  const direction = formData.get("direction");
+  const amount = Math.floor(Number(formData.get("amount")));
+  const note = formData.get("note");
+  if (typeof userId !== "string" || (direction !== "in" && direction !== "out")) return;
+  if (!Number.isFinite(amount) || amount <= 0) return;
+
+  await prisma.payment.create({
+    data: {
+      userId,
+      direction,
+      amount,
+      note: typeof note === "string" && note.trim() ? note.trim() : null,
+    },
+  });
+  revalidatePath("/admin");
+  revalidatePath("/pot");
+}
+
+export async function deletePayment(formData: FormData) {
+  if (!(await isAuthed())) return;
+  const paymentId = formData.get("paymentId");
+  if (typeof paymentId !== "string") return;
+  await prisma.payment.delete({ where: { id: paymentId } });
+  revalidatePath("/admin");
+  revalidatePath("/pot");
+}

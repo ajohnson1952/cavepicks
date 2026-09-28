@@ -4,15 +4,21 @@
 // leaderboard stats, to fold the current season into career/all-time
 // totals alongside pre-app historical seasons).
 import { prisma } from "./db";
-import { WEEKLY_BUYIN } from "./pot";
+import { WEEKLY_BUYIN, resolveWeekPot } from "./pot";
 import { getWeekNumberForDate } from "./currentWeek";
 
 export type WeekResult = {
   weekNumber: number;
   potAmount: number;
   leader: string | null;
-  rollover: boolean;
+  rollover: boolean; // true whenever anything rolled (a tie, or nobody scored)
   inProgress: boolean;
+  carryIn: number;
+  buyIns: number;
+  tiedLeaders: string[]; // 2+ names on a tie week, else empty
+  payouts: { name: string; amount: number }[];
+  carryOut: number;
+  houseCut: number;
   standings: { name: string; correct: number }[];
 };
 
@@ -67,20 +73,27 @@ export async function computeCurrentSeasonStats(seasonYear: number) {
       .map((u) => ({ name: u.name, correct: correctByUser.get(u.id) ?? 0 }))
       .sort((a, b) => b.correct - a.correct);
 
-    const potAmount = potCarry + WEEKLY_BUYIN * users.length;
+    const carryIn = potCarry;
+    const buyIns = WEEKLY_BUYIN * users.length;
+    const potAmount = carryIn + buyIns;
 
     let leader: string | null = null;
     let rollover = false;
+    let tiedLeaders: string[] = [];
+    let payouts: { name: string; amount: number }[] = [];
+    let houseCut = 0;
 
     if (weekFullyGraded) {
       const maxCorrect = Math.max(...standings.map((s) => s.correct));
-      const leaders = standings.filter((s) => s.correct === maxCorrect);
-      if (leaders.length === 1 && maxCorrect > 0) {
-        leader = leaders[0].name;
-        potCarry = 0;
-      } else {
+      const leaders = standings.filter((s) => s.correct === maxCorrect).map((s) => s.name);
+      const r = resolveWeekPot({ weekNumber: week.weekNumber, carryIn, buyIns, leaders, maxCorrect });
+      payouts = r.payouts;
+      houseCut = r.houseCut;
+      potCarry = r.carryOut;
+      if (leaders.length === 1 && maxCorrect > 0) leader = leaders[0];
+      else {
         rollover = true;
-        potCarry = potAmount;
+        if (maxCorrect > 0) tiedLeaders = leaders;
       }
     }
 
@@ -90,6 +103,12 @@ export async function computeCurrentSeasonStats(seasonYear: number) {
       leader,
       rollover,
       inProgress: !weekFullyGraded,
+      carryIn,
+      buyIns,
+      tiedLeaders,
+      payouts,
+      carryOut: weekFullyGraded ? potCarry : carryIn,
+      houseCut,
       standings,
     });
   }

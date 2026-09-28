@@ -14,6 +14,7 @@ model User {
   createdAt         DateTime                 @default(now())
   picks             Pick[]
   historicalSeasons HistoricalSeasonRecord[]
+  payments          Payment[]
 }
 
 // Summarized (not pick-by-pick) season records from before this app
@@ -143,4 +144,18 @@ model Pick {
   createdAt DateTime @default(now())
 
   @@unique([userId, weekId, gameId, pickType])
+}
+
+// Weekly-pot money actually changing hands, recorded by hand on /admin.
+// Money never moves through the app - this is just the bookkeeping so /pot
+// can show everyone's running balance. Amounts are whole dollars.
+// direction "in" = the player paid the bank; "out" = the bank paid the player.
+model Payment {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  amount    Int
+  direction String
+  note      String?
+  createdAt DateTime @default(now())
 }

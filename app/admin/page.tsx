@@ -14,7 +14,11 @@ import {
   bulkUnlockStaleLocks,
   fixCronJobUrls,
   seedHistoricalSeason2025,
+  recordPayment,
+  deletePayment,
 } from "./actions";
+import { computeLedger } from "@/lib/ledger";
+import { BANKER_NAME } from "@/lib/pot";
 import { formatSpread } from "@/lib/format";
 import { getJobRuns } from "@/lib/jobRun";
 import { getNextScheduledRuns } from "@/lib/cronJobOrg";
@@ -120,6 +124,7 @@ export default async function AdminPage(
   ]);
   const nextRuns = await getNextScheduledRuns();
   const allUsers = await prisma.user.findMany({ orderBy: { name: "asc" } });
+  const ledger = await computeLedger(2026);
 
   return (
     <main>
@@ -132,6 +137,67 @@ export default async function AdminPage(
         </form>
       </div>
       <p className="subtext">Void postponed/cancelled games, or manually fix a score.</p>
+
+      <div className="card card-accent-money">
+        <div className="matchup">Pot payments</div>
+        <div className="divider" />
+        <p style={{ fontSize: "13px", margin: "0 0 8px" }}>
+          Record money as it changes hands - everyone sees the result on <a href="/pot">/pot</a>. Net
+          balances: <strong>negative</strong> = they owe {BANKER_NAME}, <strong>positive</strong> ={" "}
+          {BANKER_NAME} owes them.
+        </p>
+        {ledger.players.map((p) => (
+          <div key={p.userId} className="row-between" style={{ fontSize: "13px", marginBottom: "2px" }}>
+            <span>{p.name}</span>
+            <span className="mono" style={{ color: p.balance < 0 ? "var(--down)" : p.balance > 0 ? "var(--action-soft)" : "var(--up)" }}>
+              {p.balance === 0 ? "settled" : p.balance < 0 ? `owes $${-p.balance}` : `gets $${p.balance}`}
+            </span>
+          </div>
+        ))}
+        <form action={recordPayment} style={{ display: "flex", gap: "6px", flexWrap: "wrap", marginTop: "10px" }}>
+          <select name="userId" className="admin-input" required>
+            {allUsers.map((u) => (
+              <option key={u.id} value={u.id}>
+                {u.name}
+              </option>
+            ))}
+          </select>
+          <select name="direction" className="admin-input">
+            <option value="in">paid {BANKER_NAME}</option>
+            <option value="out">{BANKER_NAME} paid them</option>
+          </select>
+          <input name="amount" type="number" min="1" step="1" placeholder="$" className="admin-input" style={{ width: "70px" }} required />
+          <input name="note" placeholder="note (optional)" className="admin-input" style={{ flex: 1, minWidth: "120px" }} />
+          <button type="submit" className="btn btn-lock" style={{ width: "auto", marginTop: 0 }}>
+            Record
+          </button>
+        </form>
+        {ledger.payments.length > 0 && (
+          <>
+            <div className="divider" />
+            <div className="meta" style={{ marginBottom: "4px" }}>Recorded payments (delete to fix a mistake)</div>
+            {ledger.payments.map((pm) => (
+              <div key={pm.id} className="row-between" style={{ fontSize: "12px", marginBottom: "2px" }}>
+                <span>
+                  {pm.direction === "in" ? `${pm.user.name} paid ${BANKER_NAME}` : `${BANKER_NAME} paid ${pm.user.name}`} $
+                  {pm.amount}
+                  {pm.note ? ` · ${pm.note}` : ""}
+                  <span className="meta">
+                    {" "}
+                    · {pm.createdAt.toLocaleString("en-US", { timeZone: "America/Chicago", month: "short", day: "numeric" })}
+                  </span>
+                </span>
+                <form action={deletePayment}>
+                  <input type="hidden" name="paymentId" value={pm.id} />
+                  <button type="submit" className="btn btn-ghost">
+                    delete
+                  </button>
+                </form>
+              </div>
+            ))}
+          </>
+        )}
+      </div>
 
       <div className="card">
         <div className="matchup">Player links</div>

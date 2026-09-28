@@ -86,8 +86,17 @@ export default function RulesPage() {
         <div className="divider" />
         <p style={{ fontSize: "13px", marginBottom: "10px" }}>
           <strong>$25/week.</strong> Whoever gets the most of their 5 picks correct that week
-          takes the entire pot. Ties don&apos;t split &mdash; the pot rolls into next week and stacks
-          with that week&apos;s buy-ins, so a tie week can turn into a bigger pot down the line.
+          takes the entire pot, including anything that rolled over.
+        </p>
+        <p style={{ fontSize: "13px", marginBottom: "10px" }}>
+          <strong>Ties (starting Week 4):</strong> the tied players split <em>half of that week&apos;s
+          buy-ins</em>. The other half rolls into next week. Money that&apos;s already rolling over is never
+          split in a tie &mdash; only a solo winner takes it. If nobody gets a single pick right, the whole
+          pot rolls. Payouts round down to whole dollars; the leftover cents go toward hosting the site.
+        </p>
+        <p style={{ fontSize: "13px", marginBottom: "10px" }}>
+          <strong>Settling up is net:</strong> your $25 buy-in comes out of anything you win, so only the
+          difference changes hands. See the <a href="/pot">Pot</a> page for everyone&apos;s balance.
         </p>
         <p style={{ fontSize: "13px", margin: 0 }}>
           <strong>$100 for the season</strong> buys into the Cavedogs competition &mdash; your dog pick
@@ -108,9 +117,13 @@ export default function RulesPage() {
           <strong>Board</strong> &mdash; everyone&apos;s picks in one place, updated live. See who&apos;s
           locked what, who&apos;s covering, who&apos;s not.
         </p>
-        <p style={{ fontSize: "13px", margin: 0 }}>
+        <p style={{ fontSize: "13px", marginBottom: "8px" }}>
           <strong>Standings</strong> &mdash; the weekly pot status, season records for every player, and
           the Cavedogs leaderboard.
+        </p>
+        <p style={{ fontSize: "13px", margin: 0 }}>
+          <strong>Pot</strong> &mdash; the current weekly pot, everyone&apos;s running balance (who owes and who
+          gets paid), and a log of every payment.
         </p>
       </div>
     </main>
