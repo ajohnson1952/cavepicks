@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { hapticCelebrate, hapticError, hapticSuccess, hapticTap } from "@/lib/haptics";
 import MoneyShower from "../pick/[slug]/MoneyShower";
 import HapticButton from "../HapticButton";
-import HoldToLock from "../HoldToLock";
+import HoldToLock, { DEFAULT_HOLD_MS } from "../HoldToLock";
 
 type Env = { ios: string | null; standalone: boolean; vibrate: boolean };
 
@@ -26,6 +26,8 @@ export default function LabClient({ renderedAt }: { renderedAt: string }) {
   const [showering, setShowering] = useState(false);
   const [side, setSide] = useState<"home" | "away" | null>(null);
   const [locked, setLocked] = useState(0);
+  const [holdMs, setHoldMs] = useState(DEFAULT_HOLD_MS);
+  const [lastLockVia, setLastLockVia] = useState<"switch" | "fallback" | null>(null);
   const endShower = useCallback(() => setShowering(false), []);
 
   useEffect(() => setEnv(readEnv()), []);
@@ -101,6 +103,8 @@ export default function LabClient({ renderedAt }: { renderedAt: string }) {
         {side && (
           <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
             <HoldToLock
+              holdMs={holdMs}
+              onDebug={setLastLockVia}
               label={`Lock in (${locked}/5 locked)`}
               onLock={() => {
                 const finishing = locked === 4;
@@ -116,6 +120,30 @@ export default function LabClient({ renderedAt }: { renderedAt: string }) {
               }}
             />
           </div>
+        )}
+        <div className="divider" />
+        <div className="meta" style={{ marginBottom: "6px" }}>Hold length (find the longest one that still ticks)</div>
+        <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
+          {[250, 300, 350, 400, 450, 500].map((ms) => (
+            <HapticButton
+              key={ms}
+              className={`btn${holdMs === ms ? " btn-lock" : ""}`}
+              style={{ marginTop: 0, padding: "6px 10px" }}
+              onPress={() => setHoldMs(ms)}
+            >
+              {ms / 1000}s
+            </HapticButton>
+          ))}
+        </div>
+        {lastLockVia && (
+          <p className="meta" style={{ margin: "8px 0 0" }}>
+            Last lock came through:{" "}
+            {lastLockVia === "switch" ? (
+              <span className="pick-win">the switch ✓ (iPhone should have ticked)</span>
+            ) : (
+              <span className="pick-loss">the backup ✗ (iOS treated it as a long press - no tick)</span>
+            )}
+          </p>
         )}
       </div>
 

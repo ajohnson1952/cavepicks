@@ -208,7 +208,8 @@ allowance) - the user upgraded from Neon's free tier in Sep 2026.
 - **Pick page interactions**: tap a selected side again to unselect it
   (deletes the unlocked pick - there's no separate "clear" button). Locking
   is hold-to-lock (`app/HoldToLock.tsx`): hold until the meter fills, then
-  release; moving or letting go early cancels. On iOS the tick/lock happen
+  release; moving or letting go early cancels. Hold length must stay under
+  iOS's ~0.5s long-press cutoff or the release never ticks (0.55s failed). On iOS the tick/lock happen
   on release (the only moment a switch can tick); there's a pointer-up
   fallback so a full hold always locks even if the change event is lost.
 

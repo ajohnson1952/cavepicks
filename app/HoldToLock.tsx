@@ -18,10 +18,25 @@ import { hapticTap } from "@/lib/haptics";
 // long press, onLock still runs from the pointer-up (just without a tick) -
 // a full hold must never silently do nothing.
 
-const HOLD_MS = 550;
+// Must stay UNDER iOS's long-press cutoff (~0.5s): hold a finger down past
+// it and iOS cancels the tap, so the switch never toggles and never ticks
+// (the lock still happens via the pointer-up fallback, just silently).
+// 0.55s was too long on a real iPhone. /lab has a picker to test lengths.
+export const DEFAULT_HOLD_MS = 350;
 const MOVE_SLOP = 10;
 
-export default function HoldToLock({ onLock, label = "Lock in" }: { onLock: () => void; label?: string }) {
+export default function HoldToLock({
+  onLock,
+  label = "Lock in",
+  holdMs = DEFAULT_HOLD_MS,
+  onDebug,
+}: {
+  onLock: () => void;
+  label?: string;
+  holdMs?: number;
+  /** /lab only: reports whether a lock came through the switch (iOS ticked) or the silent fallback */
+  onDebug?: (source: "switch" | "fallback") => void;
+}) {
   const [phase, setPhase] = useState<"idle" | "holding" | "armed">("idle");
   const g = useRef({
     x: 0,
@@ -50,7 +65,7 @@ export default function HoldToLock({ onLock, label = "Lock in" }: { onLock: () =
   return (
     <label
       className={`haptic-toggle btn btn-lock hold-lock${phase !== "idle" ? ` hold-${phase}` : ""}`}
-      style={{ ["--hold-ms" as string]: `${HOLD_MS}ms`, width: "auto", flex: 1 }}
+      style={{ ["--hold-ms" as string]: `${holdMs}ms`, width: "auto", flex: 1 }}
       onPointerDown={(e) => {
         g.current.lastPointerAt = Date.now();
         g.current.x = e.clientX;
@@ -64,7 +79,7 @@ export default function HoldToLock({ onLock, label = "Lock in" }: { onLock: () =
           g.current.armed = true;
           setPhase("armed");
           hapticTap(); // Android buzz at full; no-op on iOS (tick comes on release)
-        }, HOLD_MS);
+        }, holdMs);
       }}
       onPointerMove={(e) => {
         if (!g.current.pointerActive) return;
@@ -85,7 +100,10 @@ export default function HoldToLock({ onLock, label = "Lock in" }: { onLock: () =
         // Normally the switch's change event (right after this) fires the
         // lock and iOS ticks. If it doesn't arrive, lock anyway.
         setTimeout(() => {
-          if (g.current.armed && !g.current.firedFromChange) fire();
+          if (g.current.armed && !g.current.firedFromChange) {
+            onDebug?.("fallback");
+            fire();
+          }
         }, 200);
       }}
       onPointerCancel={() => {
@@ -105,6 +123,7 @@ export default function HoldToLock({ onLock, label = "Lock in" }: { onLock: () =
         onChange={() => {
           if (g.current.armed) {
             g.current.firedFromChange = true;
+            onDebug?.("switch");
             fire();
           } else if (!g.current.pointerActive && Date.now() - g.current.lastPointerAt > 600) {
             // Not from a finger/mouse at all - keyboard (space on the focused
