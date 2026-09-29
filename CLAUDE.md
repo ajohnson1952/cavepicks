@@ -209,7 +209,7 @@ allowance) - the user upgraded from Neon's free tier in Sep 2026.
   (deletes the unlocked pick - there's no separate "clear" button). Locking
   is hold-to-lock (`app/HoldToLock.tsx`): hold until the meter fills, then
   release; moving or letting go early cancels. Hold length must stay under
-  iOS's ~0.5s long-press cutoff or the release never ticks (0.55s failed). On iOS the tick/lock happen
+  iOS's ~0.5s long-press cutoff or the release never ticks (0.5s+ failed; 0.4s is the tested sweet spot). On iOS the tick/lock happen
   on release (the only moment a switch can tick); there's a touch-end
   fallback so a full hold always locks even if the change event is lost.
   Use TOUCH events for this, not pointer events - iOS doesn't deliver

@@ -21,8 +21,9 @@ import { hapticTap } from "@/lib/haptics";
 // Must stay UNDER iOS's long-press cutoff (~0.5s): hold a finger down past
 // it and iOS cancels the tap, so the switch never toggles and never ticks
 // (the lock still happens via the pointer-up fallback, just silently).
-// 0.55s was too long on a real iPhone. /lab has a picker to test lengths.
-export const DEFAULT_HOLD_MS = 350;
+// 0.55s and 0.5s were too long on a real iPhone (finger lifts land past the
+// cutoff); 0.4s tested as the sweet spot. /lab has a picker to test lengths.
+export const DEFAULT_HOLD_MS = 400;
 const MOVE_SLOP = 10;
 
 export default function HoldToLock({
