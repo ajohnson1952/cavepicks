@@ -15,7 +15,7 @@ import { hapticTap } from "@/lib/haptics";
 // the meter fills (navigator.vibrate works there).
 //
 // Fallback: if iOS ever doesn't deliver the switch's change event after a
-// long press, onLock still runs from the pointer-up (just without a tick) -
+// long press, onLock still runs from the touch-end (just without a tick) -
 // a full hold must never silently do nothing.
 
 // Must stay UNDER iOS's long-press cutoff (~0.5s): hold a finger down past
@@ -35,7 +35,7 @@ export default function HoldToLock({
   label?: string;
   holdMs?: number;
   /** /lab only: reports whether a lock came through the switch (iOS ticked) or the silent fallback */
-  onDebug?: (source: "switch" | "fallback") => void;
+  onDebug?: (source: "switch" | "fallback" | "early") => void;
 }) {
   const [phase, setPhase] = useState<"idle" | "holding" | "armed">("idle");
   const g = useRef({
@@ -43,9 +43,9 @@ export default function HoldToLock({
     y: 0,
     timer: 0 as unknown as ReturnType<typeof setTimeout>,
     armed: false,
-    pointerActive: false,
+    active: false,
     firedFromChange: false,
-    lastPointerAt: 0,
+    lastTouchAt: 0,
   });
 
   useEffect(() => () => clearTimeout(g.current.timer), []);
@@ -53,6 +53,7 @@ export default function HoldToLock({
   const reset = () => {
     clearTimeout(g.current.timer);
     g.current.armed = false;
+    g.current.active = false;
     setPhase("idle");
   };
 
@@ -62,54 +63,62 @@ export default function HoldToLock({
     onLock();
   };
 
+  // Touch events, not pointer events: iOS doesn't deliver pointer events to
+  // the switch under the finger (the first version used them - the meter
+  // never filled and the lock fired on any tap). Mouse handlers are for
+  // desktop and skip the compatibility mouse events iOS sends after a touch.
+  const start = (x: number, y: number) => {
+    g.current = { ...g.current, x, y, armed: false, active: true, firedFromChange: false };
+    setPhase("holding");
+    clearTimeout(g.current.timer);
+    g.current.timer = setTimeout(() => {
+      g.current.armed = true;
+      setPhase("armed");
+      hapticTap(); // Android buzz at full; no-op on iOS (tick comes on release)
+    }, holdMs);
+  };
+  const move = (x: number, y: number) => {
+    if (!g.current.active) return;
+    if (Math.abs(x - g.current.x) > MOVE_SLOP || Math.abs(y - g.current.y) > MOVE_SLOP) reset();
+  };
+  const end = () => {
+    if (!g.current.active) return;
+    g.current.active = false;
+    clearTimeout(g.current.timer);
+    if (!g.current.armed) {
+      onDebug?.("early");
+      reset();
+      return;
+    }
+    // Normally the switch's change event (right after this) fires the lock
+    // and iOS ticks. If it doesn't arrive, lock anyway (silently).
+    setTimeout(() => {
+      if (g.current.armed && !g.current.firedFromChange) {
+        onDebug?.("fallback");
+        fire();
+      }
+    }, 250);
+  };
+  const fromMouse = () => Date.now() - g.current.lastTouchAt > 1000;
+
   return (
     <label
       className={`haptic-toggle btn btn-lock hold-lock${phase !== "idle" ? ` hold-${phase}` : ""}`}
       style={{ ["--hold-ms" as string]: `${holdMs}ms`, width: "auto", flex: 1 }}
-      onPointerDown={(e) => {
-        g.current.lastPointerAt = Date.now();
-        g.current.x = e.clientX;
-        g.current.y = e.clientY;
-        g.current.armed = false;
-        g.current.pointerActive = true;
-        g.current.firedFromChange = false;
-        setPhase("holding");
-        clearTimeout(g.current.timer);
-        g.current.timer = setTimeout(() => {
-          g.current.armed = true;
-          setPhase("armed");
-          hapticTap(); // Android buzz at full; no-op on iOS (tick comes on release)
-        }, holdMs);
+      onTouchStart={(e) => {
+        g.current.lastTouchAt = Date.now();
+        start(e.touches[0].clientX, e.touches[0].clientY);
       }}
-      onPointerMove={(e) => {
-        if (!g.current.pointerActive) return;
-        if (Math.abs(e.clientX - g.current.x) > MOVE_SLOP || Math.abs(e.clientY - g.current.y) > MOVE_SLOP) {
-          g.current.pointerActive = false;
-          reset();
-        }
+      onTouchMove={(e) => move(e.touches[0].clientX, e.touches[0].clientY)}
+      onTouchEnd={() => {
+        g.current.lastTouchAt = Date.now();
+        end();
       }}
-      onPointerUp={() => {
-        g.current.lastPointerAt = Date.now();
-        if (!g.current.pointerActive) return;
-        g.current.pointerActive = false;
-        clearTimeout(g.current.timer);
-        if (!g.current.armed) {
-          reset();
-          return;
-        }
-        // Normally the switch's change event (right after this) fires the
-        // lock and iOS ticks. If it doesn't arrive, lock anyway.
-        setTimeout(() => {
-          if (g.current.armed && !g.current.firedFromChange) {
-            onDebug?.("fallback");
-            fire();
-          }
-        }, 200);
-      }}
-      onPointerCancel={() => {
-        g.current.pointerActive = false;
-        reset();
-      }}
+      onTouchCancel={reset}
+      onMouseDown={(e) => fromMouse() && start(e.clientX, e.clientY)}
+      onMouseMove={(e) => fromMouse() && move(e.clientX, e.clientY)}
+      onMouseUp={() => fromMouse() && end()}
+      onMouseLeave={() => fromMouse() && g.current.active && reset()}
       onContextMenu={(e) => e.preventDefault()}
     >
       <span className="hold-fill" aria-hidden="true" />
@@ -121,16 +130,13 @@ export default function HoldToLock({
         checked={false}
         aria-label={`${label} (press and hold)`}
         onChange={() => {
+          // Only a completed hold locks. A change without one (early release,
+          // scroll, stray tap) is ignored - locks are final.
           if (g.current.armed) {
             g.current.firedFromChange = true;
             onDebug?.("switch");
             fire();
-          } else if (!g.current.pointerActive && Date.now() - g.current.lastPointerAt > 600) {
-            // Not from a finger/mouse at all - keyboard (space on the focused
-            // switch). There's no way to "hold" there, so lock directly.
-            onLock();
           }
-          // Otherwise: an early release or a scroll - ignore.
         }}
       />
     </label>

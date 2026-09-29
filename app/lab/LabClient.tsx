@@ -27,7 +27,7 @@ export default function LabClient({ renderedAt }: { renderedAt: string }) {
   const [side, setSide] = useState<"home" | "away" | null>(null);
   const [locked, setLocked] = useState(0);
   const [holdMs, setHoldMs] = useState(DEFAULT_HOLD_MS);
-  const [lastLockVia, setLastLockVia] = useState<"switch" | "fallback" | null>(null);
+  const [lastLockVia, setLastLockVia] = useState<"switch" | "fallback" | "early" | null>(null);
   const endShower = useCallback(() => setShowering(false), []);
 
   useEffect(() => setEnv(readEnv()), []);
@@ -137,11 +137,13 @@ export default function LabClient({ renderedAt }: { renderedAt: string }) {
         </div>
         {lastLockVia && (
           <p className="meta" style={{ margin: "8px 0 0" }}>
-            Last lock came through:{" "}
+            Last hold:{" "}
             {lastLockVia === "switch" ? (
-              <span className="pick-win">the switch ✓ (iPhone should have ticked)</span>
+              <span className="pick-win">locked via the switch ✓ (iPhone should have ticked)</span>
+            ) : lastLockVia === "fallback" ? (
+              <span className="pick-loss">locked via the backup ✗ (iOS treated it as a long press - no tick)</span>
             ) : (
-              <span className="pick-loss">the backup ✗ (iOS treated it as a long press - no tick)</span>
+              <span className="meta">let go before the bar filled - no lock</span>
             )}
           </p>
         )}
