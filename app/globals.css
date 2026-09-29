@@ -775,3 +775,53 @@ html.ptr-enabled body {
     animation: none;
   }
 }
+
+/* Pick-page status that floats at the bottom of the screen instead of
+   sitting inline above the list (which made the page jump on every
+   select/lock). The error sits above the "not locked" note if both show. */
+.pick-float {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  width: calc(100% - 24px);
+  max-width: 616px;
+  bottom: calc(12px + env(safe-area-inset-bottom));
+  z-index: 50;
+  font-size: 12px;
+  line-height: 1.4;
+  padding: 9px 12px;
+  border-radius: 10px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
+  animation: pick-float-in 0.2s ease-out;
+}
+
+.pick-float-note {
+  color: #e0b861;
+  background: #2a2317;
+  border: 1px solid rgba(198, 150, 60, 0.45);
+}
+
+.pick-float-error {
+  bottom: calc(62px + env(safe-area-inset-bottom));
+  color: #ffb3b3;
+  background: #2c1616;
+  border: 1px solid var(--down);
+  cursor: pointer;
+}
+
+@keyframes pick-float-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 8px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pick-float {
+    animation: none;
+  }
+}

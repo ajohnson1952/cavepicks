@@ -238,11 +238,14 @@ export default async function PickPage(
           locked before kickoff and {missedLockCount > 1 ? "don't" : "doesn't"} count this week.
         </p>
       )}
+      {/* Floating (position: fixed), not inline: this appears/disappears as
+          picks are selected and locked, and as an inline banner above the
+          list it shoved every game card up/down mid-tap. */}
       {openPickCount > 0 && isCurrentWeek && (
-        <p className="banner-note">
-          {openPickCount} pick{openPickCount > 1 ? "s are" : " is"} selected but not locked. Lock{" "}
-          {openPickCount > 1 ? "each one" : "it"} before that game&apos;s kickoff or it won&apos;t count.
-        </p>
+        <div className="pick-float pick-float-note" role="status">
+          🔓 {openPickCount} pick{openPickCount > 1 ? "s" : ""} selected but not locked &mdash; lock{" "}
+          {openPickCount > 1 ? "each one" : "it"} before kickoff or it won&apos;t count.
+        </div>
       )}
       {voidedGames.length > 0 && (
         <p className="banner-note">

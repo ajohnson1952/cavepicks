@@ -289,7 +289,16 @@ export default function PickForm({
       )}
 
       {celebrating && <MoneyShower onDone={endCelebration} />}
-      {error && <div className="banner-error">{error}</div>}
+      {/* Floating for the same reason as the "not locked" note in page.tsx -
+          an inline banner here pushed the whole list down. Tap to dismiss. */}
+      {error && (
+        <div className="pick-float pick-float-error" role="alert" onClick={() => setError(null)}>
+          {error}
+          <span className="meta" style={{ marginLeft: "8px", color: "inherit", opacity: 0.7 }}>
+            ✕
+          </span>
+        </div>
+      )}
 
       {games.length === 0 && <p className="subtext">No games in this week&apos;s slate yet.</p>}
       {games.length > 0 && visibleGames.length === 0 && (
