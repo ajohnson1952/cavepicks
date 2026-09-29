@@ -214,6 +214,8 @@ export default async function PickPage(
         You must lock each pick yourself before its game &mdash; the window closes 30 minutes
         before kickoff. Anything not locked by then doesn&apos;t count. Locks are final (only
         the admin can undo one).
+        <br />
+        Tap a selected pick again to unselect it. To lock, hold the lock button until the bar fills, then let go.
         {!isCurrentWeek && (
           <>
             <br />

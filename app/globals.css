@@ -276,6 +276,10 @@ h1 {
   user-select: none;
   -webkit-user-select: none;
   -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  /* Let scrolls (both directions) start immediately instead of the switch
+     trying to claim the drag; also drops double-tap-zoom delay. */
+  touch-action: pan-x pan-y;
 }
 
 .haptic-toggle.btn {
@@ -294,6 +298,7 @@ h1 {
   margin: 0;
   opacity: 0.01;
   cursor: pointer;
+  touch-action: pan-x pan-y;
 }
 
 .haptic-input:disabled {
@@ -824,4 +829,49 @@ html.ptr-enabled body {
   .pick-float {
     animation: none;
   }
+}
+
+/* Hold-to-lock meter (app/HoldToLock.tsx): a fill sweeps left-to-right
+   over --hold-ms while the finger is down; full = "Release to lock". */
+.hold-lock {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.hold-fill {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: rgba(47, 107, 255, 0.35);
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform 0.18s ease-out;
+}
+
+.hold-holding .hold-fill {
+  transform: scaleX(1);
+  transition: transform var(--hold-ms) linear;
+}
+
+.hold-armed {
+  color: var(--ink);
+  border-color: var(--up);
+}
+
+.hold-armed .hold-fill {
+  transform: scaleX(1);
+  background: rgba(61, 220, 122, 0.35);
+  transition: background 0.12s;
+}
+
+.hold-armed .hold-text {
+  animation: hold-pop 0.18s ease-out;
+  display: inline-block;
+}
+
+@keyframes hold-pop {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.08); }
+  100% { transform: scale(1); }
 }

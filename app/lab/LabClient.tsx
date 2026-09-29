@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { hapticCelebrate, hapticError, hapticSuccess, hapticTap } from "@/lib/haptics";
 import MoneyShower from "../pick/[slug]/MoneyShower";
 import HapticButton from "../HapticButton";
+import HoldToLock from "../HoldToLock";
 
 type Env = { ios: string | null; standalone: boolean; vibrate: boolean };
 
@@ -79,7 +80,8 @@ export default function LabClient({ renderedAt }: { renderedAt: string }) {
       <div className="card">
         <div className="matchup">🏈 Fake pick</div>
         <p className="subtext" style={{ margin: "4px 0 0" }}>
-          Same buttons and haptics as the real pick page. Lock 5 to trigger the celebration.
+          Same buttons and haptics as the real pick page. Tap a side again to unselect it; hold the lock button
+          until it fills, then let go. Lock 5 to trigger the celebration.
         </p>
         <div className="pill-grid">
           {(["away", "home"] as const).map((s) => (
@@ -88,7 +90,7 @@ export default function LabClient({ renderedAt }: { renderedAt: string }) {
               className={`pill-btn${side === s ? " selected" : ""}`}
               onPress={() => {
                 hapticTap();
-                setSide(s);
+                setSide((cur) => (cur === s ? null : s)); // tap again to unselect
               }}
             >
               <div className="pill-label">{s === "away" ? "Cavemen" : "Dinosaurs"}</div>
@@ -98,34 +100,21 @@ export default function LabClient({ renderedAt }: { renderedAt: string }) {
         </div>
         {side && (
           <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
-            <HapticButton
-              className="btn btn-lock"
-              style={{ flex: 1 }}
-              onPress={() => {
+            <HoldToLock
+              label={`Lock in (${locked}/5 locked)`}
+              onLock={() => {
                 const finishing = locked === 4;
                 if (finishing) {
                   hapticCelebrate();
                   setShowering(true);
                   setLocked(0);
                 } else {
-                  hapticTap();
-                  setTimeout(hapticSuccess, 250); // mimics the real server round-trip
+                  hapticSuccess();
                   setLocked((n) => n + 1);
                 }
                 setSide(null);
               }}
-            >
-              Lock in ({locked}/5 locked)
-            </HapticButton>
-            <HapticButton
-              className="btn btn-ghost"
-              onPress={() => {
-                hapticTap();
-                setSide(null);
-              }}
-            >
-              clear
-            </HapticButton>
+            />
           </div>
         )}
       </div>

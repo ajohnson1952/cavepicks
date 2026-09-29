@@ -6,6 +6,7 @@ import { hapticCelebrate, hapticError, hapticSuccess, hapticTap } from "@/lib/ha
 import MoneyShower from "./MoneyShower";
 import { formatSpread, formatOdds, bookLabel } from "@/lib/format";
 import HapticButton from "../../HapticButton";
+import HoldToLock from "../../HoldToLock";
 
 type Snap = {
   spreadHome: number | null;
@@ -193,9 +194,26 @@ export default function PickForm({
     setDogChoice(init.dog);
   }, [games]);
 
+  // Tapping the already-selected side again unselects it (deletes the
+  // unlocked pick) - replaces the old separate "clear" button.
+  async function unselect(pickType: "SPREAD" | "TOTAL" | "DOG", gameId: string, restore: () => void) {
+    const res = await clearPick(slug, gameId, pickType);
+    if (res.error) {
+      hapticError();
+      setError(res.error);
+      restore();
+    } else {
+      setError(null);
+    }
+  }
+
   async function pickSpread(g: GameView, value: "home" | "away") {
     hapticTap();
     const prev = spreadChoice[g.id];
+    if (prev === value) {
+      setSpreadChoice((s) => ({ ...s, [g.id]: undefined }));
+      return unselect("SPREAD", g.id, () => setSpreadChoice((s) => ({ ...s, [g.id]: prev })));
+    }
     setSpreadChoice((s) => ({ ...s, [g.id]: value }));
     const res = await autosaveSelection(slug, g.id, "SPREAD", value === "home" ? g.homeTeam : g.awayTeam);
     if (res.error) {
@@ -210,6 +228,10 @@ export default function PickForm({
   async function pickTotal(g: GameView, value: "over" | "under") {
     hapticTap();
     const prev = totalChoice[g.id];
+    if (prev === value) {
+      setTotalChoice((s) => ({ ...s, [g.id]: undefined }));
+      return unselect("TOTAL", g.id, () => setTotalChoice((s) => ({ ...s, [g.id]: prev })));
+    }
     setTotalChoice((s) => ({ ...s, [g.id]: value }));
     const res = await autosaveSelection(slug, g.id, "TOTAL", value);
     if (res.error) {
@@ -225,6 +247,10 @@ export default function PickForm({
     if (!g.snap?.underdogTeam) return;
     hapticTap();
     const prev = dogChoice;
+    if (prev === `${g.id}|${g.snap.underdogTeam}`) {
+      setDogChoice(undefined);
+      return unselect("DOG", g.id, () => setDogChoice(prev));
+    }
     setDogChoice(`${g.id}|${g.snap.underdogTeam}`);
     const res = await autosaveSelection(slug, g.id, "DOG", g.snap.underdogTeam);
     if (res.error) {
@@ -443,10 +469,8 @@ export default function PickForm({
                     {spreadChoice[g.id] && (
                       <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
                         {isCurrentWeek ? (
-                          <HapticButton
-                            className="btn btn-lock"
-                            style={{ width: "auto", flex: 1 }}
-                            onPress={async () => {
+                          <HoldToLock
+                              onLock={async () => {
                               const finishing = beginLock("side");
                               const isHome = spreadChoice[g.id] === "home";
                               const value = isHome ? g.homeTeam : g.awayTeam;
@@ -463,23 +487,11 @@ export default function PickForm({
                                 else hapticSuccess();
                                 setError(null);
                               }
-                            }}
-                          >
-                            Lock in
-                          </HapticButton>
+                              }}
+                            />
                         ) : (
                           <span className="meta">Locking opens once this is the current week</span>
                         )}
-                        <HapticButton
-                          className="btn btn-ghost"
-                          onPress={() => {
-                            hapticTap();
-                            setSpreadChoice((s) => ({ ...s, [g.id]: undefined }));
-                            if (g.spread.pickId) clearPick(slug, g.id, "SPREAD");
-                          }}
-                        >
-                          clear
-                        </HapticButton>
                       </div>
                     )}
                   </>
@@ -546,10 +558,8 @@ export default function PickForm({
                     {totalChoice[g.id] && (
                       <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
                         {isCurrentWeek ? (
-                          <HapticButton
-                            className="btn btn-lock"
-                            style={{ width: "auto", flex: 1 }}
-                            onPress={async () => {
+                          <HoldToLock
+                              onLock={async () => {
                               const finishing = beginLock("side");
                               const value = totalChoice[g.id];
                               if (!value) return;
@@ -565,23 +575,11 @@ export default function PickForm({
                                 else hapticSuccess();
                                 setError(null);
                               }
-                            }}
-                          >
-                            Lock in
-                          </HapticButton>
+                              }}
+                            />
                         ) : (
                           <span className="meta">Locking opens once this is the current week</span>
                         )}
-                        <HapticButton
-                          className="btn btn-ghost"
-                          onPress={() => {
-                            hapticTap();
-                            setTotalChoice((s) => ({ ...s, [g.id]: undefined }));
-                            if (g.total.pickId) clearPick(slug, g.id, "TOTAL");
-                          }}
-                        >
-                          clear
-                        </HapticButton>
                       </div>
                     )}
                   </>
@@ -652,10 +650,8 @@ export default function PickForm({
                         {dogChoice === `${g.id}|${g.snap?.underdogTeam}` && (
                           <div style={{ display: "flex", gap: "10px", alignItems: "center", marginTop: "8px" }}>
                             {isCurrentWeek ? (
-                              <HapticButton
-                                className="btn btn-lock"
-                                style={{ width: "auto", flex: 1 }}
-                                onPress={async () => {
+                              <HoldToLock
+                                  onLock={async () => {
                                   const finishing = beginLock("dog");
                                   if (!g.snap?.underdogTeam) return;
                                   const isHome = g.snap.underdogTeam === g.homeTeam;
@@ -681,23 +677,11 @@ export default function PickForm({
                                     else hapticSuccess();
                                     setError(null);
                                   }
-                                }}
-                              >
-                                Lock in
-                              </HapticButton>
+                                  }}
+                                />
                             ) : (
                               <span className="meta">Locking opens once this is the current week</span>
                             )}
-                            <HapticButton
-                              className="btn btn-ghost"
-                              onPress={() => {
-                                hapticTap();
-                                setDogChoice(undefined);
-                                if (g.dog?.pickId) clearPick(slug, g.id, "DOG");
-                              }}
-                            >
-                              clear
-                            </HapticButton>
                           </div>
                         )}
                       </>

@@ -15,10 +15,12 @@ import { useRef } from "react";
 // Scroll guard: unlike a <button>, a switch does NOT cancel when the finger
 // moves - it can be swiped to toggle, and a tap that stops a momentum
 // scroll toggles it too. On a long list of pick buttons that meant
-// scrolling kept accidentally selecting things. So each touch is watched:
-// if the finger travels more than MOVE_SLOP px, or the touch began while the
-// page was still scrolling, the switch is disabled for the rest of that
-// touch (no toggle, no tick) and any change that slips through is ignored.
+// scrolling kept accidentally selecting things. So each touch is watched,
+// and if the finger travels more than MOVE_SLOP px (or the touch began while
+// the page was still gliding) the resulting change is simply ignored.
+// NOTE: don't disable the switch mid-touch to block it instead - that made
+// iOS swallow the gesture, so the first swipe wouldn't scroll ("sticky").
+// CSS touch-action: pan-x pan-y on .haptic-toggle lets pans start at once.
 //
 // Android gets its buzz from lib/haptics.ts (navigator.vibrate), which the
 // onPress handlers already call - don't vibrate here too.
@@ -53,13 +55,10 @@ export default function HapticButton({
   label?: string;
   children: React.ReactNode;
 }) {
-  const inputRef = useRef<HTMLInputElement>(null);
   const touch = useRef({ active: false, x: 0, y: 0, cancelled: false });
-
-  const suppress = () => {
-    touch.current.cancelled = true;
-    if (inputRef.current) inputRef.current.disabled = true;
-  };
+  const endTouch = () =>
+    // Keep the verdict until this touch's change event has fired.
+    setTimeout(() => (touch.current.active = false), 350);
 
   return (
     <label
@@ -69,35 +68,28 @@ export default function HapticButton({
       aria-disabled={disabled || undefined}
       onTouchStart={(e) => {
         const t = e.touches[0];
-        touch.current = { active: true, x: t.clientX, y: t.clientY, cancelled: false };
-        if (inputRef.current) inputRef.current.disabled = !!disabled;
-        if (Date.now() - lastScrollAt < MOMENTUM_MS) suppress();
+        touch.current = {
+          active: true,
+          x: t.clientX,
+          y: t.clientY,
+          cancelled: Date.now() - lastScrollAt < MOMENTUM_MS,
+        };
       }}
       onTouchMove={(e) => {
         if (touch.current.cancelled) return;
         const t = e.touches[0];
         if (Math.abs(t.clientX - touch.current.x) > MOVE_SLOP || Math.abs(t.clientY - touch.current.y) > MOVE_SLOP) {
-          suppress();
+          touch.current.cancelled = true;
         }
       }}
-      onTouchEnd={() => {
-        // Re-arm after this touch's (suppressed) change would have fired.
-        setTimeout(() => {
-          touch.current.active = false;
-          if (inputRef.current) inputRef.current.disabled = !!disabled;
-        }, 350);
-      }}
+      onTouchEnd={endTouch}
       onTouchCancel={() => {
-        suppress();
-        setTimeout(() => {
-          touch.current.active = false;
-          if (inputRef.current) inputRef.current.disabled = !!disabled;
-        }, 350);
+        touch.current.cancelled = true;
+        endTouch();
       }}
     >
       {children}
       <input
-        ref={inputRef}
         type="checkbox"
         {...{ switch: "" }}
         className="haptic-input"
