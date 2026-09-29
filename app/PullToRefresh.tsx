@@ -108,7 +108,8 @@ export default function PullToRefresh({ children }: { children: React.ReactNode 
         }
         s.decided = true;
       }
-      e.preventDefault(); // we own this gesture now - no page scroll
+      // No preventDefault: at scrollY 0 with iOS's own bounce turned off
+      // (html.ptr-enabled), a downward pull has nothing to scroll anyway.
       s.pull = damp(Math.max(0, dy));
       if (!s.crossed && s.pull >= THRESHOLD) {
         s.crossed = true;
@@ -138,7 +139,10 @@ export default function PullToRefresh({ children }: { children: React.ReactNode 
     };
 
     document.addEventListener("touchstart", onStart, { passive: true });
-    document.addEventListener("touchmove", onMove, { passive: false });
+    // MUST stay passive. A non-passive (blocking) touchmove on the whole
+    // document made iOS wait on JS before every scroll could start - the
+    // site felt "sticky", worst right after a pick saved and React was busy.
+    document.addEventListener("touchmove", onMove, { passive: true });
     document.addEventListener("touchend", onEnd);
     document.addEventListener("touchcancel", onEnd);
     return () => {

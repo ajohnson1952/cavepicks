@@ -193,6 +193,10 @@ allowance) - the user upgraded from Neon's free tier in Sep 2026.
   `.ptr-content` at rest, or every `position: fixed` element inside it (the
   /guide modal) gets positioned relative to the wrapper instead of the
   screen. Add `data-no-ptr` to any overlay that should ignore the gesture.
+  Its document `touchmove` listener MUST be passive - a blocking one made
+  every scroll on the site wait on JS ("sticky" scrolling). It doesn't need
+  preventDefault: `html.ptr-enabled` turns off iOS's bounce, so a pull at
+  the top has nothing to scroll.
 - **Haptics**: iOS web has NO haptics API and ignores every programmatic
   trick (script-clicking a hidden `<input type="checkbox" switch>` is
   silent - confirmed on a real iPhone, iOS 18.7 standalone, and the same
