@@ -26,6 +26,8 @@ export default function LabClient({ renderedAt }: { renderedAt: string }) {
   const [showering, setShowering] = useState(false);
   const [side, setSide] = useState<"home" | "away" | null>(null);
   const [locked, setLocked] = useState(0);
+  const [plainTaps, setPlainTaps] = useState(0);
+  const [hapticTaps, setHapticTaps] = useState(0);
   const [holdMs, setHoldMs] = useState(DEFAULT_HOLD_MS);
   const [lastLockVia, setLastLockVia] = useState<"switch" | "fallback" | "early" | null>(null);
   const endShower = useCallback(() => setShowering(false), []);
@@ -147,6 +149,39 @@ export default function LabClient({ renderedAt }: { renderedAt: string }) {
             )}
           </p>
         )}
+      </div>
+
+      <div className="card">
+        <div className="matchup">🧈 Flick test</div>
+        <p className="subtext" style={{ margin: "4px 0 0" }}>
+          Quick-flick the page with your finger starting on each list. Does one scroll smoothly and the other feel
+          dead? Taps count below so you can see if a flick got mistaken for a tap.
+        </p>
+        <div className="row-between" style={{ marginTop: "10px" }}>
+          <strong style={{ fontSize: "13px" }}>A · normal buttons (no tick)</strong>
+          <span className="meta">taps: {plainTaps}</span>
+        </div>
+        <div className="pill-grid">
+          {Array.from({ length: 16 }).map((_, i) => (
+            <button key={i} type="button" className="pill-btn" onClick={() => setPlainTaps((n) => n + 1)}>
+              <div className="pill-label">Normal {i + 1}</div>
+              <div className="pill-value">-3.5</div>
+            </button>
+          ))}
+        </div>
+        <div className="divider" />
+        <div className="row-between">
+          <strong style={{ fontSize: "13px" }}>B · haptic buttons (tick)</strong>
+          <span className="meta">taps: {hapticTaps}</span>
+        </div>
+        <div className="pill-grid">
+          {Array.from({ length: 16 }).map((_, i) => (
+            <HapticButton key={i} className="pill-btn" onPress={() => setHapticTaps((n) => n + 1)}>
+              <div className="pill-label">Haptic {i + 1}</div>
+              <div className="pill-value">-3.5</div>
+            </HapticButton>
+          ))}
+        </div>
       </div>
 
       <div className="card">
