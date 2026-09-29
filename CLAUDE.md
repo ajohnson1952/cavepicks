@@ -209,6 +209,11 @@ allowance) - the user upgraded from Neon's free tier in Sep 2026.
   HapticButton ignores touches that move >10px or that stop a momentum
   scroll (switches don't self-cancel on scroll like buttons do) - but it
   must never disable the switch mid-touch; that made iOS eat the gesture.
+  **Never put HapticButton on big targets that tile a scrolling area** (pick
+  pills, /guide game bars): a quick flick that starts on an iOS switch is
+  swallowed as a switch-drag, so the list won't fling. A/B tested on /lab's
+  flick test - plain buttons smooth, switch-covered ones dead. Keep ticks on
+  small controls and HoldToLock; pick selection uses plain buttons.
 - **Pick page interactions**: tap a selected side again to unselect it
   (deletes the unlocked pick - there's no separate "clear" button). Locking
   is hold-to-lock (`app/HoldToLock.tsx`): hold until the meter fills, then

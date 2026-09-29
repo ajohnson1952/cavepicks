@@ -89,17 +89,18 @@ export default function LabClient({ renderedAt }: { renderedAt: string }) {
         </p>
         <div className="pill-grid">
           {(["away", "home"] as const).map((s) => (
-            <HapticButton
+            <button
+              type="button"
               key={s}
               className={`pill-btn${side === s ? " selected" : ""}`}
-              onPress={() => {
+              onClick={() => {
                 hapticTap();
                 setSide((cur) => (cur === s ? null : s)); // tap again to unselect
               }}
             >
               <div className="pill-label">{s === "away" ? "Cavemen" : "Dinosaurs"}</div>
               <div className="pill-value">{s === "away" ? "+7.5" : "-7.5"}</div>
-            </HapticButton>
+            </button>
           ))}
         </div>
         {side && (

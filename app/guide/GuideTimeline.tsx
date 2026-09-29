@@ -74,8 +74,9 @@ function GameBar({ g, expanded, onToggle }: { g: GuideGame; expanded: boolean; o
     g.homeScore != null && g.awayScore != null ? `${g.away} ${g.awayScore}–${g.homeScore} ${g.home}` : null;
 
   return (
-    <HapticButton
-      onPress={onToggle}
+    <button
+      type="button"
+      onClick={onToggle}
       className={g.phase === "live" ? "guide-bar guide-bar-live" : "guide-bar"}
       style={{
         position: "absolute",
@@ -103,7 +104,7 @@ function GameBar({ g, expanded, onToggle }: { g: GuideGame; expanded: boolean; o
           ))}
         </div>
       )}
-    </HapticButton>
+    </button>
   );
 }
 

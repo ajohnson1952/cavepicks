@@ -176,7 +176,7 @@ export default function PickForm({
 
   // Would this lock finish the week (5 locked side picks + a locked dog)?
   // Decided on the tap, before the server round-trip, so Android's
-  // celebration buzz fires with the tap (iPhones get HapticButton's tick).
+  // celebration buzz fires with the tap (iPhones get HoldToLock's release tick).
   const lockedSides = games.reduce((n, g) => n + (g.spread.locked ? 1 : 0) + (g.total.locked ? 1 : 0), 0);
   const dogLocked = hasLockedDog || games.some((g) => g.dog?.locked);
   function beginLock(kind: "side" | "dog"): boolean {
@@ -433,9 +433,10 @@ export default function PickForm({
                 ) : (
                   <>
                     <div className="pill-grid">
-                      <HapticButton
+                      <button
+                        type="button"
                         className={`pill-btn${spreadChoice[g.id] === "away" ? " selected" : ""}`}
-                        onPress={() => pickSpread(g, "away")}
+                        onClick={() => pickSpread(g, "away")}
                       >
                         <div className="pill-label">
                           <TeamLogo src={g.awayLogo} alt={g.awayTeam} />
@@ -448,10 +449,11 @@ export default function PickForm({
                         {g.snap.spreadAwayPrice != null && (
                           <div className="pill-juice">{formatOdds(g.snap.spreadAwayPrice)}</div>
                         )}
-                      </HapticButton>
-                      <HapticButton
+                      </button>
+                      <button
+                        type="button"
                         className={`pill-btn${spreadChoice[g.id] === "home" ? " selected" : ""}`}
-                        onPress={() => pickSpread(g, "home")}
+                        onClick={() => pickSpread(g, "home")}
                       >
                         <div className="pill-label">
                           <TeamLogo src={g.homeLogo} alt={g.homeTeam} />
@@ -464,7 +466,7 @@ export default function PickForm({
                         {g.snap.spreadHomePrice != null && (
                           <div className="pill-juice">{formatOdds(g.snap.spreadHomePrice)}</div>
                         )}
-                      </HapticButton>
+                      </button>
                     </div>
                     {spreadChoice[g.id] && (
                       <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
@@ -528,9 +530,10 @@ export default function PickForm({
                 ) : (
                   <>
                     <div className="pill-grid">
-                      <HapticButton
+                      <button
+                        type="button"
                         className={`pill-btn${totalChoice[g.id] === "over" ? " selected" : ""}`}
-                        onPress={() => pickTotal(g, "over")}
+                        onClick={() => pickTotal(g, "over")}
                       >
                         <div className="pill-label">Over</div>
                         <div className="pill-value">
@@ -540,10 +543,11 @@ export default function PickForm({
                         {g.snap.totalOverPrice != null && (
                           <div className="pill-juice">{formatOdds(g.snap.totalOverPrice)}</div>
                         )}
-                      </HapticButton>
-                      <HapticButton
+                      </button>
+                      <button
+                        type="button"
                         className={`pill-btn${totalChoice[g.id] === "under" ? " selected" : ""}`}
-                        onPress={() => pickTotal(g, "under")}
+                        onClick={() => pickTotal(g, "under")}
                       >
                         <div className="pill-label">Under</div>
                         <div className="pill-value">
@@ -553,7 +557,7 @@ export default function PickForm({
                         {g.snap.totalUnderPrice != null && (
                           <div className="pill-juice">{formatOdds(g.snap.totalUnderPrice)}</div>
                         )}
-                      </HapticButton>
+                      </button>
                     </div>
                     {totalChoice[g.id] && (
                       <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
@@ -629,11 +633,12 @@ export default function PickForm({
                       ) : null
                     ) : hasLockedDog ? null : (
                       <>
-                        <HapticButton
+                        <button
+                          type="button"
                           className={`pill-btn${
                             dogChoice === `${g.id}|${g.snap?.underdogTeam}` ? " selected" : ""
                           }`}
-                          onPress={() => pickDog(g)}
+                          onClick={() => pickDog(g)}
                         >
                           <div className="pill-label">Dog pick</div>
                           <div className="pill-value">
@@ -646,7 +651,7 @@ export default function PickForm({
                               {formatOdds(g.snap?.underdogTeam === g.homeTeam ? g.snap?.mlHome : g.snap?.mlAway)} ML
                             </div>
                           )}
-                        </HapticButton>
+                        </button>
                         {dogChoice === `${g.id}|${g.snap?.underdogTeam}` && (
                           <div style={{ display: "flex", gap: "10px", alignItems: "center", marginTop: "8px" }}>
                             {isCurrentWeek ? (
