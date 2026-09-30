@@ -1,6 +1,6 @@
 // Weekly-pot money ledger for /pot. Everything is NET: a player's $25
-// buy-in is charged each week, and anything they win that week is credited
-// against it - so a $68 tie share shows up as +$43, and only the difference
+// buy-in is charged for each SETTLED week (the league settles up after a
+// week ends), and anything they win that week is credited against it - so a $68 tie share shows up as +$43, and only the difference
 // ever actually changes hands. Payments recorded on /admin (the Payment
 // table) settle it. Weeks before TIE_SPLIT_START_WEEK were settled outside
 // the app under the old rules and aren't part of this ledger at all.
@@ -37,15 +37,21 @@ export async function computeLedger(seasonYear: number) {
   const { users, weekResults, currentWeekNumber } = await computeCurrentSeasonStats(seasonYear);
   const ledgerWeeks: WeekResult[] = weekResults.filter((w) => w.weekNumber >= TIE_SPLIT_START_WEEK);
 
+  const settledWeeks = ledgerWeeks.filter((w) => !w.inProgress);
+  const lastSettledWeek = settledWeeks.length ? settledWeeks[settledWeeks.length - 1].weekNumber : null;
+
   const payments = await prisma.payment.findMany({
     include: { user: true },
     orderBy: { createdAt: "desc" },
   });
 
   const players: LedgerPlayer[] = users.map((u) => {
-    const weeks = ledgerWeeks.map((w) => {
+    // The league settles up AFTER each week ends, not in advance - so a
+    // week's buy-in (and any winnings) only hit balances once that week is
+    // settled. An in-progress week contributes nothing yet.
+    const weeks = settledWeeks.map((w) => {
       const won = w.payouts.find((p) => p.name === u.name)?.amount ?? 0;
-      return { weekNumber: w.weekNumber, inProgress: w.inProgress, buyIn: WEEKLY_BUYIN, won, net: won - WEEKLY_BUYIN };
+      return { weekNumber: w.weekNumber, inProgress: false, buyIn: WEEKLY_BUYIN, won, net: won - WEEKLY_BUYIN };
     });
     const netFromWeeks = weeks.reduce((a, w) => a + w.net, 0);
     const bank = isBanker(u.name);
@@ -85,14 +91,15 @@ export async function computeLedger(seasonYear: number) {
   // league right now. Follows from the books balancing: every dollar charged
   // as a buy-in either went out as winnings, is kept as rounding, or is
   // still sitting in the pot. So cash on hand =
-  //   pot not yet paid out (rollover + this week's buy-ins, or just the
-  //   rollover once this week has settled)
+  //   pot not yet paid out (money from settled weeks still in the pot:
+  //   the rollover into the current week, or its rollover out once it has
+  //   settled - the current week's own buy-ins aren't charged yet)
   //   + credits held for players (positive balances)
   //   + rounding kept
   //   - buy-ins not collected yet (negative balances).
   // The banker's own buy-ins count as deposited (their offset entry).
   const current = weekResults.find((w) => w.weekNumber === currentWeekNumber) ?? null;
-  const potPending = current ? (current.inProgress ? current.potAmount : current.carryOut) : 0;
+  const potPending = current ? (current.inProgress ? current.carryIn : current.carryOut) : 0;
   const others = players.filter((p) => !p.isBank);
   const creditsHeld = others.filter((p) => p.balance > 0).reduce((a, p) => a + p.balance, 0);
   const uncollected = others.filter((p) => p.balance < 0).reduce((a, p) => a - p.balance, 0);
@@ -110,6 +117,7 @@ export async function computeLedger(seasonYear: number) {
     ledgerWeeks,
     weekResults,
     currentWeekNumber,
+    lastSettledWeek,
     houseTotal,
     bankCheck,
     userCount: users.length,

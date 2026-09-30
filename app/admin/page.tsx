@@ -167,7 +167,7 @@ export default async function AdminPage(
                     <input type="hidden" name="userId" value={p.userId} />
                     <input type="hidden" name="direction" value={p.balance < 0 ? "in" : "out"} />
                     <input type="hidden" name="amount" value={Math.abs(p.balance)} />
-                    <input type="hidden" name="note" value={`Week ${ledger.currentWeekNumber} settle-up`} />
+                    <input type="hidden" name="note" value={`Week ${ledger.lastSettledWeek ?? ledger.currentWeekNumber} settle-up`} />
                     <button type="submit" className="btn btn-ghost">
                       {p.balance < 0 ? "mark paid" : "cash out"}
                     </button>

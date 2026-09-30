@@ -71,6 +71,8 @@ allowance) - the user upgraded from Neon's free tier in Sep 2026.
 - Settling up is **net** (buy-in comes out of winnings). `/pot` shows each
   player's running balance from Week 4 on (`lib/ledger.ts`), settled by
   `Payment` rows the admin records on `/admin`. Money never moves in-app.
+  Buy-ins are charged only for SETTLED weeks - the league settles up after
+  each week ends, not in advance.
   The banker (`BANKER_NAME`, currently Johnson) also plays: their row gets an
   automatic offsetting entry so it's always even, and any real Payment rows
   on the banker are ignored. `/pot`'s "Bank check" = pot not yet paid out +

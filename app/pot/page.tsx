@@ -72,7 +72,8 @@ export default async function PotPage() {
         <div className="matchup">🧾 How settling up works</div>
         <div className="divider" />
         <p style={{ fontSize: "13px", margin: "0 0 8px", lineHeight: 1.5 }}>
-          <strong>Everything is net.</strong> Each week you owe {money(WEEKLY_BUYIN)}. If you win or split a
+          <strong>Everything is net, and you settle up after the week ends.</strong> Each week you owe{" "}
+          {money(WEEKLY_BUYIN)}. If you win or split a
           pot, your {money(WEEKLY_BUYIN)} comes out of your winnings instead of being paid separately. Example:
           a {money(43)} tie share is <strong>+{money(43 - WEEKLY_BUYIN)}</strong> to you, not {money(43)} in and{" "}
           {money(WEEKLY_BUYIN)} out.
@@ -145,7 +146,8 @@ export default async function PotPage() {
         )}
         <p className="meta" style={{ margin: "8px 0 0" }}>
           Weeks net = winnings minus {money(WEEKLY_BUYIN)}/week since Week {TIE_SPLIT_START_WEEK}. Paid = sent to{" "}
-          {BANKER_NAME}. Received = sent by {BANKER_NAME}. The current week&apos;s buy-in counts as soon as the week starts.
+          {BANKER_NAME}. Received = sent by {BANKER_NAME}. Each week&apos;s {money(WEEKLY_BUYIN)} is charged once that week is
+          settled &mdash; settle up after the week ends.
         </p>
       </div>
 
@@ -174,7 +176,7 @@ export default async function PotPage() {
           </div>
         </div>
         <p className="meta" style={{ margin: "8px 0 0" }}>
-          Counts {BANKER_NAME}&apos;s own buy-ins as already in. If this matches what&apos;s actually in the kitty, the books
+          Through the last settled week. Counts {BANKER_NAME}&apos;s own buy-ins as already in. If this matches what&apos;s actually in the kitty, the books
           balance.
         </p>
       </div>

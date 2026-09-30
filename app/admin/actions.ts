@@ -386,7 +386,7 @@ export async function deletePayment(formData: FormData) {
 // their buy-in. Winners with a positive balance are left alone.
 export async function settleAllOwing() {
   if (!(await isAuthed())) return;
-  const { players, currentWeekNumber } = await computeLedger(2026);
+  const { players, currentWeekNumber, lastSettledWeek } = await computeLedger(2026);
   const owing = players.filter((p) => !isBanker(p.name) && p.balance < 0);
   if (owing.length === 0) return;
   await prisma.payment.createMany({
@@ -394,7 +394,7 @@ export async function settleAllOwing() {
       userId: p.userId,
       direction: "in",
       amount: -p.balance,
-      note: `Week ${currentWeekNumber} settle-up`,
+      note: `Week ${lastSettledWeek ?? currentWeekNumber} settle-up`,
     })),
   });
   revalidatePath("/admin");
