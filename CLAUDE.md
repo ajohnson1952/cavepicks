@@ -65,6 +65,9 @@ allowance) - the user upgraded from Neon's free tier in Sep 2026.
   round DOWN to whole dollars; the leftover cents are the banker's (for
   hosting), not rolled. Weeks 1-3 keep the old full-rollover rule.
   Math: `resolveWeekPot()` in `lib/pot.ts`.
+- A week's pot settles once every game with a LOCKED pick is final and
+  every game in the week has kicked off (`lib/seasonStats.ts`) - it does not
+  wait on unpicked games (one unmatched unpicked game once froze Week 4).
 - Settling up is **net** (buy-in comes out of winnings). `/pot` shows each
   player's running balance from Week 4 on (`lib/ledger.ts`), settled by
   `Payment` rows the admin records on `/admin`. Money never moves in-app.

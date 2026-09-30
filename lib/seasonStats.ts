@@ -57,7 +57,20 @@ export async function computeCurrentSeasonStats(seasonYear: number) {
   for (const week of weeks) {
     const weekGames = allGames.filter((g) => g.weekId === week.id);
     const countableGames = weekGames.filter((g) => !g.voided);
-    const weekFullyGraded = countableGames.length > 0 && countableGames.every((g) => g.isFinal);
+    // A week's pot is settled once nothing can change it anymore:
+    //  - every game with a LOCKED pick is final (only locked picks count), and
+    //  - every game has kicked off, so no one can still lock a new pick.
+    // It deliberately does NOT wait on games nobody picked - one unpicked
+    // game ESPN never matched ("William and Mary" vs "William & Mary") used
+    // to leave a whole week stuck "in progress" with its pot unpaid.
+    const lockedGameIds = new Set(
+      allPicks.filter((p) => p.weekId === week.id && p.locked).map((p) => p.gameId)
+    );
+    const now = Date.now();
+    const weekFullyGraded =
+      countableGames.length > 0 &&
+      countableGames.every((g) => g.commenceTime.getTime() <= now) &&
+      countableGames.filter((g) => lockedGameIds.has(g.id)).every((g) => g.isFinal);
 
     const weekPicks = allPicks.filter(
       (p) => p.weekId === week.id && (p.pickType === "SPREAD" || p.pickType === "TOTAL")

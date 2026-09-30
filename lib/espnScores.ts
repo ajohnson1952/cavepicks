@@ -70,7 +70,12 @@ function cleanBase(name: string): string {
     .trim()
     .replace(/['\u2019]/g, "")
     .replace(/\./g, "")
-    .replace(/\s+/g, " ");
+    // "&" vs "and": the odds feed says "William and Mary", ESPN "William &
+    // Mary" - they never matched, so that game never went final and it held
+    // up a whole week's pot (Week 4, 2026). Normalize both to "and".
+    .replace(/\s*&\s*/g, " and ")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 // Splits into words on both spaces AND hyphens, so "Arkansas-Pine Bluff"
