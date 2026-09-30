@@ -1,5 +1,5 @@
 import { computeLedger } from "@/lib/ledger";
-import { BANKER_NAME, isBanker, TIE_SPLIT_START_WEEK, WEEKLY_BUYIN } from "@/lib/pot";
+import { BANKER_NAME, TIE_SPLIT_START_WEEK, WEEKLY_BUYIN } from "@/lib/pot";
 
 export const dynamic = "force-dynamic";
 
@@ -29,14 +29,14 @@ function namesList(names: string[]): string {
 }
 
 export default async function PotPage() {
-  const { players, payments, ledgerWeeks, weekResults, currentWeekNumber, houseTotal } = await computeLedger(2026);
+  const { players, payments, ledgerWeeks, weekResults, currentWeekNumber, houseTotal, bankCheck } =
+    await computeLedger(2026);
 
   const current = weekResults.find((w) => w.weekNumber === currentWeekNumber) ?? null;
-  const settlers = players.filter((p) => !isBanker(p.name));
-  const owedToPlayers = settlers.filter((p) => p.balance > 0).reduce((a, p) => a + p.balance, 0);
-  const owedToBank = settlers.filter((p) => p.balance < 0).reduce((a, p) => a - p.balance, 0);
-  const sorted = settlers.slice().sort((a, b) => a.balance - b.balance || a.name.localeCompare(b.name));
-  const banker = players.find((p) => isBanker(p.name));
+  // Banker sorts last; everyone else by who owes most first.
+  const sorted = players
+    .slice()
+    .sort((a, b) => Number(a.isBank) - Number(b.isBank) || a.balance - b.balance || a.name.localeCompare(b.name));
 
   return (
     <main>
@@ -74,7 +74,7 @@ export default async function PotPage() {
         <p style={{ fontSize: "13px", margin: "0 0 8px", lineHeight: 1.5 }}>
           <strong>Everything is net.</strong> Each week you owe {money(WEEKLY_BUYIN)}. If you win or split a
           pot, your {money(WEEKLY_BUYIN)} comes out of your winnings instead of being paid separately. Example:
-          a {money(68)} tie share is <strong>+{money(68 - WEEKLY_BUYIN)}</strong> to you, not {money(68)} in and{" "}
+          a {money(43)} tie share is <strong>+{money(43 - WEEKLY_BUYIN)}</strong> to you, not {money(43)} in and{" "}
           {money(WEEKLY_BUYIN)} out.
         </p>
         <p style={{ fontSize: "13px", margin: 0, lineHeight: 1.5 }}>
@@ -92,7 +92,8 @@ export default async function PotPage() {
       <div className="card">
         <div className="matchup">💵 Balances</div>
         <p className="subtext" style={{ margin: "4px 0 0" }}>
-          Players owe {money(owedToBank)} &middot; {BANKER_NAME} is holding {money(owedToPlayers)} in credit
+          Players owe {money(bankCheck.uncollected)} &middot; {BANKER_NAME} is holding {money(bankCheck.creditsHeld)} in
+          credit
         </p>
         <table className="stat-table">
           <thead>
@@ -111,11 +112,22 @@ export default async function PotPage() {
                 <td className={p.netFromWeeks > 0 ? "pick-win" : p.netFromWeeks < 0 ? "pick-loss" : undefined}>
                   {signed(p.netFromWeeks)}
                 </td>
-                <td>{p.paidIn ? money(p.paidIn) : "—"}</td>
-                <td>{p.paidOut ? money(p.paidOut) : "—"}</td>
                 <td>
-                  <StatusChip balance={p.balance} />
-                  {p.balance >= WEEKLY_BUYIN && (
+                  {p.isBank ? (p.bankOffset > 0 ? <span title="automatic offset">{money(p.bankOffset)}*</span> : "—") : p.paidIn ? money(p.paidIn) : "—"}
+                </td>
+                <td>
+                  {p.isBank ? (p.bankOffset < 0 ? <span title="automatic offset">{money(-p.bankOffset)}*</span> : "—") : p.paidOut ? money(p.paidOut) : "—"}
+                </td>
+                <td>
+                  {p.isBank ? (
+                    <span className="locked-badge">
+                      <span className="locked-dot" />
+                      <span className="locked-text">BANK</span>
+                    </span>
+                  ) : (
+                    <StatusChip balance={p.balance} />
+                  )}
+                  {!p.isBank && p.balance >= WEEKLY_BUYIN && (
                     <div className="meta" style={{ marginTop: "3px" }}>
                       covers {Math.floor(p.balance / WEEKLY_BUYIN)} wk{Math.floor(p.balance / WEEKLY_BUYIN) === 1 ? "" : "s"}
                     </div>
@@ -125,14 +137,45 @@ export default async function PotPage() {
             ))}
           </tbody>
         </table>
-        {banker && (
+        {sorted.some((p) => p.isBank) && (
           <p className="meta" style={{ margin: "8px 0 0" }}>
-            {banker.name} holds the pot, so there&apos;s no balance to settle there (weeks net: {signed(banker.netFromWeeks)}).
+            * {BANKER_NAME} is the bank, so {BANKER_NAME}&apos;s own buy-ins and winnings settle automatically &mdash; the
+            starred amount is an offsetting entry (the bank paying itself), which is why that row is always even.
           </p>
         )}
         <p className="meta" style={{ margin: "8px 0 0" }}>
           Weeks net = winnings minus {money(WEEKLY_BUYIN)}/week since Week {TIE_SPLIT_START_WEEK}. Paid = sent to{" "}
           {BANKER_NAME}. Received = sent by {BANKER_NAME}. The current week&apos;s buy-in counts as soon as the week starts.
+        </p>
+      </div>
+
+      <div className="card">
+        <div className="matchup">🏦 Bank check</div>
+        <p className="subtext" style={{ margin: "4px 0 0" }}>
+          What {BANKER_NAME} should be holding for the league right now.
+        </p>
+        <div className="stat-hero">{money(bankCheck.shouldHold)}</div>
+        <div className="mono" style={{ fontSize: "12px", lineHeight: 1.7 }}>
+          <div className="row-between">
+            <span>Pot not yet paid out</span>
+            <span>{money(bankCheck.potPending)}</span>
+          </div>
+          <div className="row-between">
+            <span>+ Credit held for players</span>
+            <span>{money(bankCheck.creditsHeld)}</span>
+          </div>
+          <div className="row-between">
+            <span>+ Rounding kept (hosting)</span>
+            <span>{money(bankCheck.houseTotal)}</span>
+          </div>
+          <div className="row-between">
+            <span>&minus; Buy-ins not collected yet</span>
+            <span>{money(bankCheck.uncollected)}</span>
+          </div>
+        </div>
+        <p className="meta" style={{ margin: "8px 0 0" }}>
+          Counts {BANKER_NAME}&apos;s own buy-ins as already in. If this matches what&apos;s actually in the kitty, the books
+          balance.
         </p>
       </div>
 

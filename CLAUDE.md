@@ -71,6 +71,10 @@ allowance) - the user upgraded from Neon's free tier in Sep 2026.
 - Settling up is **net** (buy-in comes out of winnings). `/pot` shows each
   player's running balance from Week 4 on (`lib/ledger.ts`), settled by
   `Payment` rows the admin records on `/admin`. Money never moves in-app.
+  The banker (`BANKER_NAME`, currently Johnson) also plays: their row gets an
+  automatic offsetting entry so it's always even, and any real Payment rows
+  on the banker are ignored. `/pot`'s "Bank check" = pot not yet paid out +
+  credits held + rounding - uncollected buy-ins (what the bank should hold).
 - Season-long "Cavedogs" pot: $100/head, NOT winner-take-all. 3rd gets
   $100; 1st/2nd get $400/$200 plus an even split of whatever the pot holds
   beyond $700 (`dogPayouts()` in `lib/pot.ts`)

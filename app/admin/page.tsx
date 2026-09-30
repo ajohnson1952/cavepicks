@@ -148,6 +148,11 @@ export default async function AdminPage(
           holding for them (winnings or a prepayment - it covers their next buy-ins automatically). For a prepayment,
           just record &quot;paid {BANKER_NAME}&quot; with the full amount. &quot;Cash out&quot; records paying their credit back.
         </p>
+        <p className="mono" style={{ fontSize: "12px", margin: "0 0 8px" }}>
+          🏦 You should be holding <strong>${ledger.bankCheck.shouldHold}</strong> (pot ${ledger.bankCheck.potPending} +
+          credits ${ledger.bankCheck.creditsHeld} + rounding ${ledger.bankCheck.houseTotal} &minus; uncollected $
+          {ledger.bankCheck.uncollected})
+        </p>
         {ledger.players
           .filter((p) => !isBanker(p.name))
           .map((p) => (
@@ -180,7 +185,7 @@ export default async function AdminPage(
         )}
         <form action={recordPayment} style={{ display: "flex", gap: "6px", flexWrap: "wrap", marginTop: "10px" }}>
           <select name="userId" className="admin-input" required>
-            {allUsers.map((u) => (
+            {allUsers.filter((u) => !isBanker(u.name)).map((u) => (
               <option key={u.id} value={u.id}>
                 {u.name}
               </option>
