@@ -19,8 +19,15 @@ hitting API routes should target `www.cavepicks.com` directly to avoid
 depending on redirect-following (see `.github/workflows/*.yml` for the
 pattern).
 Rules page (source of truth for game rules): cavepicks.com/rules
-Neon is on the paid **Launch** plan (pay-per-CU-hour + storage, no free
-allowance) - the user upgraded from Neon's free tier in Sep 2026.
+Neon is on the **Free** plan (owner moved back down from the paid Launch
+plan on Oct 1 2026 over compute cost). Free has a fixed monthly compute
+allowance - if it runs out, the database suspends until the next month and
+the whole site stops loading - so anything that wakes the database on a
+timer matters. Every query wakes compute for at least the 5-minute
+autosuspend window. `app/api/grade-results/route.ts` therefore checks
+ESPN's free scoreboard first and skips the DB entirely unless a game is
+live or recently kicked off (see the comment there); keep that pattern for
+any new scheduled job.
 
 ## Commands
 
@@ -127,7 +134,9 @@ allowance) - the user upgraded from Neon's free tier in Sep 2026.
   - auto-lock-sweep: **retired** (no auto-lock anymore). The cron jobs that
     hit it (one active, two `[off]`) can be deleted; the route is a no-op.
   - grade-results: every 30 min - core 11am-11:45pm, plus a single 7:30am
-    run and a 12:15/12:45am run for late West-coast finishers
+    run and a 12:15/12:45am run for late West-coast finishers. Most of
+    those runs now return `skipped: true` without touching the DB (ESPN
+    gate); the 7:30am run always does the full check.
   - Both DB-heavy routes cap games processed per invocation
     (`MAX_GAMES_PER_RUN`) so a backlog can't spike memory; the next run
     picks up any overflow.
