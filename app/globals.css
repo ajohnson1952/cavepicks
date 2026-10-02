@@ -875,3 +875,20 @@ html.ptr-enabled body {
   50% { transform: scale(1.08); }
   100% { transform: scale(1); }
 }
+
+/* Pick page: this player's pot balance, links to /pot */
+.pot-strip {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--ink);
+  text-decoration: none;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--action);
+  border-radius: 8px;
+  padding: 9px 12px;
+  margin: 8px 0 10px;
+}

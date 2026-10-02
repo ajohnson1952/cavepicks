@@ -1,10 +1,11 @@
 import { prisma } from "@/lib/db";
 import { isPastLockDeadline } from "@/lib/lock";
-import { spreadMove } from "@/lib/format";
-import { getOrCreateCurrentWeek, getWeekNumberForDate } from "@/lib/currentWeek";
+import { getOrCreateCurrentWeek, getWeekNumberForDate, SEASON_YEAR } from "@/lib/currentWeek";
 import PickForm from "./PickForm";
 import WeekNav from "../../WeekNav";
 import { notFound } from "next/navigation";
+import { computeLedger } from "@/lib/ledger";
+import { BANKER_NAME } from "@/lib/pot";
 
 export default async function PickPage(
   props: {
@@ -91,20 +92,13 @@ export default async function PickPage(
     const latest = snapshots[snapshots.length - 1] ?? null;
     const opening = snapshots[0] ?? null;
 
-    // Spread movement is oriented by distance from pick'em, not raw subtraction
-    // (a favorite going -9.5 -> -7.5 has SHRUNK, ▼) - see spreadMove().
-    const spreadHomeMove =
-      latest && opening && latest.spreadHome != null && opening.spreadHome != null
-        ? spreadMove(latest.spreadHome, opening.spreadHome)
-        : null;
-    const spreadAwayMove =
-      latest && opening && latest.spreadAway != null && opening.spreadAway != null
-        ? spreadMove(latest.spreadAway, opening.spreadAway)
-        : null;
-    const totalMove =
-      latest && opening && latest.total != null && opening.total != null
-        ? Math.round((latest.total - opening.total) * 10) / 10
-        : null;
+    // Opening numbers - PickForm turns these into a "value vs the opener"
+    // indicator per side plus an "open X" note (see valueVsOpen there).
+    const movement = {
+      openSpreadHome: latest && opening ? opening.spreadHome : null,
+      openSpreadAway: latest && opening ? opening.spreadAway : null,
+      openTotal: latest && opening ? opening.total : null,
+    };
 
     const spreadPick = pickLookup.get(`${g.id}_SPREAD`);
     const totalPick = pickLookup.get(`${g.id}_TOTAL`);
@@ -150,7 +144,7 @@ export default async function PickPage(
               }) + " CT",
           }
         : null,
-      movement: { spreadHome: spreadHomeMove, spreadAway: spreadAwayMove, total: totalMove },
+      movement,
       spread: {
         pickId: spreadPick?.id ?? null,
         selection: spreadPick?.selection ?? null,
@@ -204,10 +198,38 @@ export default async function PickPage(
   const openPickCount = pickSlots.filter((s) => s.has && !s.locked && !s.past).length;
   const missedLockCount = pickSlots.filter((s) => s.has && !s.locked && s.past).length;
 
+  // This player's weekly-pot balance (through the last settled week), shown
+  // as a strip at the top that links to /pot.
+  const { players: ledgerPlayers, bankCheck } = await computeLedger(SEASON_YEAR);
+  const myLedger = ledgerPlayers.find((p) => p.userId === user.id) ?? null;
+
   return (
     <main>
       <h1>{user.name}&apos;s Picks</h1>
       <WeekNav basePath={`/pick/${params.slug}`} weekNumber={weekNumber} minWeek={minWeek} maxWeek={maxWeek} isCurrent={isCurrentWeek} />
+      <a href="/pot" className="pot-strip">
+        {myLedger?.isBank ? (
+          <>
+            <span>🏦 You&apos;re the bank &mdash; should be holding</span>
+            <strong className="mono">${bankCheck.shouldHold}</strong>
+          </>
+        ) : !myLedger || myLedger.balance === 0 ? (
+          <>
+            <span>💰 Pot: you&apos;re all settled up</span>
+            <span className="pick-win" style={{ fontWeight: 700 }}>✓</span>
+          </>
+        ) : myLedger.balance < 0 ? (
+          <>
+            <span>💰 Pot: you owe {BANKER_NAME}</span>
+            <strong className="mono pick-loss">${-myLedger.balance}</strong>
+          </>
+        ) : (
+          <>
+            <span>💰 Pot: {BANKER_NAME} owes you</span>
+            <strong className="mono pick-win">${myLedger.balance}</strong>
+          </>
+        )}
+      </a>
       <p className="subtext">
         {lockedSideCount}/5 picks locked &middot; dog pick {lockedDogPick ? "locked" : "not locked"}
         <br />

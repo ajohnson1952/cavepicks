@@ -23,10 +23,12 @@ type Snap = {
   capturedAtDisplay: string;
 };
 
+// Opening (first-ever posted) numbers for this game, for the "open" note and
+// the value-vs-opener indicator on each pill.
 type Movement = {
-  spreadHome: number | null;
-  spreadAway: number | null;
-  total: number | null;
+  openSpreadHome: number | null;
+  openSpreadAway: number | null;
+  openTotal: number | null;
 };
 
 type PickSlot = {
@@ -112,16 +114,39 @@ function TeamLogo({ src, alt }: { src: string | null; alt: string }) {
   );
 }
 
-function MoveIndicator({ delta }: { delta: number | null }) {
-  // Hide sub-half-point noise (and exact zero). Lines move in 0.5 steps, so
-  // anything worth showing is >= 0.5.
+// Line movement since the opener, shown as VALUE for this specific pick:
+// green "+2.5" = today's number is 2.5 better for this side than the opening
+// line, red "-2.5" = worse. (The old up/down arrows showed the same green
+// arrow on both sides of a spread, which read as "good" for both.)
+//   spread: your signed line going up is better (+10 -> +12.5, -10 -> -7.5)
+//   over:   a lower total is better      under: a higher total is better
+// It says nothing about where the money is going - the gray "open" note
+// (OpenNote) gives the raw fact for anyone who wants to read it that way.
+function valueVsOpen(kind: "spread" | "over" | "under", now: number | null, open: number | null): number | null {
+  if (now == null || open == null) return null;
+  const d = kind === "over" ? open - now : now - open;
+  return Math.round(d * 10) / 10;
+}
+
+function ValueMove({ delta }: { delta: number | null }) {
+  // Hide sub-half-point noise (and exact zero). Lines move in 0.5 steps.
   if (delta === null || Math.abs(delta) < 0.5) return null;
-  return delta > 0 ? (
-    <span className="move-up">&#9650;{Math.abs(delta)}</span>
-  ) : (
-    <span className="move-down">&#9660;{Math.abs(delta)}</span>
+  return (
+    <span className={delta > 0 ? "move-up" : "move-down"} style={{ fontSize: "11px", fontWeight: 700 }}>
+      {delta > 0 ? "+" : "\u2212"}
+      {Math.abs(delta)}
+    </span>
   );
 }
+
+// The juice line under a pill, plus the opening number when the line has moved.
+function JuiceAndOpen({ juice, open, moved }: { juice: number | null | undefined; open: string | null; moved: boolean }) {
+  const parts = [juice != null ? formatOdds(juice) : null, moved && open != null ? `open ${open}` : null].filter(Boolean);
+  if (parts.length === 0) return null;
+  return <div className="pill-juice">{parts.join(" \u00b7 ")}</div>;
+}
+
+const hasMoved = (delta: number | null) => delta !== null && Math.abs(delta) >= 0.5;
 
 // Small coloured "WON / LOST / PUSH" tag on a graded side pick.
 function ResultTag({ graded, isWin, isPush }: { graded: boolean; isWin: boolean | null; isPush: boolean | null }) {
@@ -444,11 +469,13 @@ export default function PickForm({
                         </div>
                         <div className="pill-value">
                           {formatSpread(g.snap.spreadAway)}
-                          <MoveIndicator delta={g.movement.spreadAway} />
+                          <ValueMove delta={valueVsOpen("spread", g.snap.spreadAway, g.movement.openSpreadAway)} />
                         </div>
-                        {g.snap.spreadAwayPrice != null && (
-                          <div className="pill-juice">{formatOdds(g.snap.spreadAwayPrice)}</div>
-                        )}
+                        <JuiceAndOpen
+                          juice={g.snap.spreadAwayPrice}
+                          open={g.movement.openSpreadAway != null ? formatSpread(g.movement.openSpreadAway) : null}
+                          moved={hasMoved(valueVsOpen("spread", g.snap.spreadAway, g.movement.openSpreadAway))}
+                        />
                       </button>
                       <button
                         type="button"
@@ -461,11 +488,13 @@ export default function PickForm({
                         </div>
                         <div className="pill-value">
                           {formatSpread(g.snap.spreadHome)}
-                          <MoveIndicator delta={g.movement.spreadHome} />
+                          <ValueMove delta={valueVsOpen("spread", g.snap.spreadHome, g.movement.openSpreadHome)} />
                         </div>
-                        {g.snap.spreadHomePrice != null && (
-                          <div className="pill-juice">{formatOdds(g.snap.spreadHomePrice)}</div>
-                        )}
+                        <JuiceAndOpen
+                          juice={g.snap.spreadHomePrice}
+                          open={g.movement.openSpreadHome != null ? formatSpread(g.movement.openSpreadHome) : null}
+                          moved={hasMoved(valueVsOpen("spread", g.snap.spreadHome, g.movement.openSpreadHome))}
+                        />
                       </button>
                     </div>
                     {spreadChoice[g.id] && (
@@ -538,11 +567,13 @@ export default function PickForm({
                         <div className="pill-label">Over</div>
                         <div className="pill-value">
                           {g.snap.total}
-                          <MoveIndicator delta={g.movement.total} />
+                          <ValueMove delta={valueVsOpen("over", g.snap.total, g.movement.openTotal)} />
                         </div>
-                        {g.snap.totalOverPrice != null && (
-                          <div className="pill-juice">{formatOdds(g.snap.totalOverPrice)}</div>
-                        )}
+                        <JuiceAndOpen
+                          juice={g.snap.totalOverPrice}
+                          open={g.movement.openTotal != null ? String(g.movement.openTotal) : null}
+                          moved={hasMoved(valueVsOpen("over", g.snap.total, g.movement.openTotal))}
+                        />
                       </button>
                       <button
                         type="button"
@@ -552,11 +583,13 @@ export default function PickForm({
                         <div className="pill-label">Under</div>
                         <div className="pill-value">
                           {g.snap.total}
-                          <MoveIndicator delta={g.movement.total !== null ? -g.movement.total : null} />
+                          <ValueMove delta={valueVsOpen("under", g.snap.total, g.movement.openTotal)} />
                         </div>
-                        {g.snap.totalUnderPrice != null && (
-                          <div className="pill-juice">{formatOdds(g.snap.totalUnderPrice)}</div>
-                        )}
+                        <JuiceAndOpen
+                          juice={g.snap.totalUnderPrice}
+                          open={g.movement.openTotal != null ? String(g.movement.openTotal) : null}
+                          moved={hasMoved(valueVsOpen("under", g.snap.total, g.movement.openTotal))}
+                        />
                       </button>
                     </div>
                     {totalChoice[g.id] && (

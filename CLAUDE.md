@@ -312,6 +312,14 @@ any new scheduled job.
   abbr/logo permanently the moment the game started, since a started game
   was never touched again. Real incident: West Georgia and San Jose State
   briefly showed the wrong team abbreviation this way (Sep 2026).
+- **Line movement on pick pills is shown as VALUE vs the opener, per side**
+  (`valueVsOpen()` in PickForm): green `+2.5` = a better number for that
+  pick than the opening line, red = worse, plus a gray "open X" note. For a
+  spread that IS the raw signed `now - open` for that side (+10 -> +12.5 is
+  +2.5 better; -10 -> -12.5 is 2.5 worse); Over wants the total lower, Under
+  higher. This replaced up/down arrows that showed the same green arrow on
+  both sides of a spread. The note below is about the older arrow style and
+  still applies to anything showing "did the spread grow or shrink".
 - **Spread line-movement arrows: never use raw `now - open`.** A favorite
   going `-9.5 -> -7.5` has gotten *smaller* (▼) but subtracts to `+2` (▲).
   Use `spreadMove(now, open)` in `lib/format.ts` - direction from
