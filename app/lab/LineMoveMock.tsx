@@ -52,8 +52,10 @@ type Variant = "current" | "b" | "rec";
 function Pill({ s, variant }: { s: Side; variant: Variant }) {
   const v = valueDelta(s);
   const mag = Math.abs(v);
-  // Today's behavior: arrow by "did the number get bigger", green up / red down, same on both sides.
-  const bigger = s.kind === "spread" ? Math.abs(s.now) > Math.abs(s.open) : s.now > s.open;
+  // Today's behavior: spreads show the same arrow on both sides ("did the
+  // spread get bigger"); totals show the move on Over and the reverse on Under.
+  const bigger =
+    s.kind === "spread" ? Math.abs(s.now) > Math.abs(s.open) : s.kind === "over" ? s.now > s.open : s.now < s.open;
   const good = v > 0;
   return (
     <div className="pill-btn" style={{ cursor: "default" }}>
@@ -87,7 +89,7 @@ const VARIANTS: { key: Variant; title: string; blurb: string }[] = [
   {
     key: "current",
     title: "Today",
-    blurb: "Arrow = the number got bigger or smaller. Same arrow and color on both sides.",
+    blurb: "Spreads: same arrow and color on both sides. Totals: up arrow on Over when the total rises, reversed on Under.",
   },
   {
     key: "b",
