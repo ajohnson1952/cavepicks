@@ -37,6 +37,10 @@ export type SharpPlayer = {
   dogPicks: number;
   dogWins: number;
   dogPoints: number;
+  // picks where the-yahngorithm's model also had a pick on that game + market
+  // (lib/ghost.ts ModelPick): how the player did siding WITH it vs AGAINST it
+  withModel: { picks: number; wins: number; losses: number };
+  againstModel: { picks: number; wins: number; losses: number };
   score: number;
   tags: string[];
 };
@@ -59,6 +63,9 @@ function tagsFor(p: Omit<SharpPlayer, "score" | "tags">): string[] {
   if (sideDecided >= 8 && p.underdogs / sideDecided >= 0.6) t.push("🐶 Takes the points");
   if (totals >= 4 && p.overs / totals >= 0.75) t.push("📈 Over lover");
   if (totals >= 4 && p.unders / totals >= 0.75) t.push("🧊 Under hunter");
+  const overlap = p.withModel.picks + p.againstModel.picks;
+  if (overlap >= 6 && p.withModel.picks / overlap >= 0.7) t.push("🤖 Rides with Yahngo");
+  if (overlap >= 6 && p.againstModel.picks / overlap >= 0.7) t.push("🙅 Fades Yahngo");
   if (p.dogWins >= 3) t.push("🐕 Dog whisperer");
   if (p.dogPicks >= 4 && p.dogWins === 0) t.push("🦴 Dog starved");
   return t;
@@ -90,7 +97,15 @@ export async function computeSharpness(seasonYear: number): Promise<SharpPlayer[
     dogPicks: number;
     dogWins: number;
     dogPoints: number;
+    withModel: { picks: number; wins: number; losses: number };
+    againstModel: { picks: number; wins: number; losses: number };
   };
+  // the model's side per game + market, as of that game's lock deadline.
+  // Never let this optional extra break the Sharp Report.
+  const modelPicks = await prisma.modelPick
+    .findMany({ where: { week: { seasonYear, weekNumber: { gte: 1 } } }, select: { gameId: true, pickType: true, selection: true } })
+    .catch(() => []);
+  const modelSide = new Map(modelPicks.map((m) => [`${m.gameId}_${m.pickType}`, m.selection]));
   const by = new Map<string, Acc>();
   const get = (name: string) => {
     let a = by.get(name);
@@ -101,6 +116,8 @@ export async function computeSharpness(seasonYear: number): Promise<SharpPlayer[
         clvSum: 0, clvCount: 0, beatClose: 0, matchedClose: 0,
         favorites: 0, underdogs: 0, overs: 0, unders: 0,
         dogPicks: 0, dogWins: 0, dogPoints: 0,
+        withModel: { picks: 0, wins: 0, losses: 0 },
+        againstModel: { picks: 0, wins: 0, losses: 0 },
       };
       by.set(name, a);
     }
@@ -122,6 +139,15 @@ export async function computeSharpness(seasonYear: number): Promise<SharpPlayer[
       if (p.isPush) a.pushes++;
       else if (p.isWin) a.wins++;
       else a.losses++;
+    }
+    const model = modelSide.get(`${p.gameId}_${p.pickType}`);
+    if (model) {
+      const bucket = model.toLowerCase() === p.selection.toLowerCase() ? a.withModel : a.againstModel;
+      bucket.picks++;
+      if (p.graded && !p.isPush) {
+        if (p.isWin) bucket.wins++;
+        else bucket.losses++;
+      }
     }
     if (p.pickType === "TOTAL") {
       if (p.selection === "over") a.overs++;
@@ -170,6 +196,8 @@ export async function computeSharpness(seasonYear: number): Promise<SharpPlayer[
         dogPicks: a.dogPicks,
         dogWins: a.dogWins,
         dogPoints: a.dogPoints,
+        withModel: a.withModel,
+        againstModel: a.againstModel,
       };
       const score = round(
         ((base.winPct ?? 50) - 50) / 10 + (base.avgClv ?? 0) * 4 + base.dogPoints / 10,

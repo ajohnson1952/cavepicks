@@ -1,5 +1,5 @@
 // lib/ghost.ts
-// "Yahn", the ghost player: the-yahngorithm's model playing Cavepicks by the
+// "Yahngo", the ghost player: the-yahngorithm's model playing Cavepicks by the
 // same rules as everyone else - 5 side picks + 1 dog a week, each frozen at
 // the line that was on screen at that game's lock deadline (30 min before
 // kickoff). Purely for fun: its picks live in GhostPick, never Pick, so no
@@ -24,7 +24,9 @@ import { gradePick } from "./scoring";
 import { SEASON_YEAR, getWeekNumberForDate } from "./currentWeek";
 import { YAHN_SITE, type YahnFeed, type YahnGame } from "./yahn";
 
-export const GHOST_NAME = "Yahn";
+// "Yahngo", not "Yahn": Yahn is the owner's nickname in the league, and the
+// picks are the yahngorithm model's, not his.
+export const GHOST_NAME = "Yahngo";
 const SIDE_SLOTS = 5;
 
 type Snap = {
@@ -208,7 +210,15 @@ async function fetchFeed(weekNumber: number): Promise<YahnFeed | null> {
 export async function runGhost(opts: { weeks?: number[]; windowHours?: number | null; dryRun?: boolean } = {}) {
   const now = new Date();
   const windowHours = opts.windowHours === undefined ? 36 : opts.windowHours;
-  const weekNumbers = opts.weeks ?? [getWeekNumberForDate(now)];
+  let weekNumbers = opts.weeks ?? [getWeekNumberForDate(now)];
+  // One-time catch-up: the first automatic run after ModelPick was added walks
+  // every week so far, so the Sharp Report's "with / against the model" has
+  // the whole season. (Ghost picks for old weeks are still protected by the
+  // 36h window - this only fills in ModelPick.)
+  if (!opts.weeks && !opts.dryRun && (await prisma.modelPick.count()) === 0) {
+    weekNumbers = Array.from({ length: getWeekNumberForDate(now) }, (_, i) => i + 1);
+  }
+  let modelSidesRecorded = 0;
   const locked: { week: number; pick: string }[] = [];
   const notes: string[] = [];
 
@@ -236,6 +246,27 @@ export async function runGhost(opts: { weeks?: number[]; windowHours?: number | 
       feed,
       now
     );
+
+    // Record every side the model had picked by each game's deadline (all of
+    // them, not just the ghost's 5) - what the Sharp Report compares against.
+    const modelRows = games.flatMap((g) => {
+      const T = new Date(g.commenceTime.getTime() - AUTO_LOCK_MINUTES * 60_000);
+      if (T.getTime() > now.getTime()) return [];
+      const fg = feed.games.find((f) => f.home.oddsNames.includes(g.homeTeam) && f.away.oddsNames.includes(g.awayTeam));
+      return (fg?.picks ?? [])
+        .filter((p) => !p.loggedAt || new Date(p.loggedAt).getTime() <= T.getTime())
+        .map((p) => ({
+          weekId: week.id,
+          gameId: g.id,
+          pickType: p.market === "spread" ? ("SPREAD" as const) : ("TOTAL" as const),
+          selection: p.market === "spread" ? (p.side === "home" ? g.homeTeam : g.awayTeam) : p.side,
+          edge: p.edge,
+        }));
+    });
+    if (!opts.dryRun && modelRows.length) {
+      const r = await prisma.modelPick.createMany({ data: modelRows, skipDuplicates: true });
+      modelSidesRecorded += r.count;
+    }
 
     const existing = await prisma.ghostPick.findMany({ where: { weekId: week.id } });
     const have = new Set(existing.map((e) => `${e.gameId}_${e.pickType}`));
@@ -285,7 +316,7 @@ export async function runGhost(opts: { weeks?: number[]; windowHours?: number | 
     }
   }
 
-  return { ok: true, dryRun: !!opts.dryRun, locked, graded, notes };
+  return { ok: true, dryRun: !!opts.dryRun, locked, graded, modelSidesRecorded, notes };
 }
 
 /** Season totals for the leaderboards (Week 1 on, graded picks only). */

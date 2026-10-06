@@ -47,6 +47,7 @@ model Week {
   games      Game[]
   picks      Pick[]
   ghostPicks GhostPick[]
+  modelPicks ModelPick[]
 
   @@unique([seasonYear, weekNumber])
 }
@@ -73,6 +74,7 @@ model Game {
   oddsSnapshots OddsSnapshot[]
   picks         Pick[]
   ghostPicks    GhostPick[]
+  modelPicks    ModelPick[]
 }
 
 // One row per odds pull per game. Grading always uses the most recent
@@ -189,6 +191,26 @@ model GhostPick {
   isPush       Boolean?
   pointsEarned Float    @default(0)
 
+  createdAt DateTime @default(now())
+
+  @@unique([gameId, pickType])
+  @@index([weekId])
+}
+
+// Every side the-yahngorithm's model had picked on a game by that game's lock
+// deadline - ALL of its picks, not just the 5 the ghost player took. Recorded
+// by lib/ghost.ts so the Sharp Report can say who rides with the model and who
+// fades it from our own data, without calling the other site on page views.
+// Reference data only - like GhostPick, nothing about the pot reads it.
+model ModelPick {
+  id        String   @id @default(cuid())
+  weekId    String
+  week      Week     @relation(fields: [weekId], references: [id])
+  gameId    String
+  game      Game     @relation(fields: [gameId], references: [id])
+  pickType  PickType // SPREAD or TOTAL
+  selection String // team name, or "over"/"under" - same convention as Pick
+  edge      Float
   createdAt DateTime @default(now())
 
   @@unique([gameId, pickType])

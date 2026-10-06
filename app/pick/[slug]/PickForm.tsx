@@ -103,7 +103,7 @@ type YahnInfo = {
 function YahnMark({ edge }: { edge: number | null }) {
   return (
     <span className="yahn-mark" title="The yahngorithm model picked this side">
-      <img src="/yahn-joe.png" alt="Yahn's pick" width={15} height={15} />
+      <img src="/yahn-joe.png" alt="Yahngo's pick" width={15} height={15} />
       {edge != null ? `+${edge}` : ""}
     </span>
   );

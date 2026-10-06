@@ -516,6 +516,11 @@ h1 {
   font-style: italic;
 }
 .stat-table tr.ghost-row img { opacity: 0.6; }
+/* the ghost's card at the bottom of the Board: same greyed, reference-only
+   look as its leaderboard rows (win/loss colors still show through) */
+.ghost-card { opacity: 0.8; border-style: dashed; }
+.ghost-card .matchup { color: var(--dim); font-style: italic; }
+
 .ghost-note {
   font-family: var(--font-mono), ui-monospace, monospace;
   font-size: 10px;

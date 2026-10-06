@@ -15,7 +15,7 @@ const SECTIONS: Section[] = [
     href: "/board",
     subs: [
       { label: "Board", href: "/board" },
-      { label: "Yahn's Picks", href: "/yahn" },
+      { label: "Yahngo's Picks", href: "/yahn" },
     ],
   },
   {

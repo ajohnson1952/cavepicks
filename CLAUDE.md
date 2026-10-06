@@ -252,13 +252,16 @@ any new scheduled job.
   every game card on the pick sheet links to that game on the yahngorithm;
   (2) a small Joe + edge in the corner of a pick pill marks the side the
   model picked - `SHOW_YAHN_MARKS` in `lib/yahn.ts` is the one switch to
-  hide those from everyone; (3) `/yahn` ("Yahn's Picks", a sub-tab under
-  Board) lists the model's picks for the week. The feed fetch is
+  hide those from everyone; (3) `/yahn` ("Yahngo's Picks", a sub-tab under
+  Board) lists the model's picks for the week, plus "Cave vs. Yahngo" (where
+  the league's locked picks lean against / with the model, from
+  `lib/caveSplits.ts` counts). The feed fetch is
   deliberately cached 15 min (the one external call here that is NOT
   no-store), never touches this app's database, is only made for the
   current week, and returns null on any failure so the Joe extras just
   don't render. `/lab` still has the original mockups.
-- **"Yahn" the ghost player** (`lib/ghost.ts`, table `GhostPick`): the model
+- **"Yahngo" the ghost player** (`lib/ghost.ts`, table `GhostPick`; named
+  Yahngo because "Yahn" is the owner's own nickname in the league): the model
   plays along by the same rules - 5 side picks + 1 dog a week, each frozen at
   the line that was on screen at that game's lock deadline (the newest
   `OddsSnapshot` at or before 30 min pre-kickoff). It is **never a `User` or
@@ -278,6 +281,12 @@ any new scheduled job.
   by hand. `/standings` shows it in both leaderboards where its record would
   rank - unranked ("-"), tagged "bot", excluded from Group Total and payouts.
   It shows up there only once it has a graded pick.
+  The Board shows its locked picks for the week in a greyed, dashed card at
+  the bottom. The same run also records EVERY side the model had picked by
+  each game's deadline into `ModelPick` (not just the ghost's 5) - that's
+  what the Sharp Report's "vs Yahngo: with it / against it" line and the
+  "Rides with Yahngo" / "Fades Yahngo" tags read (`lib/sharpness.ts`), so
+  /history never calls the other site.
 - **`/api/cave-splits`** (`lib/caveSplits.ts`): read-only, public counts of
   LOCKED picks per side per game for this week / last week - **counts only,
   never names, never unlocked picks**. The yahngorithm shows them ("how the

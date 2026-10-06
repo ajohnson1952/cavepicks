@@ -6,6 +6,7 @@ import { isPastLockDeadline } from "@/lib/lock";
 import { buildPickShareText } from "@/lib/pickShareText";
 import WeekNav from "../WeekNav";
 import CopyPicksButton from "./CopyPicksButton";
+import { GHOST_NAME } from "@/lib/ghost";
 
 export const dynamic = "force-dynamic";
 
@@ -107,6 +108,14 @@ export default async function BoardPage(props: { searchParams: Promise<{ week?: 
     );
     if (match?.state === "in") liveGameIds.add(g.id);
   }
+
+  // "Yahngo" the ghost player's locked picks this week (lib/ghost.ts). Its
+  // own table, shown for reference only - and never allowed to break the board.
+  const ghostPicks = await prisma.ghostPick
+    .findMany({ where: { weekId: week.id }, include: { game: true }, orderBy: { game: { commenceTime: "asc" } } })
+    .catch(() => []);
+  const ghostSides = ghostPicks.filter((p) => p.pickType !== "DOG");
+  const ghostDog = ghostPicks.find((p) => p.pickType === "DOG");
 
   const picksByUser = new Map<string, typeof picks>();
   for (const p of picks) {
@@ -235,6 +244,72 @@ export default async function BoardPage(props: { searchParams: Promise<{ week?: 
           </div>
         );
       })}
+
+      {ghostPicks.length > 0 && (
+        <div className="card ghost-card">
+          <div className="matchup">
+            <img
+              src="/yahn-joe.png"
+              alt=""
+              width={18}
+              height={18}
+              style={{ borderRadius: "50%", verticalAlign: "-3px", marginRight: "6px", opacity: 0.6 }}
+            />
+            {GHOST_NAME} <span style={{ fontWeight: 400 }}>&middot; bot</span>
+          </div>
+          <div className="meta" style={{ marginTop: "2px" }}>
+            The yahngorithm model, for reference only &middot; not in the pot &middot; {ghostSides.length}/5 locked &middot; dog{" "}
+            {ghostDog ? "locked" : "\u2014"}
+          </div>
+          <div className="divider" />
+          {ghostSides.map((p) => {
+            const rClass = resultClass(p.graded, p.isWin, p.isPush);
+            const label =
+              p.pickType === "SPREAD"
+                ? abbr(p.selection, p.game.homeTeam, p.game.homeAbbr, p.game.awayTeam, p.game.awayAbbr)
+                : `${p.selection === "over" ? "o" : "u"}${p.lockedLine ?? ""}`;
+            const paren =
+              p.pickType === "SPREAD"
+                ? metaParen(p.lockedLine != null ? formatSpread(p.lockedLine) : null, p.lockedOdds, p.lockedBook)
+                : metaParen(null, p.lockedOdds, p.lockedBook);
+            return (
+              <div key={p.id} className={rClass} style={{ fontSize: "13px", marginBottom: "4px" }}>
+                <span className="mono">{p.pickType === "SPREAD" ? "SPRD" : "TOTL"}</span>{" "}
+                <Logo src={p.game.awayLogo} alt={p.game.awayTeam} />
+                {p.game.awayAbbr ?? p.game.awayTeam} @ <Logo src={p.game.homeLogo} alt={p.game.homeTeam} />
+                {p.game.homeAbbr ?? p.game.homeTeam} &mdash; {label}
+                {paren}
+                {liveGameIds.has(p.game.id) && !p.graded && (
+                  <span className="live-badge" style={{ marginLeft: "6px" }}>
+                    <span className="live-dot" /> LIVE
+                  </span>
+                )}
+              </div>
+            );
+          })}
+          {ghostDog && (
+            <div className={resultClass(ghostDog.graded, ghostDog.isWin, ghostDog.isPush)} style={{ fontSize: "13px", marginTop: "6px" }}>
+              <span className="mono">DOG</span>{" "}
+              <Logo src={ghostDog.game.awayLogo} alt={ghostDog.game.awayTeam} />
+              {ghostDog.game.awayAbbr ?? ghostDog.game.awayTeam} @{" "}
+              <Logo src={ghostDog.game.homeLogo} alt={ghostDog.game.homeTeam} />
+              {ghostDog.game.homeAbbr ?? ghostDog.game.homeTeam}
+              {" \u2014 "}
+              {abbr(ghostDog.selection, ghostDog.game.homeTeam, ghostDog.game.homeAbbr, ghostDog.game.awayTeam, ghostDog.game.awayAbbr)}
+              {ghostDog.graded ? (
+                <span style={{ marginLeft: "6px" }}>
+                  {ghostDog.isWin ? `hit \u2014 +${ghostDog.pointsEarned} pts` : "missed \u2014 0 pts"}
+                </span>
+              ) : (
+                <span>{` (worth ${ghostDog.dogSpreadValue ?? "?"} pts)`}</span>
+              )}
+            </div>
+          )}
+          <div className="meta" style={{ marginTop: "8px" }}>
+            Its picks show up here once each game reaches its lock deadline.
+          </div>
+        </div>
+      )}
     </main>
   );
 }

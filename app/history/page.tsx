@@ -240,6 +240,12 @@ export default async function HistoryPage() {
                     )}
                   </span>
                 </div>
+                {p.withModel.picks + p.againstModel.picks > 0 && (
+                  <div className="meta" style={{ marginLeft: "24px", marginTop: "2px" }}>
+                    vs Yahngo: with it {p.withModel.wins}-{p.withModel.losses}
+                    {" \u00b7 "}against it {p.againstModel.wins}-{p.againstModel.losses}
+                  </div>
+                )}
                 {p.tags.length > 0 && (
                   <div style={{ marginLeft: "24px", marginTop: "3px", display: "flex", flexWrap: "wrap", gap: "4px" }}>
                     {p.tags.map((t) => (
@@ -265,7 +271,8 @@ export default async function HistoryPage() {
           <p className="meta" style={{ margin: "8px 0 0", lineHeight: 1.5 }}>
             CLV = closing line value: how many points better (or worse) your locked number was than the final line
             before kickoff. Beating the close is the classic sign of a sharp. Ranked by results + CLV + dog points.
-            Tiny sample &mdash; mostly bragging rights.
+            Tiny sample &mdash; mostly bragging rights. &ldquo;vs Yahngo&rdquo; = your record on games where the
+            yahngorithm model also had a pick, split by whether you took its side or the other one.
           </p>
         </div>
       )}
