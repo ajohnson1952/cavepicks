@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/db";
 import { formatSpread, formatOdds, bookAbbr } from "@/lib/format";
-import { getOrCreateCurrentWeek, getWeekNumberForDate } from "@/lib/currentWeek";
+import { getOrCreateCurrentWeek, getWeekNumberForDate, SEASON_YEAR } from "@/lib/currentWeek";
 import { fetchEspnScoreboard, teamNamesMatch, toYyyymmdd } from "@/lib/espnScores";
 import { isPastLockDeadline } from "@/lib/lock";
 import { buildPickShareText } from "@/lib/pickShareText";
@@ -61,7 +61,7 @@ export default async function BoardPage(props: { searchParams: Promise<{ week?: 
   const currentWeekNumber = getWeekNumberForDate();
 
   const allWeeksMeta = await prisma.week.findMany({
-    where: { seasonYear: 2026 },
+    where: { seasonYear: SEASON_YEAR },
     orderBy: { weekNumber: "asc" },
   });
   const minWeek = allWeeksMeta[0]?.weekNumber ?? currentWeekNumber;

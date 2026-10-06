@@ -23,7 +23,7 @@ export default async function PickPage(
   const currentWeekNumber = getWeekNumberForDate();
 
   const allWeeksMeta = await prisma.week.findMany({
-    where: { seasonYear: 2026 },
+    where: { seasonYear: SEASON_YEAR },
     orderBy: { weekNumber: "asc" },
   });
   const minWeek = allWeeksMeta[0]?.weekNumber ?? currentWeekNumber;

@@ -11,6 +11,7 @@
 // wipe-week-zero's link-preview-guard pattern, this needs to be genuinely
 // gated, not just confirm-token-gated.
 import { NextResponse } from "next/server";
+import { SEASON_YEAR } from "@/lib/currentWeek";
 import { unlockStaleLocks } from "@/lib/unlockStaleLocks";
 
 export const dynamic = "force-dynamic";
@@ -33,6 +34,6 @@ export async function GET(request: Request) {
     return NextResponse.json({ ok: false, error: "Invalid ?before= timestamp" }, { status: 400 });
   }
 
-  const result = await unlockStaleLocks(weekNumber, 2026, cutoff);
+  const result = await unlockStaleLocks(weekNumber, SEASON_YEAR, cutoff);
   return NextResponse.json(result);
 }

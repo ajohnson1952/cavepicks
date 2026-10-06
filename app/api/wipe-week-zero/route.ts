@@ -9,6 +9,7 @@
 // in messaging apps (iMessage, Discord, Slack, etc.) just from the URL
 // being pasted somewhere, without anyone actually clicking it.
 import { NextResponse } from "next/server";
+import { SEASON_YEAR } from "@/lib/currentWeek";
 import { prisma } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
@@ -27,7 +28,7 @@ export async function GET(request: Request) {
   }
 
   const week = await prisma.week.findUnique({
-    where: { seasonYear_weekNumber: { seasonYear: 2026, weekNumber: 0 } },
+    where: { seasonYear_weekNumber: { seasonYear: SEASON_YEAR, weekNumber: 0 } },
   });
 
   if (!week) {

@@ -1,6 +1,7 @@
 "use server";
 
 import { cookies } from "next/headers";
+import { SEASON_YEAR } from "@/lib/currentWeek";
 import { prisma } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 import { gradePick } from "@/lib/scoring";
@@ -83,7 +84,7 @@ export async function bulkUnlockStaleLocks(formData: FormData) {
   const cutoff = typeof cutoffRaw === "string" && cutoffRaw ? new Date(cutoffRaw) : new Date();
   if (isNaN(cutoff.getTime())) return;
 
-  await unlockStaleLocks(weekNumber, 2026, cutoff);
+  await unlockStaleLocks(weekNumber, SEASON_YEAR, cutoff);
 
   revalidatePath("/admin");
   revalidatePath("/board");
@@ -377,7 +378,7 @@ export async function deletePayment(formData: FormData) {
 // their buy-in. Winners with a positive balance are left alone.
 export async function settleAllOwing() {
   if (!(await isAuthed())) return;
-  const { players, currentWeekNumber, lastSettledWeek } = await computeLedger(2026);
+  const { players, currentWeekNumber, lastSettledWeek } = await computeLedger(SEASON_YEAR);
   const owing = players.filter((p) => !isBanker(p.name) && p.balance < 0);
   if (owing.length === 0) return;
   await prisma.payment.createMany({

@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 import { isAdminSession } from "@/lib/adminAuth";
 import { prisma } from "@/lib/db";
-import { getOrCreateCurrentWeek } from "@/lib/currentWeek";
+import { getOrCreateCurrentWeek, SEASON_YEAR } from "@/lib/currentWeek";
 import {
   adminLogin,
   adminLogout,
@@ -85,7 +85,7 @@ export default async function AdminPage(
 
   const currentWeek = await getOrCreateCurrentWeek();
   const allWeeksMeta = await prisma.week.findMany({
-    where: { seasonYear: 2026 },
+    where: { seasonYear: SEASON_YEAR },
     orderBy: { weekNumber: "asc" },
   });
   const minWeek = allWeeksMeta[0]?.weekNumber ?? currentWeek.weekNumber;
@@ -125,7 +125,7 @@ export default async function AdminPage(
   ]);
   const nextRuns = await getNextScheduledRuns();
   const allUsers = await prisma.user.findMany({ orderBy: { name: "asc" } });
-  const ledger = await computeLedger(2026);
+  const ledger = await computeLedger(SEASON_YEAR);
 
   return (
     <main>

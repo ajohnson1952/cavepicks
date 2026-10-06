@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { SEASON_YEAR } from "@/lib/currentWeek";
 import { computeCurrentSeasonStats } from "@/lib/seasonStats";
 import { computeFunStats } from "@/lib/funStats";
 import { computeGroupTrends } from "@/lib/groupTrends";
@@ -9,7 +10,7 @@ export const dynamic = "force-dynamic";
 // The live season - the only one with real Game/Pick rows behind it.
 // Everything before this comes from HistoricalSeasonRecord instead (see
 // schema.prisma comment on that model for why).
-const CURRENT_SEASON_YEAR = 2026;
+const CURRENT_SEASON_YEAR = SEASON_YEAR; // lib/currentWeek.ts - the one place the season is set
 
 // Below this many decisions (wins+losses), a season's win% is too small a
 // sample to fairly call "best" or "worst" - mostly guards the current

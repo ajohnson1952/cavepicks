@@ -116,8 +116,7 @@ export async function fixApexCronUrls(): Promise<
 // is what happened to several jobs during the Sep 2026 outage - not
 // something this app's code did). Re-enables any disabled job that isn't
 // meant to be off: by convention every intentionally-disabled job here is
-// titled with a "[off]" prefix (see CLAUDE.md's Architecture section on the
-// retired auto-lock-sweep jobs) - anything disabled *without* that prefix
+// titled with a "[off]" prefix - anything disabled *without* that prefix
 // was disabled by cron-job.org itself, not on purpose, and should come back
 // on. Used by the same "Fix cron job URLs" button on /admin.
 export async function reactivateAccidentallyDisabledJobs(): Promise<

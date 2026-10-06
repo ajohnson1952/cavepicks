@@ -6,8 +6,15 @@ import { getCurrentWeekBounds } from "./lock";
 // advance every 7 days from here. Derived from getCurrentWeekBounds() so
 // this can never disagree with the Tuesday-Monday boundaries in lib/lock.ts -
 // previously these were two separate, inconsistent date calculations.
+// ---- THE season settings: change these two lines for a new season --------
+// (and follow the "New season checklist" in CLAUDE.md). Every page, job and
+// tool reads the year from here - nothing else hard-codes it.
 export const SEASON_YEAR = 2026;
-const SEASON_WEEK_ZERO_START = getCurrentWeekBounds(new Date("2026-08-25T12:00:00Z")).start;
+// Any moment inside the Tuesday-to-Monday week that should count as Week 0
+// (the week BEFORE Week 1's games). 2026: Tue Aug 25.
+const SEASON_WEEK_ZERO_ANCHOR = "2026-08-25T12:00:00Z";
+// ---------------------------------------------------------------------------
+const SEASON_WEEK_ZERO_START = getCurrentWeekBounds(new Date(SEASON_WEEK_ZERO_ANCHOR)).start;
 
 export function getWeekNumberForDate(date: Date = new Date()): number {
   const { start } = getCurrentWeekBounds(date);

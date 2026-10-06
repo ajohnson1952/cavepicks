@@ -1,4 +1,5 @@
 import { dogPayouts } from "@/lib/pot";
+import { SEASON_YEAR } from "@/lib/currentWeek";
 import { computeCurrentSeasonStats } from "@/lib/seasonStats";
 import { ghostSeasonStats, GHOST_NAME } from "@/lib/ghost";
 
@@ -17,7 +18,7 @@ export default async function StandingsPage() {
   // row (because a marquee game's line posted early) don't count as "real"
   // yet either - only weeks up through the actual current week matter here.
   const { users, currentWeekNumber, weekResults, cavepicksStats, cavedogsStats } =
-    await computeCurrentSeasonStats(2026);
+    await computeCurrentSeasonStats(SEASON_YEAR);
 
   // The "current" week is the one matching today's actual date - not just
   // whichever week happens to be last in the list (that assumption broke
@@ -29,7 +30,7 @@ export default async function StandingsPage() {
   // lib/ghost.ts). Shown in both leaderboards where its record would rank,
   // but unranked and never part of the pot or the group totals. Wrapped so
   // the standings can't break if anything about it goes wrong.
-  const ghost = await ghostSeasonStats(2026).catch(() => null);
+  const ghost = await ghostSeasonStats(SEASON_YEAR).catch(() => null);
   const ghostSideDenom = ghost ? ghost.side.wins + ghost.side.losses : 0;
   const ghostSidePct = ghostSideDenom > 0 ? (ghost!.side.wins / ghostSideDenom) * 100 : 0;
   const ghostDogDenom = ghost ? ghost.dog.wins + ghost.dog.losses : 0;

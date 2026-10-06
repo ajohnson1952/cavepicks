@@ -109,9 +109,8 @@ any new scheduled job.
   there is no persisted "pot" table. Only payments are stored (`Payment`).
 - **Only one code path locks a pick**: `app/pick/[slug]/actions.ts`
   `lockValue()`, from the manual Lock In button. Nothing force-locks
-  anymore - `grade-results` skips any pick that isn't locked, and
-  `app/api/auto-lock-sweep/route.ts` is a retired no-op (kept only so old
-  cron jobs get a 200; those jobs can be deleted).
+  anymore - `grade-results` skips any pick that isn't locked. (The old
+  auto-lock-sweep route and its workflow were deleted in Oct 2026.)
 - Automation is scheduled via **cron-job.org** (18 jobs across 3 endpoints,
   2 intentionally disabled), not Vercel Cron or GitHub Actions. A read-only
   cron-job.org API key is stored as the `CRONJOB_API_KEY` env var in Vercel
@@ -131,8 +130,9 @@ any new scheduled job.
   (manual runs from the Actions tab) but have no schedule trigger.
   - pull-odds: 12 jobs replicating the tuned weekly pattern (tuned to stay
     under 500 odds-API credits/month), all firing at `hh:25`
-  - auto-lock-sweep: **retired** (no auto-lock anymore). The cron jobs that
-    hit it (one active, two `[off]`) can be deleted; the route is a no-op.
+  - auto-lock-sweep: **gone** - the route was deleted in Oct 2026. Any
+    cron-job.org job still pointing at `/api/auto-lock-sweep` now 404s and
+    should be deleted there (not re-enabled).
   - grade-results: every 30 min - core 11am-11:45pm, plus a single 7:30am
     run and a 12:15/12:45am run for late West-coast finishers. Most of
     those runs now return `skipped: true` without touching the DB (ESPN
@@ -301,19 +301,49 @@ any new scheduled job.
   `admin_session` cookie is a hash of `ADMIN_PASSWORD`, never a fixed word -
   it used to be the literal string "authenticated", so anyone who set that
   cookie by hand was the admin. Every maintenance / debug API route
-  (`seed-users`, `fix-week-zero`, `backfill-team-info`, all `debug-*`, plus
+  (`seed-users`, `backfill-team-info`, all `debug-*`, plus
   the ones that already had `?key=`) starts with
   `const denied = await requireAdmin(request); if (denied) return denied;` -
   it passes if the browser is logged in at /admin OR the URL has
   `?key=<ADMIN_PASSWORD>`. **Any new route that reads private data or writes
   anything must do the same.** `seed-users` in particular returns players'
-  private pick links, and `fix-week-zero` would relabel Week 1 as the
-  excluded Week 0 - both were wide open before. Claude can't call these
+  private pick links, and the since-deleted `fix-week-zero` would have
+  relabeled Week 1 as the excluded Week 0 - both were wide open before. Claude can't call these
   routes without the key; ask the owner to open them and paste the result.
   The only deliberately open routes are the two cron targets (`pull-odds`,
-  `grade-results`), the retired `auto-lock-sweep` no-op, and `cave-splits`
-  (counts only). `pull-odds` skips if the last successful pull was under 20
+  `grade-results`) and `cave-splits` (counts only). `pull-odds` skips if the last successful pull was under 20
   minutes ago, so a stranger reloading it can't burn Odds API credits.
+
+- **Bot door** (`proxy.ts`): a page request with no `cp_seen` cookie never
+  reaches the page - it gets a tiny static page that sets the cookie and
+  reloads (and carries the link-preview tags, so chat previews still work).
+  Browsers pass in one blink on their first visit; bots, which don't keep
+  cookies, never trigger a database read. Added Oct 2026 after the Neon log
+  showed 12-19 database wake-ups a night with nobody awake. It is not a
+  cache - real visitors always get live pages. `/api/*` and static files are
+  exempt (cron-job.org and the-yahngorithm send no cookies); keep it that way
+  for any new endpoint another service must call.
+
+## New season checklist
+
+1. `lib/currentWeek.ts`: set `SEASON_YEAR` and `SEASON_WEEK_ZERO_ANCHOR`
+   (any moment in the Tuesday-Monday week before Week 1's games). Nothing
+   else hard-codes the year.
+2. `lib/pot.ts`: `TIE_SPLIT_START_WEEK` is 4 only because the tie-split rule
+   began mid-2026 - set it to 1 so the rule applies all season. Confirm
+   `WEEKLY_BUYIN`, `DOG_BUYIN`, `BANKER_NAME` and the dog payouts with the
+   owner.
+3. Before flipping the year, add each player's finished-season totals to
+   `HistoricalSeasonRecord` (one row per player) so `/history`'s all-time
+   tables keep them - the live tables only cover `SEASON_YEAR`.
+4. Players: add or remove via `/api/seed-users?key=...&names=...` (admin
+   only). Existing pick links keep working.
+5. Week 0 is always excluded from pot and leaderboard math - use it as the
+   dry-run week for odds pulls and grading before Week 1.
+6. cron-job.org: the pull-odds pattern was tuned to the 500-credit Odds API
+   budget for a 2026-shaped calendar; re-check it against the new schedule.
+7. The yahngorithm links (`lib/yahn.ts`, the ghost player) need nothing here,
+   but that site has its own season rollover.
 
 ## Gotchas (all found the hard way - don't reintroduce these)
 

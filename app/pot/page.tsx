@@ -1,4 +1,5 @@
 import { computeLedger } from "@/lib/ledger";
+import { SEASON_YEAR } from "@/lib/currentWeek";
 import { BANKER_NAME, TIE_SPLIT_START_WEEK, WEEKLY_BUYIN } from "@/lib/pot";
 
 export const dynamic = "force-dynamic";
@@ -30,7 +31,7 @@ function namesList(names: string[]): string {
 
 export default async function PotPage() {
   const { players, payments, ledgerWeeks, weekResults, currentWeekNumber, houseTotal, bankCheck } =
-    await computeLedger(2026);
+    await computeLedger(SEASON_YEAR);
 
   const current = weekResults.find((w) => w.weekNumber === currentWeekNumber) ?? null;
   // Banker sorts last; everyone else by who owes most first.
