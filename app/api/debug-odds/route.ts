@@ -13,6 +13,7 @@
 // preference books is among them (meaning the next pull should fix it).
 // Costs a couple API credits, use sparingly.
 import { NextResponse } from "next/server";
+import { requireAdmin } from "@/lib/adminAuth";
 import { prisma } from "@/lib/db";
 import { fetchOdds } from "@/lib/oddsApi";
 import { getWeekNumberForDate } from "@/lib/currentWeek";
@@ -21,6 +22,8 @@ import { BOOK_PREFERENCE } from "@/lib/lock";
 export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
+  const denied = await requireAdmin(request); // lib/adminAuth.ts - logged in at /admin, or ?key=
+  if (denied) return denied;
   const { searchParams } = new URL(request.url);
   const weekNumber = Number(searchParams.get("week") ?? "1");
   const includeLive = searchParams.get("live") === "1";

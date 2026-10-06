@@ -12,11 +12,14 @@
 // ?jobId=<id>&identifier=<id> fetches one execution's full detail
 // (response headers/body) - get the identifier from the history list first.
 import { NextResponse } from "next/server";
+import { requireAdmin } from "@/lib/adminAuth";
 import { getCronJobDiagnostics, getJobHistory, getJobExecutionDetail } from "@/lib/cronJobOrg";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
+  const denied = await requireAdmin(request); // lib/adminAuth.ts - logged in at /admin, or ?key=
+  if (denied) return denied;
   const { searchParams } = new URL(request.url);
   const jobIdRaw = searchParams.get("jobId");
   const identifier = searchParams.get("identifier");

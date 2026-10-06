@@ -4,11 +4,14 @@
 // this when the standings page's pot/leader results look wrong and you need
 // to see exactly why, instead of guessing.
 import { NextResponse } from "next/server";
+import { requireAdmin } from "@/lib/adminAuth";
 import { prisma } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+export async function GET(request: Request) {
+  const denied = await requireAdmin(request); // lib/adminAuth.ts - logged in at /admin, or ?key=
+  if (denied) return denied;
   const weeks = await prisma.week.findMany({
     where: { seasonYear: 2026 },
     orderBy: { weekNumber: "asc" },

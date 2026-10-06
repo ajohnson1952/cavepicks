@@ -2,11 +2,14 @@
 // Visit /api/debug-teams?q=liu to search, or /api/debug-teams with no query
 // to get the full list back to scan yourself (sorted alphabetically).
 import { NextResponse } from "next/server";
+import { requireAdmin } from "@/lib/adminAuth";
 import { fetchEspnTeams } from "@/lib/espnTeams";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
+  const denied = await requireAdmin(request); // lib/adminAuth.ts - logged in at /admin, or ?key=
+  if (denied) return denied;
   const { searchParams } = new URL(request.url);
   const q = (searchParams.get("q") ?? "").toLowerCase().trim();
 

@@ -6,11 +6,14 @@
 // kickoff, showing what line it actually got locked with vs the last
 // genuine pregame snapshot for that game so a mismatch is obvious.
 import { NextResponse } from "next/server";
+import { requireAdmin } from "@/lib/adminAuth";
 import { prisma } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+export async function GET(request: Request) {
+  const denied = await requireAdmin(request); // lib/adminAuth.ts - logged in at /admin, or ?key=
+  if (denied) return denied;
   const snapshots = await prisma.oddsSnapshot.findMany({ include: { game: true } });
 
   const inPlaySnapshots = snapshots

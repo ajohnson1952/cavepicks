@@ -6,13 +6,16 @@
 // rows within a couple seconds of each other) so a gap between runs is
 // obvious at a glance, whoever/whatever triggered them.
 import { NextResponse } from "next/server";
+import { requireAdmin } from "@/lib/adminAuth";
 import { prisma } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
 const RUN_GAP_MS = 2 * 60 * 1000; // snapshots more than 2 min apart count as separate runs
 
-export async function GET() {
+export async function GET(request: Request) {
+  const denied = await requireAdmin(request); // lib/adminAuth.ts - logged in at /admin, or ?key=
+  if (denied) return denied;
   const rows = await prisma.oddsSnapshot.findMany({
     select: { capturedAt: true },
     orderBy: { capturedAt: "desc" },

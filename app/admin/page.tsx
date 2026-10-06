@@ -1,4 +1,5 @@
 import { cookies } from "next/headers";
+import { isAdminSession } from "@/lib/adminAuth";
 import { prisma } from "@/lib/db";
 import { getOrCreateCurrentWeek } from "@/lib/currentWeek";
 import {
@@ -59,8 +60,7 @@ export default async function AdminPage(
   }
 ) {
   const searchParams = await props.searchParams;
-  const session = (await cookies()).get("admin_session")?.value;
-  const isAuthed = session === "authenticated";
+  const isAuthed = await isAdminSession(); // lib/adminAuth.ts
 
   if (!isAuthed) {
     return (

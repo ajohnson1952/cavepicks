@@ -297,6 +297,24 @@ any new scheduled job.
   uncached: the yahngorithm requests it every ~30 minutes and each uncached
   hit would wake the database.
 
+- **Admin auth lives in `lib/adminAuth.ts`** (Oct 2026 security fix). The
+  `admin_session` cookie is a hash of `ADMIN_PASSWORD`, never a fixed word -
+  it used to be the literal string "authenticated", so anyone who set that
+  cookie by hand was the admin. Every maintenance / debug API route
+  (`seed-users`, `fix-week-zero`, `backfill-team-info`, all `debug-*`, plus
+  the ones that already had `?key=`) starts with
+  `const denied = await requireAdmin(request); if (denied) return denied;` -
+  it passes if the browser is logged in at /admin OR the URL has
+  `?key=<ADMIN_PASSWORD>`. **Any new route that reads private data or writes
+  anything must do the same.** `seed-users` in particular returns players'
+  private pick links, and `fix-week-zero` would relabel Week 1 as the
+  excluded Week 0 - both were wide open before. Claude can't call these
+  routes without the key; ask the owner to open them and paste the result.
+  The only deliberately open routes are the two cron targets (`pull-odds`,
+  `grade-results`), the retired `auto-lock-sweep` no-op, and `cave-splits`
+  (counts only). `pull-odds` skips if the last successful pull was under 20
+  minutes ago, so a stranger reloading it can't burn Odds API credits.
+
 ## Gotchas (all found the hard way - don't reintroduce these)
 
 - **`cookies()`, `params`, and `searchParams` are all async (Next.js 16).**

@@ -7,11 +7,14 @@
 // first - the admin decides which (if any) are "too early" and unlocks them
 // on /admin; this is read-only and doesn't touch anything.
 import { NextResponse } from "next/server";
+import { requireAdmin } from "@/lib/adminAuth";
 import { prisma } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
+  const denied = await requireAdmin(request); // lib/adminAuth.ts - logged in at /admin, or ?key=
+  if (denied) return denied;
   const { searchParams } = new URL(request.url);
   const weekParam = searchParams.get("week");
 

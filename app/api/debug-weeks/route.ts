@@ -3,11 +3,14 @@
 // confirm whether older data actually got deleted, or is just hidden
 // because the app rolled into a new "current" week.
 import { NextResponse } from "next/server";
+import { requireAdmin } from "@/lib/adminAuth";
 import { prisma } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+export async function GET(request: Request) {
+  const denied = await requireAdmin(request); // lib/adminAuth.ts - logged in at /admin, or ?key=
+  if (denied) return denied;
   const weeks = await prisma.week.findMany({ orderBy: [{ seasonYear: "asc" }, { weekNumber: "asc" }] });
 
   const results = [];

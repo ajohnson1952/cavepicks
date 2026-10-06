@@ -1,5 +1,6 @@
 // app/api/backfill-team-info/route.ts
 import { NextResponse } from "next/server";
+import { requireAdmin } from "@/lib/adminAuth";
 import { prisma } from "@/lib/db";
 import { fetchEspnTeams, findEspnTeamInfo } from "@/lib/espnTeams";
 import { fetchEspnScoreboard, teamNamesMatch, toYyyymmdd, EspnResult } from "@/lib/espnScores";
@@ -9,7 +10,9 @@ export const dynamic = "force-dynamic";
 // Re-checks EVERY game (not just ones with empty fields) - a fixed matcher
 // can correct previously-wrong data, not just fill in missing data. Safe to
 // re-run anytime.
-export async function GET() {
+export async function GET(request: Request) {
+  const denied = await requireAdmin(request); // lib/adminAuth.ts - logged in at /admin, or ?key=
+  if (denied) return denied;
   const espnTeams = await fetchEspnTeams();
 
   const games = await prisma.game.findMany();

@@ -15,25 +15,14 @@ import { fixApexCronUrls, reactivateAccidentallyDisabledJobs } from "@/lib/cronJ
 import { computeLedger } from "@/lib/ledger";
 import { isBanker } from "@/lib/pot";
 
-const ADMIN_COOKIE = "admin_session";
+import { ADMIN_COOKIE, isAdminSession, passwordIsCorrect, startAdminSession } from "@/lib/adminAuth";
 
-async function isAuthed(): Promise<boolean> {
-  return (await cookies()).get(ADMIN_COOKIE)?.value === "authenticated";
-}
+// see lib/adminAuth.ts - the cookie is a hash of the admin password, not a fixed word
+const isAuthed = isAdminSession;
 
 export async function adminLogin(formData: FormData) {
   const password = formData.get("password");
-  if (
-    typeof password === "string" &&
-    process.env.ADMIN_PASSWORD &&
-    password === process.env.ADMIN_PASSWORD
-  ) {
-    (await cookies()).set(ADMIN_COOKIE, "authenticated", {
-      httpOnly: true,
-      maxAge: 60 * 60 * 24 * 30,
-      path: "/",
-    });
-  }
+  if (passwordIsCorrect(password)) await startAdminSession();
   revalidatePath("/admin");
 }
 

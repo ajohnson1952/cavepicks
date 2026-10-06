@@ -1,5 +1,6 @@
 // app/api/seed-users/route.ts
 import { NextResponse } from "next/server";
+import { requireAdmin } from "@/lib/adminAuth";
 import { prisma } from "@/lib/db";
 import crypto from "crypto";
 
@@ -9,6 +10,8 @@ export const dynamic = "force-dynamic";
 // Creates any names that don't already exist yet, leaves existing ones alone,
 // and returns everyone's private pick link.
 export async function GET(request: Request) {
+  const denied = await requireAdmin(request); // lib/adminAuth.ts - logged in at /admin, or ?key=
+  if (denied) return denied;
   const { searchParams } = new URL(request.url);
   const namesParam = searchParams.get("names");
 

@@ -10,6 +10,7 @@
 //   - in-place edits: changing a selection updates the same Pick row, so only
 //     the LATEST pick time per slot is visible, not the churn
 import { NextResponse } from "next/server";
+import { requireAdmin } from "@/lib/adminAuth";
 import { prisma } from "@/lib/db";
 import { SEASON_YEAR } from "@/lib/currentWeek";
 import { AUTO_LOCK_MINUTES } from "@/lib/lock";
@@ -48,7 +49,9 @@ function median(nums: number[]): number | null {
 }
 const round1 = (n: number) => Math.round(n * 10) / 10;
 
-export async function GET() {
+export async function GET(request: Request) {
+  const denied = await requireAdmin(request); // lib/adminAuth.ts - logged in at /admin, or ?key=
+  if (denied) return denied;
   const now = Date.now();
 
   const users = await prisma.user.findMany({ orderBy: { name: "asc" } });
