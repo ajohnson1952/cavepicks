@@ -186,7 +186,15 @@ h1 {
    corner of a pill marks the side the model picked. */
 .pill-btn { position: relative; }
 .yahn-link { flex-shrink: 0; line-height: 0; padding: 3px; margin: -3px -3px 0 0; }
-.yahn-link img { border-radius: 50%; border: 1px solid var(--border-soft); display: block; }
+.yahn-link img {
+  border-radius: 50%; border: 1px solid var(--border-soft); display: block;
+  /* deliberately quiet: it's on every game, so it shouldn't pull the eye.
+     Small, faded and desaturated at rest; full color only while pressed. */
+  width: 18px; height: 18px;
+  opacity: 0.4; filter: grayscale(0.85);
+  transition: opacity 0.15s ease, filter 0.15s ease;
+}
+.yahn-link:hover img, .yahn-link:active img { opacity: 1; filter: none; }
 .yahn-mark {
   position: absolute; top: 6px; right: 7px;
   display: inline-flex; align-items: center; gap: 3px;
