@@ -1,5 +1,6 @@
 import LabClient from "./LabClient";
 import LineMoveMock from "./LineMoveMock";
+import YahnMock from "./YahnMock";
 
 // Hidden test bench (not linked anywhere) for the tactile stuff: haptics,
 // the "fully locked in" money shower, and pull-to-refresh. Touches no data.
@@ -13,6 +14,7 @@ export default function LabPage() {
       <p className="subtext">
         Test bench for haptics, the lock-in celebration, and pull-to-refresh. Nothing here saves anything.
       </p>
+      <YahnMock />
       <LineMoveMock />
       <LabClient
         renderedAt={new Date().toLocaleTimeString("en-US", { timeZone: "America/Chicago", hour: "numeric", minute: "2-digit", second: "2-digit" }) + " CT"}
