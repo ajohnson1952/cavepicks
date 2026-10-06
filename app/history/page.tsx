@@ -2,6 +2,7 @@ import { prisma } from "@/lib/db";
 import { computeCurrentSeasonStats } from "@/lib/seasonStats";
 import { computeFunStats } from "@/lib/funStats";
 import { computeGroupTrends } from "@/lib/groupTrends";
+import { computeSharpness, MIN_SHARP_SAMPLE } from "@/lib/sharpness";
 
 export const dynamic = "force-dynamic";
 
@@ -88,6 +89,8 @@ export default async function HistoryPage() {
     await computeCurrentSeasonStats(CURRENT_SEASON_YEAR);
   const funStats = await computeFunStats(CURRENT_SEASON_YEAR);
   const groupTrends = await computeGroupTrends(CURRENT_SEASON_YEAR);
+  const sharpAll = await computeSharpness(CURRENT_SEASON_YEAR);
+  const sharpRanked = sharpAll.filter((p) => p.wins + p.losses >= MIN_SHARP_SAMPLE);
 
   const historicalSeasonYears = Array.from(new Set(historicalRows.map((r) => r.seasonYear))).sort(
     (a, b) => b - a
@@ -195,6 +198,75 @@ export default async function HistoryPage() {
               {careerDogLeader.points} pts
             </p>
           )}
+        </div>
+      )}
+
+      {sharpRanked.length >= 2 && (
+        <div className="card">
+          <div className="matchup">🔪 Sharp Report</div>
+          <p className="subtext" style={{ margin: "4px 0 10px" }}>
+            {CURRENT_SEASON_YEAR} &mdash; sharpest to squarest. Results <em>and</em> whether you got a better number than
+            where the line closed.
+          </p>
+          {sharpRanked.map((p, i) => {
+            const last = i === sharpRanked.length - 1;
+            const badge = i === 0 ? "🔪" : last ? "🐑" : String(i + 1);
+            return (
+              <div
+                key={p.name}
+                style={{
+                  padding: "8px 0",
+                  borderBottom: last ? "none" : "1px solid var(--border)",
+                }}
+              >
+                <div className="row-between" style={{ alignItems: "center" }}>
+                  <span style={{ fontSize: "14px" }}>
+                    <span style={{ display: "inline-block", width: "24px", textAlign: "center" }}>{badge}</span>
+                    <strong>{p.name}</strong>
+                    {i === 0 && <span className="meta"> &middot; sharpest</span>}
+                    {last && <span className="meta"> &middot; squarest</span>}
+                  </span>
+                  <span className="mono" style={{ fontSize: "12px" }}>
+                    {p.wins}-{p.losses}
+                    {p.pushes ? `-${p.pushes}` : ""}
+                    {p.avgClv != null && (
+                      <span
+                        className={p.avgClv > 0 ? "pick-win" : p.avgClv < 0 ? "pick-loss" : "pick-push"}
+                        style={{ marginLeft: "8px" }}
+                      >
+                        {p.avgClv > 0 ? "+" : p.avgClv < 0 ? "\u2212" : ""}
+                        {Math.abs(p.avgClv).toFixed(2)} CLV
+                      </span>
+                    )}
+                  </span>
+                </div>
+                {p.tags.length > 0 && (
+                  <div style={{ marginLeft: "24px", marginTop: "3px", display: "flex", flexWrap: "wrap", gap: "4px" }}>
+                    {p.tags.map((t) => (
+                      <span
+                        key={t}
+                        style={{
+                          fontSize: "11px",
+                          background: "var(--panel-alt)",
+                          border: "1px solid var(--border-soft)",
+                          borderRadius: "10px",
+                          padding: "1px 7px",
+                          color: "var(--dim)",
+                        }}
+                      >
+                        {t}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+          <p className="meta" style={{ margin: "8px 0 0", lineHeight: 1.5 }}>
+            CLV = closing line value: how many points better (or worse) your locked number was than the final line
+            before kickoff. Beating the close is the classic sign of a sharp. Ranked by results + CLV + dog points.
+            Tiny sample &mdash; mostly bragging rights.
+          </p>
         </div>
       )}
 
