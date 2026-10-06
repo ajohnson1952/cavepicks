@@ -24,6 +24,7 @@ export type YahnPick = {
   edge: number; // points the model disagrees with the market by (always +)
   why: string[];
   result: string | null; // win | loss | push once graded
+  loggedAt?: string | null; // when the model made the pick (the ghost player uses this)
 };
 
 type YahnTeam = { name: string; abbr: string | null; oddsNames: string[] };
@@ -34,6 +35,7 @@ export type YahnGame = {
   kickoff: string;
   home: YahnTeam;
   away: YahnTeam;
+  homeWinProb?: number | null; // model's chance the home team wins outright (ghost's dog pick)
   picks: YahnPick[];
 };
 

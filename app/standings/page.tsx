@@ -1,5 +1,6 @@
 import { dogPayouts } from "@/lib/pot";
 import { computeCurrentSeasonStats } from "@/lib/seasonStats";
+import { ghostSeasonStats, GHOST_NAME } from "@/lib/ghost";
 
 export const dynamic = "force-dynamic";
 
@@ -23,6 +24,60 @@ export default async function StandingsPage() {
   // once future placeholder weeks started existing in the database).
   const currentWeek = weekResults.find((w) => w.weekNumber === currentWeekNumber) ?? null;
   const pastWeeks = weekResults.filter((w) => w.weekNumber !== currentWeekNumber);
+
+  // "Yahn" the ghost player (the-yahngorithm's model playing along - see
+  // lib/ghost.ts). Shown in both leaderboards where its record would rank,
+  // but unranked and never part of the pot or the group totals. Wrapped so
+  // the standings can't break if anything about it goes wrong.
+  const ghost = await ghostSeasonStats(2026).catch(() => null);
+  const ghostSideDenom = ghost ? ghost.side.wins + ghost.side.losses : 0;
+  const ghostSidePct = ghostSideDenom > 0 ? (ghost!.side.wins / ghostSideDenom) * 100 : 0;
+  const ghostDogDenom = ghost ? ghost.dog.wins + ghost.dog.losses : 0;
+  const ghostDogPct = ghostDogDenom > 0 ? (ghost!.dog.wins / ghostDogDenom) * 100 : 0;
+  // index of the first player the ghost is ahead of (or the end of the list)
+  const ghostSideAt = ghost?.any
+    ? ((i) => (i === -1 ? cavepicksStats.length : i))(cavepicksStats.findIndex((s) => s.pct < ghostSidePct))
+    : -1;
+  const ghostDogAt = ghost?.any
+    ? ((i) => (i === -1 ? cavedogsStats.length : i))(cavedogsStats.findIndex((s) => s.points < ghost.dog.points))
+    : -1;
+  const ghostName = (
+    <>
+      <img
+        src="/yahn-joe.png"
+        alt=""
+        width={15}
+        height={15}
+        style={{ borderRadius: "50%", verticalAlign: "-3px", marginRight: "5px" }}
+      />
+      <a href="/yahn" style={{ color: "inherit", textDecoration: "none" }}>
+        {GHOST_NAME}
+      </a>
+      <span style={{ color: "var(--dim)", fontWeight: 400 }}> &middot; bot</span>
+    </>
+  );
+  const ghostSideRow = ghost?.any ? (
+    <tr key="ghost" style={{ opacity: 0.85 }}>
+      <td className="rank-cell" style={{ color: "var(--dim)" }}>&ndash;</td>
+      <td>{ghostName}</td>
+      <td style={{ color: "var(--dim)" }}>&ndash;</td>
+      <td>{ghost.side.wins}</td>
+      <td>{ghost.side.pushes}</td>
+      <td>{ghost.side.losses}</td>
+      <td>{ghostSidePct.toFixed(1)}%</td>
+    </tr>
+  ) : null;
+  const ghostDogRow = ghost?.any ? (
+    <tr key="ghost" style={{ opacity: 0.85 }}>
+      <td className="rank-cell" style={{ color: "var(--dim)" }}>&ndash;</td>
+      <td>{ghostName}</td>
+      <td>{ghost.dog.points}</td>
+      <td>{ghost.dog.wins}</td>
+      <td>{ghost.dog.losses}</td>
+      <td>{ghostDogPct.toFixed(1)}%</td>
+      <td style={{ color: "var(--dim)" }}>&mdash;</td>
+    </tr>
+  ) : null;
 
   const DOG_PAYOUTS = dogPayouts(users.length);
   const dogPotTotal = DOG_PAYOUTS.total;
@@ -98,7 +153,8 @@ export default async function StandingsPage() {
             </tr>
           </thead>
           <tbody>
-            {cavepicksStats.map((s, i) => (
+            {cavepicksStats.flatMap((s, i) => [
+              i === ghostSideAt ? ghostSideRow : null,
               <tr key={s.name} className={i === 0 && s.pct > 0 ? "rank-first" : undefined}>
                 <td className="rank-cell">{rankLabel(i)}</td>
                 <td>{s.name}</td>
@@ -107,8 +163,9 @@ export default async function StandingsPage() {
                 <td>{s.pushes}</td>
                 <td>{s.losses}</td>
                 <td>{s.pct.toFixed(1)}%</td>
-              </tr>
-            ))}
+              </tr>,
+            ])}
+            {ghostSideAt === cavepicksStats.length ? ghostSideRow : null}
             <tr className="totals-row">
               <td></td>
               <td>Group Total</td>
@@ -173,9 +230,10 @@ export default async function StandingsPage() {
             </tr>
           </thead>
           <tbody>
-            {cavedogsStats.map((s, i) => {
+            {cavedogsStats.flatMap((s, i) => {
               const payout = i === 0 ? DOG_PAYOUTS.first : i === 1 ? DOG_PAYOUTS.second : i === 2 ? DOG_PAYOUTS.third : 0;
-              return (
+              return [
+                i === ghostDogAt ? ghostDogRow : null,
                 <tr key={s.name} className={i === 0 && s.points > 0 ? "rank-first" : undefined}>
                   <td className="rank-cell">{rankLabel(i)}</td>
                   <td>{s.name}</td>
@@ -184,9 +242,10 @@ export default async function StandingsPage() {
                   <td>{s.losses}</td>
                   <td>{s.pct.toFixed(1)}%</td>
                   <td>{payout > 0 && s.points > 0 ? `$${payout}` : "\u2014"}</td>
-                </tr>
-              );
+                </tr>,
+              ];
             })}
+            {ghostDogAt === cavedogsStats.length ? ghostDogRow : null}
             <tr className="totals-row">
               <td></td>
               <td>Group Total</td>

@@ -2,6 +2,7 @@
 import { prisma } from "./db";
 import { fetchEspnScoreboard, teamNamesMatch, toYyyymmdd, EspnResult } from "./espnScores";
 import { gradePick } from "./scoring";
+import { runGhost } from "./ghost";
 
 // Cap games processed per invocation so a pathological backlog (e.g. a whole
 // season's worth of ungraded games) can't spike memory on Render's 512MB
@@ -115,6 +116,17 @@ export async function runGradeResults() {
       });
       picksGraded++;
     }
+  }
+
+  // "Yahn" the ghost player: lock any of its picks whose deadline has passed
+  // and grade any that just went final (lib/ghost.ts). Runs here because this
+  // job already has the database awake around every kickoff. It's a
+  // just-for-fun extra in its own table, so a failure must never take
+  // real grading down with it.
+  try {
+    await runGhost();
+  } catch (err) {
+    console.error("ghost player run failed (grading itself is unaffected)", err);
   }
 
   // Only surface timing debug for games that did NOT get graded this run -

@@ -46,6 +46,7 @@ model Week {
   // LOCK_OFFSET_MINUTES before that game's own commenceTime (see lib/lock.ts)
   games      Game[]
   picks      Pick[]
+  ghostPicks GhostPick[]
 
   @@unique([seasonYear, weekNumber])
 }
@@ -71,6 +72,7 @@ model Game {
   voidReason    String?
   oddsSnapshots OddsSnapshot[]
   picks         Pick[]
+  ghostPicks    GhostPick[]
 }
 
 // One row per odds pull per game. Grading always uses the most recent
@@ -158,4 +160,37 @@ model Payment {
   direction String
   note      String?
   createdAt DateTime @default(now())
+}
+
+// "Yahn", the ghost player: the-yahngorithm's model playing along by the same
+// rules (5 side picks + 1 dog a week, each frozen at the line that was showing
+// 30 minutes before that game's kickoff). Deliberately its OWN table and never
+// a User/Pick row - nothing in the pot, payout, ledger or week-settling math
+// reads this, so the ghost can't touch anyone's money. See lib/ghost.ts.
+model GhostPick {
+  id       String   @id @default(cuid())
+  weekId   String
+  week     Week     @relation(fields: [weekId], references: [id])
+  gameId   String
+  game     Game     @relation(fields: [gameId], references: [id])
+  pickType PickType
+  selection String // team name, or "over"/"under" - same convention as Pick
+
+  lockedLine     Float?
+  lockedOdds     Int?
+  dogSpreadValue Float?
+  lockedBook     String?
+  lockedAt       DateTime // that game's lock deadline - the moment the line is frozen as of
+  yahnEdge       Float? // sides: the model's edge in points when it logged the pick
+  yahnValue      Float? // dog: model win chance x points on offer (expected points)
+
+  graded       Boolean  @default(false)
+  isWin        Boolean?
+  isPush       Boolean?
+  pointsEarned Float    @default(0)
+
+  createdAt DateTime @default(now())
+
+  @@unique([gameId, pickType])
+  @@index([weekId])
 }

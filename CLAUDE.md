@@ -257,9 +257,27 @@ any new scheduled job.
   deliberately cached 15 min (the one external call here that is NOT
   no-store), never touches this app's database, is only made for the
   current week, and returns null on any failure so the Joe extras just
-  don't render. Planned next, not built: Yahn as a "ghost player" in the
-  standings (its own table, never a real User - keep it out of all pot /
-  ledger math). `/lab` still has the original mockups.
+  don't render. `/lab` still has the original mockups.
+- **"Yahn" the ghost player** (`lib/ghost.ts`, table `GhostPick`): the model
+  plays along by the same rules - 5 side picks + 1 dog a week, each frozen at
+  the line that was on screen at that game's lock deadline (the newest
+  `OddsSnapshot` at or before 30 min pre-kickoff). It is **never a `User` or
+  a `Pick`**: nothing in pot / payout / ledger / week-settling math reads
+  `GhostPick`, and that separation is the whole point - don't "simplify" it
+  into a real player. It decides game by game in deadline order with no
+  hindsight (`decideGhostPicks`, a pure function - rules are in the file
+  header): sides = the model's pick on that game if it's within the ghost's
+  remaining slots among the model's picks still available; dog = that game's
+  underdog if it has the best (model win chance x points) left. Because
+  every input is fixed once a deadline passes, replaying a week is
+  repeatable - the same function backfilled Weeks 1-5. It runs inside
+  `runGradeResults` (the DB is already awake around kickoffs), wrapped in
+  try/catch so it can never break real grading; a normal run only adds picks
+  whose deadline passed in the last 36h and never edits or deletes one.
+  `/api/ghost-run?key=<ADMIN_PASSWORD>[&weeks=1-5][&dry=1]` runs/backfills it
+  by hand. `/standings` shows it in both leaderboards where its record would
+  rank - unranked ("-"), tagged "bot", excluded from Group Total and payouts.
+  It shows up there only once it has a graded pick.
 
 ## Gotchas (all found the hard way - don't reintroduce these)
 
