@@ -53,14 +53,14 @@ export default async function StandingsPage() {
       <a href="/yahn" style={{ color: "inherit", textDecoration: "none" }}>
         {GHOST_NAME}
       </a>
-      <span style={{ color: "var(--dim)", fontWeight: 400 }}> &middot; bot</span>
+      <span> &middot; bot</span>
     </>
   );
   const ghostSideRow = ghost?.any ? (
-    <tr key="ghost" style={{ opacity: 0.85 }}>
-      <td className="rank-cell" style={{ color: "var(--dim)" }}>&ndash;</td>
+    <tr key="ghost" className="ghost-row">
+      <td className="rank-cell">&ndash;</td>
       <td>{ghostName}</td>
-      <td style={{ color: "var(--dim)" }}>&ndash;</td>
+      <td>&ndash;</td>
       <td>{ghost.side.wins}</td>
       <td>{ghost.side.pushes}</td>
       <td>{ghost.side.losses}</td>
@@ -68,14 +68,14 @@ export default async function StandingsPage() {
     </tr>
   ) : null;
   const ghostDogRow = ghost?.any ? (
-    <tr key="ghost" style={{ opacity: 0.85 }}>
-      <td className="rank-cell" style={{ color: "var(--dim)" }}>&ndash;</td>
+    <tr key="ghost" className="ghost-row">
+      <td className="rank-cell">&ndash;</td>
       <td>{ghostName}</td>
       <td>{ghost.dog.points}</td>
       <td>{ghost.dog.wins}</td>
       <td>{ghost.dog.losses}</td>
       <td>{ghostDogPct.toFixed(1)}%</td>
-      <td style={{ color: "var(--dim)" }}>&mdash;</td>
+      <td>&mdash;</td>
     </tr>
   ) : null;
 
@@ -177,6 +177,7 @@ export default async function StandingsPage() {
             </tr>
           </tbody>
         </table>
+        {ghostSideRow && <p className="ghost-note">{GHOST_NAME} is the model, shown for reference only. Not ranked, not in the pot, not in the Group Total.</p>}
       </div>
 
       {pastWeeks.length > 0 && (
@@ -257,6 +258,7 @@ export default async function StandingsPage() {
             </tr>
           </tbody>
         </table>
+        {ghostDogRow && <p className="ghost-note">{GHOST_NAME} is the model, shown for reference only. Not ranked, not in the pot, not in the Group Total.</p>}
       </div>
     </main>
   );

@@ -500,6 +500,21 @@ h1 {
   font-weight: 700;
 }
 
+/* "Yahn" the ghost player (lib/ghost.ts): greyed out so it reads as a
+   reference line, not a competitor - it isn't ranked or in any total. */
+.stat-table tr.ghost-row td {
+  color: var(--dim);
+  font-weight: 400;
+  font-style: italic;
+}
+.stat-table tr.ghost-row img { opacity: 0.6; }
+.ghost-note {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 10px;
+  color: var(--dim);
+  margin: 8px 0 0;
+}
+
 .stat-table tr.totals-row td {
   border-top: 2px solid var(--border);
   font-weight: 700;
