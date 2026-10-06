@@ -9,6 +9,7 @@ import { pullOdds } from "@/lib/pullOdds";
 import { recordJobRun } from "@/lib/jobRun";
 import { mergeGame } from "@/lib/mergeGames";
 import { UNLOCK_DATA } from "@/lib/unlockPick";
+import { bumpCaveSplits } from "@/lib/caveSplits";
 import { unlockStaleLocks } from "@/lib/unlockStaleLocks";
 import { fixApexCronUrls, reactivateAccidentallyDisabledJobs } from "@/lib/cronJobOrg";
 import { computeLedger } from "@/lib/ledger";
@@ -72,6 +73,7 @@ export async function adminUnlockPick(formData: FormData) {
   if (typeof pickId !== "string") return;
 
   await prisma.pick.update({ where: { id: pickId }, data: UNLOCK_DATA });
+  bumpCaveSplits();
 
   revalidatePath("/admin");
   revalidatePath("/board");

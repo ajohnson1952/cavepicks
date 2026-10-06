@@ -278,6 +278,15 @@ any new scheduled job.
   by hand. `/standings` shows it in both leaderboards where its record would
   rank - unranked ("-"), tagged "bot", excluded from Group Total and payouts.
   It shows up there only once it has a graded pick.
+- **`/api/cave-splits`** (`lib/caveSplits.ts`): read-only, public counts of
+  LOCKED picks per side per game for this week / last week - **counts only,
+  never names, never unlocked picks**. The yahngorithm shows them ("how the
+  cave picked it" on its game pages, a caveman chip on its board). It is
+  cached and refreshed only by `bumpCaveSplits()`, which every code path that
+  locks, unlocks or moves a pick must call (`lockValue`, the admin unlock,
+  `unlockStaleLocks`, `mergeGame`) - never put it on a timer or make it
+  uncached: the yahngorithm requests it every ~30 minutes and each uncached
+  hit would wake the database.
 
 ## Gotchas (all found the hard way - don't reintroduce these)
 

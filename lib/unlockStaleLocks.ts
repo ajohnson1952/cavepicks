@@ -1,6 +1,7 @@
 // lib/unlockStaleLocks.ts
 import { prisma } from "./db";
 import { UNLOCK_DATA } from "./unlockPick";
+import { bumpCaveSplits } from "./caveSplits";
 
 // Bulk-unlocks every currently-locked pick in a week whose lockedAt is
 // before `cutoff`. For the recurring situation where pull-odds goes quiet
@@ -23,6 +24,7 @@ export async function unlockStaleLocks(weekNumber: number, seasonYear: number, c
     where: { weekId: week.id, locked: true, lockedAt: { lt: cutoff } },
     data: UNLOCK_DATA,
   });
+  bumpCaveSplits();
 
   return {
     ok: true as const,

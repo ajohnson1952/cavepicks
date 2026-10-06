@@ -1,5 +1,6 @@
 // lib/mergeGames.ts
 import { prisma } from "./db";
+import { bumpCaveSplits } from "./caveSplits";
 
 export type MergeResult = { moved: number; skipped: number; voided: boolean };
 
@@ -41,6 +42,8 @@ export async function mergeGame(fromGameId: string, toGameId: string, reason: st
     await prisma.game.update({ where: { id: fromGameId }, data: { voided: true, voidReason: reason } });
     voided = true;
   }
+
+  if (moved > 0 || voided) bumpCaveSplits(); // picks changed games - refresh the lock counts
 
   return { moved, skipped, voided };
 }

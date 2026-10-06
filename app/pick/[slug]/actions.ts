@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db";
 import { isPastLockDeadline } from "@/lib/lock";
 import { getWeekNumberForDate } from "@/lib/currentWeek";
 import { revalidatePath } from "next/cache";
+import { bumpCaveSplits } from "@/lib/caveSplits";
 
 // Deletes an unlocked pick entirely, since radio buttons can't be "unselected"
 // on their own. Locked picks can't be cleared by a player - the lock is
@@ -161,6 +162,7 @@ export async function lockValue(
     update: data,
     create: { userId: user.id, weekId, gameId, pickType, ...data },
   });
+  bumpCaveSplits(); // a new locked pick changes the "how the cave picked it" counts
 
   revalidatePath(`/pick/${slug}`);
   revalidatePath("/board");
