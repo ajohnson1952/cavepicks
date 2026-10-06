@@ -306,7 +306,7 @@ export default async function BoardPage(props: { searchParams: Promise<{ week?: 
             </div>
           )}
           <div className="meta" style={{ marginTop: "8px" }}>
-            Its picks show up here once each game reaches its lock deadline.
+            It locks its picks early in the week, at the line showing when the model&apos;s picks come in.
           </div>
         </div>
       )}

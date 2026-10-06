@@ -5,9 +5,18 @@
 // kickoff). Purely for fun: its picks live in GhostPick, never Pick, so no
 // pot / payout / ledger / week-settling code ever sees it.
 //
-// HOW IT DECIDES (decideGhostPicks - a pure function, no database):
-// The ghost can't see the future, so it decides game by game, in lock-deadline
-// order. At game G's deadline T:
+// HOW IT DECIDES NOW (decideGhostNow - a pure function, no database):
+// It locks EARLY, like a player who makes their picks at the start of the
+// week. Each time it runs for the current week, once the model has logged its
+// picks, it fills any open slots: the biggest-edge model picks on games that
+// can still be locked (up to 5 sides), and - once - the underdog with the best
+// expected points (model win chance x points on offer). Every pick is frozen
+// at the line Cavepicks is showing at that moment. A week that starts with
+// fewer than 5 model picks fills its remaining slots as more are logged.
+//
+// HOW WEEKS 1-5 WERE BACKFILLED (decideGhostPicks, the replay rule - used
+// only when /api/ghost-run is given explicit past weeks). The original rule:
+// decide game by game, in lock-deadline order. At game G's deadline T:
 //  - SIDES: line up every model pick that existed by T (logged before T) on a
 //    game that hasn't locked yet, biggest edge first. With S of its 5 slots
 //    left, it takes the model's pick on G only if that pick is in the top S.
@@ -184,6 +193,94 @@ export function decideGhostPicks(games: GhostGame[], feed: YahnFeed, now: Date):
   return out;
 }
 
+/**
+ * The live rule: what to lock right now. Fills the ghost's open slots from
+ * the model's current picks, at the newest line we have for each game.
+ * `already` is what the ghost holds for this week so far.
+ */
+export function decideGhostNow(
+  games: GhostGame[],
+  feed: YahnFeed,
+  already: { keys: Set<string>; sides: number; hasDog: boolean },
+  now: Date
+): GhostDecision[] {
+  // "Official" = the model has logged at least one pick for the week. Before
+  // that (its ratings for the week aren't in yet) the ghost waits - dog too.
+  if (!feed.games.some((f) => f.picks.length > 0)) return [];
+
+  const lockable = games
+    .filter((g) => deadlineOf(g).getTime() > now.getTime())
+    .map((g) => ({
+      g,
+      snap: snapAt(g, now),
+      f: feed.games.find((f) => f.home.oddsNames.includes(g.homeTeam) && f.away.oddsNames.includes(g.awayTeam)) ?? null,
+    }))
+    .filter((x) => x.snap && x.f) as { g: GhostGame; snap: Snap; f: YahnGame }[];
+
+  const out: GhostDecision[] = [];
+
+  // ---- sides: biggest edges first, until the 5 slots are full ----
+  const open = SIDE_SLOTS - already.sides;
+  if (open > 0) {
+    const candidates = lockable
+      .flatMap(({ g, snap, f }) =>
+        f.picks
+          .filter((p) => p.market === "spread" || p.market === "total")
+          .map((p) => ({ g, snap, p, key: `${g.id}_${p.market === "spread" ? "SPREAD" : "TOTAL"}` }))
+      )
+      .filter((c) => !already.keys.has(c.key))
+      .sort(
+        (a, b) =>
+          b.p.edge - a.p.edge ||
+          a.g.commenceTime.getTime() - b.g.commenceTime.getTime() ||
+          a.key.localeCompare(b.key)
+      );
+    for (const c of candidates) {
+      if (out.length >= open) break;
+      if (c.p.market === "spread") {
+        const home = c.p.side === "home";
+        const line = home ? c.snap.spreadHome : c.snap.spreadAway;
+        if (line == null) continue; // no spread posted for it yet - try again next run
+        out.push({
+          gameId: c.g.id, pickType: "SPREAD", selection: home ? c.g.homeTeam : c.g.awayTeam,
+          lockedLine: line, lockedOdds: home ? c.snap.spreadHomePrice : c.snap.spreadAwayPrice,
+          dogSpreadValue: null, lockedBook: c.snap.sourceBook, lockedAt: now,
+          yahnEdge: c.p.edge, yahnValue: null,
+        });
+      } else {
+        if (c.snap.total == null) continue;
+        const over = c.p.side === "over";
+        out.push({
+          gameId: c.g.id, pickType: "TOTAL", selection: over ? "over" : "under",
+          lockedLine: c.snap.total, lockedOdds: over ? c.snap.totalOverPrice : c.snap.totalUnderPrice,
+          dogSpreadValue: null, lockedBook: c.snap.sourceBook, lockedAt: now,
+          yahnEdge: c.p.edge, yahnValue: null,
+        });
+      }
+    }
+  }
+
+  // ---- dog: the best expected points among games that can still be locked ----
+  if (!already.hasDog) {
+    let best: { g: GhostGame; snap: Snap; dog: NonNullable<ReturnType<typeof dogOf>>; value: number } | null = null;
+    for (const { g, snap, f } of lockable) {
+      const dog = dogOf(g, snap);
+      if (f.homeWinProb == null || !dog) continue;
+      const value = (dog.home ? f.homeWinProb : 1 - f.homeWinProb) * dog.points;
+      if (!best || value > best.value) best = { g, snap, dog, value };
+    }
+    if (best && best.value > 0) {
+      out.push({
+        gameId: best.g.id, pickType: "DOG", selection: best.dog.team,
+        lockedLine: null, lockedOdds: best.dog.ml, dogSpreadValue: best.dog.points,
+        lockedBook: best.snap.sourceBook, lockedAt: now,
+        yahnEdge: null, yahnValue: Math.round(best.value * 100) / 100,
+      });
+    }
+  }
+  return out;
+}
+
 async function fetchFeed(weekNumber: number): Promise<YahnFeed | null> {
   try {
     const base = process.env.YAHN_URL ?? YAHN_SITE;
@@ -201,11 +298,12 @@ async function fetchFeed(weekNumber: number): Promise<YahnFeed | null> {
 
 /**
  * Lock any ghost picks that are due and grade any that have gone final.
- * - Normal run (from grade-results): the current week only, and only picks
- *   whose deadline passed in the last `windowHours` - so a late re-run can
- *   never go back and rewrite an old week.
- * - Backfill: pass explicit `weeks` and `windowHours: null`.
- * `dryRun` reports what it would lock without writing anything.
+ * - Normal run (after every odds pull and inside grade-results): the current
+ *   week, by the live rule (decideGhostNow) - fill open slots now, at the
+ *   line showing now.
+ * - Backfill (explicit `weeks`, `windowHours: null`): the deadline-replay
+ *   rule (decideGhostPicks), used once for Weeks 1-5.
+ * It only ever ADDS picks. `dryRun` reports what it would lock, writes nothing.
  */
 export async function runGhost(opts: { weeks?: number[]; windowHours?: number | null; dryRun?: boolean } = {}) {
   const now = new Date();
@@ -238,14 +336,10 @@ export async function runGhost(opts: { weeks?: number[]; windowHours?: number | 
       continue;
     }
 
-    const decisions = decideGhostPicks(
-      games.map((g) => ({
-        id: g.id, homeTeam: g.homeTeam, awayTeam: g.awayTeam,
-        commenceTime: g.commenceTime, snapshots: g.oddsSnapshots,
-      })),
-      feed,
-      now
-    );
+    const ghostGames = games.map((g) => ({
+      id: g.id, homeTeam: g.homeTeam, awayTeam: g.awayTeam,
+      commenceTime: g.commenceTime, snapshots: g.oddsSnapshots,
+    }));
 
     // Record every side the model had picked by each game's deadline (all of
     // them, not just the ghost's 5) - what the Sharp Report compares against.
@@ -274,9 +368,19 @@ export async function runGhost(opts: { weeks?: number[]; windowHours?: number | 
     let hasDog = existing.some((e) => e.pickType === "DOG");
     const gameById = new Map(games.map((g) => [g.id, g]));
 
+    // Which rule: explicit weeks = the backfill replay; the current week on a
+    // normal run = lock now; any other week on a normal run (the one-time
+    // ModelPick catch-up) = no ghost picks at all.
+    const decisions = opts.weeks
+      ? decideGhostPicks(ghostGames, feed, now)
+      : weekNumber === getWeekNumberForDate(now)
+      ? decideGhostNow(ghostGames, feed, { keys: have, sides, hasDog }, now)
+      : [];
+
     for (const d of decisions) {
       if (have.has(`${d.gameId}_${d.pickType}`)) continue;
-      if (windowHours != null && now.getTime() - d.lockedAt.getTime() > windowHours * 3_600_000) continue;
+      // (the window only matters to the replay rule, whose lockedAt is a past deadline)
+      if (opts.weeks && windowHours != null && now.getTime() - d.lockedAt.getTime() > windowHours * 3_600_000) continue;
       // belt and braces: the replay already respects these, but never exceed them
       if (d.pickType === "DOG" ? hasDog : sides >= SIDE_SLOTS) continue;
 

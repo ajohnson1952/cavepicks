@@ -1,5 +1,6 @@
 // lib/pullOdds.ts
 import { prisma } from "./db";
+import { runGhost } from "./ghost";
 import { fetchOdds } from "./oddsApi";
 import { fetchEspnTeams, findEspnTeamInfo } from "./espnTeams";
 import { fetchEspnScoreboard, teamNamesMatch, toYyyymmdd, EspnResult } from "./espnScores";
@@ -192,6 +193,15 @@ export async function pullOdds(snapshotType: string = "market") {
         });
       }
     }
+  }
+
+  // "Yahngo" the ghost player locks early (lib/ghost.ts): fresh lines just
+  // landed and the database is awake, so let it fill any open slots now. A
+  // just-for-fun extra - it must never fail an odds pull.
+  try {
+    await runGhost();
+  } catch (err) {
+    console.error("ghost player run failed (the odds pull itself is fine)", err);
   }
 
   const bookCounts: Record<string, number> = {};

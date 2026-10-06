@@ -263,20 +263,21 @@ any new scheduled job.
 - **"Yahngo" the ghost player** (`lib/ghost.ts`, table `GhostPick`; named
   Yahngo because "Yahn" is the owner's own nickname in the league): the model
   plays along by the same rules - 5 side picks + 1 dog a week, each frozen at
-  the line that was on screen at that game's lock deadline (the newest
-  `OddsSnapshot` at or before 30 min pre-kickoff). It is **never a `User` or
+  the line on screen when it locks. It is **never a `User` or
   a `Pick`**: nothing in pot / payout / ledger / week-settling math reads
   `GhostPick`, and that separation is the whole point - don't "simplify" it
-  into a real player. It decides game by game in deadline order with no
-  hindsight (`decideGhostPicks`, a pure function - rules are in the file
-  header): sides = the model's pick on that game if it's within the ghost's
-  remaining slots among the model's picks still available; dog = that game's
-  underdog if it has the best (model win chance x points) left. Because
-  every input is fixed once a deadline passes, replaying a week is
-  repeatable - the same function backfilled Weeks 1-5. It runs inside
-  `runGradeResults` (the DB is already awake around kickoffs), wrapped in
-  try/catch so it can never break real grading; a normal run only adds picks
-  whose deadline passed in the last 36h and never edits or deletes one.
+  into a real player. **It locks early** (owner's call, Oct 2026): each run
+  for the current week, once the model has logged picks, it fills any open
+  slots with the model's biggest edges on games still lockable (up to 5) and,
+  once, the underdog with the best (model win chance x points) - all frozen
+  at the line Cavepicks shows at that moment (`decideGhostNow`, a pure
+  function). A week that starts with fewer than 5 model picks fills the rest
+  as more are logged. It runs after every odds pull (`pullOdds`) and inside
+  `runGradeResults`, each wrapped in try/catch so it can never break the real
+  job; it only ever adds picks, never edits or deletes one. Weeks 1-5 were
+  backfilled under the ORIGINAL rule (lock at each game's deadline line,
+  decided in deadline order - `decideGhostPicks`), which is still what
+  explicit `weeks=` on the ghost-run route uses.
   `/api/ghost-run?key=<ADMIN_PASSWORD>[&weeks=1-5][&dry=1]` runs/backfills it
   by hand. `/standings` shows it in both leaderboards where its record would
   rank - unranked ("-"), tagged "bot", excluded from Group Total and payouts.
