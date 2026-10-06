@@ -10,7 +10,14 @@ type Section = { label: string; href: string; subs?: { label: string; href: stri
 
 const SECTIONS: Section[] = [
   { label: "My Picks", href: "/pick" },
-  { label: "Board", href: "/board" },
+  {
+    label: "Board",
+    href: "/board",
+    subs: [
+      { label: "Board", href: "/board" },
+      { label: "Yahn's Picks", href: "/yahn" },
+    ],
+  },
   {
     label: "Live",
     href: "/watch",

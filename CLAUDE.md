@@ -243,6 +243,24 @@ any new scheduled job.
   pointer events to the switch under the finger (tried; the meter never
   filled). A change event without a completed hold must never lock.
 
+- **Yahngorithm cross-links** (`lib/yahn.ts`): the owner's other site,
+  the-yahngorithm.com, is a college football model. It publishes a read-only
+  feed (`/api/feed?week=N`: each game's page URL there, the exact Odds API
+  team names, and the model's picks). Games match on `Game.homeTeam` /
+  `awayTeam`, which hold those same Odds API names - no shared ids. Three
+  things use it: (1) Joe's face (`public/yahn-joe.png`) in the corner of
+  every game card on the pick sheet links to that game on the yahngorithm;
+  (2) a small Joe + edge in the corner of a pick pill marks the side the
+  model picked - `SHOW_YAHN_MARKS` in `lib/yahn.ts` is the one switch to
+  hide those from everyone; (3) `/yahn` ("Yahn's Picks", a sub-tab under
+  Board) lists the model's picks for the week. The feed fetch is
+  deliberately cached 15 min (the one external call here that is NOT
+  no-store), never touches this app's database, is only made for the
+  current week, and returns null on any failure so the Joe extras just
+  don't render. Planned next, not built: Yahn as a "ghost player" in the
+  standings (its own table, never a real User - keep it out of all pot /
+  ledger math). `/lab` still has the original mockups.
+
 ## Gotchas (all found the hard way - don't reintroduce these)
 
 - **`cookies()`, `params`, and `searchParams` are all async (Next.js 16).**
@@ -390,3 +408,13 @@ any new scheduled job.
   a different host. `snapshotType` on OddsSnapshot is just a label (always
   `"market"`); grading uses the newest snapshot regardless, so don't build
   logic that branches on it.
+
+<!-- BEGIN:nextjs-agent-rules -->
+
+# This is NOT the Next.js you know
+
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
+
+This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
+
+<!-- END:nextjs-agent-rules -->

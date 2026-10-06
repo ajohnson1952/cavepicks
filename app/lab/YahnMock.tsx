@@ -135,8 +135,8 @@ export default function YahnMock() {
         <Joe size={20} /> Yahngorithm mockups
       </div>
       <p className="subtext" style={{ margin: "4px 0 0" }}>
-        Ways the model site could show up here. Sample data, nothing live. Each Joe badge just opens the
-        yahngorithm home page for now.
+        The original mockups. A, B and C are live now (pick sheet + Yahn&apos;s Picks page); D, the ghost
+        player, is still an idea. Sample data here, nothing live.
       </p>
 
       <Section

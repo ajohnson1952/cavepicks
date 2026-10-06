@@ -181,6 +181,22 @@ h1 {
   width: 100%;
 }
 
+/* the-yahngorithm cross-links (lib/yahn.ts): Joe's face in the corner of a
+   game card links to that game on the model site; a small Joe + edge in the
+   corner of a pill marks the side the model picked. */
+.pill-btn { position: relative; }
+.yahn-link { flex-shrink: 0; line-height: 0; padding: 3px; margin: -3px -3px 0 0; }
+.yahn-link img { border-radius: 50%; border: 1px solid var(--border-soft); display: block; }
+.yahn-mark {
+  position: absolute; top: 6px; right: 7px;
+  display: inline-flex; align-items: center; gap: 3px;
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 10px; font-weight: 700; color: #e0a94a;
+  pointer-events: none;
+}
+.yahn-mark img { border-radius: 50%; }
+.pill-btn.selected .yahn-mark { color: #fff; }
+
 .pill-btn.selected {
   background: var(--action);
   border-color: var(--action);
