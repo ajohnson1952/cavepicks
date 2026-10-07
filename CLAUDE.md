@@ -316,10 +316,12 @@ any new scheduled job.
   minutes ago, so a stranger reloading it can't burn Odds API credits.
 
 - **Bot door** (`proxy.ts`): a page request with no `cp_seen` cookie never
-  reaches the page - it gets a tiny static page that sets the cookie and
-  reloads (and carries the link-preview tags, so chat previews still work).
-  Browsers pass in one blink on their first visit; bots, which don't keep
-  cookies, never trigger a database read. Added Oct 2026 after the Neon log
+  reaches the page - it gets a tiny static page whose SCRIPT sets the cookie
+  and reloads (and carries the link-preview tags, so chat previews still
+  work). Browsers pass in one blink on their first visit; crawlers don't run
+  JavaScript, so they never trigger a database read. Keep the cookie
+  script-set: a server-set cookie plus a redirect / meta-refresh lets
+  cookie-keeping crawlers straight through. Added Oct 2026 after the Neon log
   showed 12-19 database wake-ups a night with nobody awake. It is not a
   cache - real visitors always get live pages. `/api/*` and static files are
   exempt (cron-job.org and the-yahngorithm send no cookies); keep it that way

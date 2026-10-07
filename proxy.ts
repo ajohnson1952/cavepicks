@@ -9,12 +9,15 @@ import { NextResponse, type NextRequest } from "next/server";
 // the polite ones). This is NOT caching: a real visitor still gets every page
 // live, exactly as before.
 //
-// How: browsers keep cookies, almost all bots don't. A page request without
-// our cookie never reaches the page - it gets a tiny static "door" page that
-// sets the cookie and reloads. A browser comes straight back with the cookie
-// (one blink, first visit only) and loads the real page; a bot just gets the
-// door page again. The door page also carries the link-preview tags, so
-// pasting a cavepicks.com link in the group chat still shows the card.
+// How: a page request without our cookie never reaches the page - it gets a
+// tiny static "door" page whose SCRIPT sets the cookie and reloads. A real
+// browser runs the script and comes straight back with the cookie (one blink,
+// first visit only); a crawler doesn't run JavaScript, so it only ever gets
+// the door. The cookie is set by the script on purpose, not by the server and
+// not via a no-script reload: crawlers that follow redirects / meta-refresh
+// and keep cookies walked through that kind of check on the owner's other
+// site. The door page also carries the link-preview tags, so pasting a
+// cavepicks.com link in the group chat still shows the card.
 //
 // Never applied to /api/* (cron-job.org and the-yahngorithm call those with
 // no cookies) or to static files.
@@ -35,10 +38,13 @@ function door(body: string, reloadTo: string | null): string {
 <meta property="og:image" content="${SITE}/opengraph-image.png">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="robots" content="noindex">
-${reloadTo ? `<meta http-equiv="refresh" content="0;url=${reloadTo}">` : ""}
 <style>html,body{background:#0a0e0d;color:#7c8985;font-family:system-ui,sans-serif;margin:0}
 p{padding:40px 20px;text-align:center;font-size:14px}</style></head>
-<body><p>${body}</p>${reloadTo ? `<script>location.replace(${JSON.stringify(reloadTo)})</script>` : ""}</body></html>`;
+<body><p>${body}</p>${
+    reloadTo
+      ? `<script>document.cookie="${COOKIE}=1; Max-Age=${ONE_YEAR}; Path=/; SameSite=Lax"+(location.protocol==="https:"?"; Secure":"");location.replace(${JSON.stringify(reloadTo)})</script>`
+      : ""
+  }</body></html>`;
 }
 
 export function proxy(req: NextRequest) {
@@ -51,28 +57,20 @@ export function proxy(req: NextRequest) {
     return NextResponse.redirect(url, 307);
   }
 
-  // No cookie, and we already tried once: cookies are off (or it's a bot).
+  // No cookie, and we already tried once: JavaScript or cookies are off.
   if (url.searchParams.has(MARK)) {
-    return new NextResponse(door("Cavepicks needs cookies turned on to load. Enable them and reload.", null), {
+    return new NextResponse(door("Cavepicks needs JavaScript and cookies turned on to load.", null), {
       status: 200,
       headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" },
     });
   }
 
-  // First cookieless visit: hand out the cookie and reload the same address.
+  // First visit: send the door. Its script sets the cookie and reloads here.
   url.searchParams.set(MARK, "1");
-  const res = new NextResponse(door("Loading Cavepicks…", url.pathname + url.search), {
+  return new NextResponse(door("Loading Cavepicks…", url.pathname + url.search), {
     status: 200,
     headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" },
   });
-  res.cookies.set(COOKIE, "1", {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    path: "/",
-    maxAge: ONE_YEAR,
-  });
-  return res;
 }
 
 export const config = {
