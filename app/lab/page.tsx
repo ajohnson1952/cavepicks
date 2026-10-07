@@ -1,6 +1,7 @@
 import LabClient from "./LabClient";
 import LineMoveMock from "./LineMoveMock";
 import YahnMock from "./YahnMock";
+import NavMock from "./NavMock";
 
 // Hidden test bench (not linked anywhere) for the tactile stuff: haptics,
 // the "fully locked in" money shower, and pull-to-refresh. Touches no data.
@@ -14,6 +15,7 @@ export default function LabPage() {
       <p className="subtext">
         Test bench for haptics, the lock-in celebration, and pull-to-refresh. Nothing here saves anything.
       </p>
+      <NavMock />
       <YahnMock />
       <LineMoveMock />
       <LabClient
