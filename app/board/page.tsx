@@ -16,8 +16,9 @@ function abbr(selection: string, homeTeam: string, homeAbbr: string | null, away
   return selection;
 }
 
-// Builds the trailing "(+3.5 -110, FD)" / "(-110, FD)" parenthetical from
-// whichever pieces exist, so callers don't each hand-roll the join logic.
+// Builds the trailing "(-110, FD)" parenthetical (juice + book) from whichever
+// pieces exist, so callers don't each hand-roll the join logic. The line
+// itself goes OUTSIDE, next to the team: "SC +13.5 (-114, FD)".
 function metaParen(numberPart: string | null, oddsVal: number | null | undefined, bookKey: string | null): string {
   let s = numberPart ?? "";
   if (oddsVal != null) s += (s ? " " : "") + formatOdds(oddsVal);
@@ -161,9 +162,12 @@ export default async function BoardPage(props: { searchParams: Promise<{ week?: 
               let pickLabel: string;
               let lineNumber = "";
               if (p.pickType === "SPREAD") {
+                // "SC +13.5 (-114, FD)": the line sits right next to the team, like
+                // totals ("o57.5 (-110, FD)"); only the juice + book go in the parens.
                 pickLabel = abbr(p.selection, p.game.homeTeam, p.game.homeAbbr, p.game.awayTeam, p.game.awayAbbr);
                 if (p.lockedLine != null) {
-                  lineNumber = metaParen(formatSpread(p.lockedLine), p.lockedOdds, book);
+                  pickLabel += ` ${formatSpread(p.lockedLine)}`;
+                  lineNumber = metaParen(null, p.lockedOdds, book);
                 }
               } else {
                 pickLabel =
@@ -224,7 +228,16 @@ export default async function BoardPage(props: { searchParams: Promise<{ week?: 
                     {dogPick.isWin ? `hit \u2014 +${dogPick.pointsEarned} pts` : "missed \u2014 0 pts"}
                   </span>
                 ) : dogPick.locked ? (
-                  <span>{` (worth ${dogPick.dogSpreadValue ?? "?"} pts${dogPick.lockedOdds != null ? `, ${formatOdds(dogPick.lockedOdds)} ML` : ""}${dogPick.lockedBook ? `, ${bookAbbr(dogPick.lockedBook)}` : ""})`}</span>
+                  <span>
+                    {` worth ${dogPick.dogSpreadValue ?? "?"} pts`}
+                    {(() => {
+                      const parts = [
+                        dogPick.lockedOdds != null ? `${formatOdds(dogPick.lockedOdds)} ML` : null,
+                        dogPick.lockedBook ? bookAbbr(dogPick.lockedBook) : null,
+                      ].filter(Boolean);
+                      return parts.length ? ` (${parts.join(", ")})` : "";
+                    })()}
+                  </span>
                 ) : isPastLockDeadline(dogPick.game.commenceTime) ? (
                   <span className="meta" style={{ color: "var(--down)" }}> &mdash; not locked, no pick</span>
                 ) : (
@@ -266,12 +279,11 @@ export default async function BoardPage(props: { searchParams: Promise<{ week?: 
             const rClass = resultClass(p.graded, p.isWin, p.isPush);
             const label =
               p.pickType === "SPREAD"
-                ? abbr(p.selection, p.game.homeTeam, p.game.homeAbbr, p.game.awayTeam, p.game.awayAbbr)
+                ? `${abbr(p.selection, p.game.homeTeam, p.game.homeAbbr, p.game.awayTeam, p.game.awayAbbr)}${
+                    p.lockedLine != null ? ` ${formatSpread(p.lockedLine)}` : ""
+                  }`
                 : `${p.selection === "over" ? "o" : "u"}${p.lockedLine ?? ""}`;
-            const paren =
-              p.pickType === "SPREAD"
-                ? metaParen(p.lockedLine != null ? formatSpread(p.lockedLine) : null, p.lockedOdds, p.lockedBook)
-                : metaParen(null, p.lockedOdds, p.lockedBook);
+            const paren = metaParen(null, p.lockedOdds, p.lockedBook);
             return (
               <div key={p.id} className={rClass} style={{ fontSize: "13px", marginBottom: "4px" }}>
                 <span className="mono">{p.pickType === "SPREAD" ? "SPRD" : "TOTL"}</span>{" "}
@@ -301,7 +313,17 @@ export default async function BoardPage(props: { searchParams: Promise<{ week?: 
                   {ghostDog.isWin ? `hit \u2014 +${ghostDog.pointsEarned} pts` : "missed \u2014 0 pts"}
                 </span>
               ) : (
-                <span>{` (worth ${ghostDog.dogSpreadValue ?? "?"} pts)`}</span>
+                <span>
+                  {` worth ${ghostDog.dogSpreadValue ?? "?"} pts`}
+                  {ghostDog.lockedOdds != null || ghostDog.lockedBook
+                    ? ` (${[
+                        ghostDog.lockedOdds != null ? `${formatOdds(ghostDog.lockedOdds)} ML` : null,
+                        ghostDog.lockedBook ? bookAbbr(ghostDog.lockedBook) : null,
+                      ]
+                        .filter(Boolean)
+                        .join(", ")})`
+                    : ""}
+                </span>
               )}
             </div>
           )}
