@@ -87,25 +87,27 @@ type GameView = {
   yahn: YahnInfo;
 };
 
-// From the-yahngorithm's feed (lib/yahn.ts): where Joe links, and the side
-// the model picked on this game, if any.
-type YahnInfo = {
-  url: string;
-  spreadSide: "home" | "away" | null;
-  spreadEdge: number | null;
-  totalSide: "over" | "under" | null;
-  totalEdge: number | null;
-};
+// From the-yahngorithm's feed (lib/yahn.ts): where the pill links, and the
+// model's picks on this game at its own projected line (empty = none).
+type YahnInfo = { url: string; picks: string[] };
 
-// Joe's face in the corner of a pick pill = the model took this side, with
-// its edge in points. Pure decoration (pointer-events: none) so it can never
-// get in the way of tapping the pill.
-function YahnMark({ edge }: { edge: number | null }) {
+// The link to this game on the yahngorithm, in the corner of every game card.
+// Quiet grey "Model" on most games; amber with the model's projected line
+// ("Yahngo: TENN -18.9") on a game the model has a pick on - that's the one
+// place its pick shows, replacing the old Joe marks on the pick buttons.
+function YahnPill({ yahn }: { yahn: YahnInfo }) {
+  const hasPick = yahn.picks.length > 0;
   return (
-    <span className="yahn-mark" title="The yahngorithm model picked this side">
-      <img src="/yahn-joe.png" alt="Yahngo's pick" width={15} height={15} />
-      {edge != null ? `+${edge}` : ""}
-    </span>
+    <a
+      href={yahn.url}
+      target="_blank"
+      rel="noreferrer"
+      className={`yahn-pill${hasPick ? " pick" : ""}`}
+      aria-label={hasPick ? `The yahngorithm model has this at ${yahn.picks.join(" and ")} - open the game there` : "Open this game on the yahngorithm"}
+    >
+      <img src="/yahn-joe.png" alt="" width={16} height={16} />
+      {hasPick ? `${yahn.picks.length === 1 ? "Yahngo: " : ""}${yahn.picks.join(" \u00b7 ")}` : "Model"} ›
+    </a>
   );
 }
 
@@ -400,21 +402,13 @@ export default function PickForm({
 
         return (
           <div key={g.id} className="card">
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "8px" }}>
+            <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "flex-start", gap: "4px 8px" }}>
               <div className="matchup">
                 <TeamLogo src={g.awayLogo} alt={g.awayTeam} />
                 {g.awayAbbr ?? g.awayTeam} @ <TeamLogo src={g.homeLogo} alt={g.homeTeam} />
                 {g.homeAbbr ?? g.homeTeam}
               </div>
-              <a
-                href={g.yahn.url}
-                target="_blank"
-                rel="noreferrer"
-                className="yahn-link"
-                aria-label="Open this game on the yahngorithm"
-              >
-                <img src="/yahn-joe.png" alt="" width={22} height={22} />
-              </a>
+              <YahnPill yahn={g.yahn} />
             </div>
             <div className="meta" style={{ marginTop: "2px" }}>
               {g.kickoffDisplay}
@@ -497,7 +491,6 @@ export default function PickForm({
                         className={`pill-btn${spreadChoice[g.id] === "away" ? " selected" : ""}`}
                         onClick={() => pickSpread(g, "away")}
                       >
-                        {g.yahn.spreadSide === "away" && <YahnMark edge={g.yahn.spreadEdge} />}
                         <div className="pill-label">
                           <TeamLogo src={g.awayLogo} alt={g.awayTeam} />
                           {g.awayAbbr ?? g.awayTeam}
@@ -517,7 +510,6 @@ export default function PickForm({
                         className={`pill-btn${spreadChoice[g.id] === "home" ? " selected" : ""}`}
                         onClick={() => pickSpread(g, "home")}
                       >
-                        {g.yahn.spreadSide === "home" && <YahnMark edge={g.yahn.spreadEdge} />}
                         <div className="pill-label">
                           <TeamLogo src={g.homeLogo} alt={g.homeTeam} />
                           {g.homeAbbr ?? g.homeTeam}
@@ -600,7 +592,6 @@ export default function PickForm({
                         className={`pill-btn${totalChoice[g.id] === "over" ? " selected" : ""}`}
                         onClick={() => pickTotal(g, "over")}
                       >
-                        {g.yahn.totalSide === "over" && <YahnMark edge={g.yahn.totalEdge} />}
                         <div className="pill-label">Over</div>
                         <div className="pill-value">
                           {g.snap.total}
@@ -617,7 +608,6 @@ export default function PickForm({
                         className={`pill-btn${totalChoice[g.id] === "under" ? " selected" : ""}`}
                         onClick={() => pickTotal(g, "under")}
                       >
-                        {g.yahn.totalSide === "under" && <YahnMark edge={g.yahn.totalEdge} />}
                         <div className="pill-label">Under</div>
                         <div className="pill-value">
                           {g.snap.total}

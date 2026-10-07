@@ -291,29 +291,39 @@ h1 {
   width: 100%;
 }
 
-/* the-yahngorithm cross-links (lib/yahn.ts): Joe's face in the corner of a
-   game card links to that game on the model site; a small Joe + edge in the
-   corner of a pill marks the side the model picked. */
-.pill-btn { position: relative; }
-.yahn-link { flex-shrink: 0; line-height: 0; padding: 3px; margin: -3px -3px 0 0; }
-.yahn-link img {
-  border-radius: 50%; border: 1px solid var(--border-soft); display: block;
-  /* deliberately quiet: it's on every game, so it shouldn't pull the eye.
-     Small, faded and desaturated at rest; full color only while pressed. */
-  width: 18px; height: 18px;
-  opacity: 0.4; filter: grayscale(0.85);
-  transition: opacity 0.15s ease, filter 0.15s ease;
+/* the-yahngorithm link in the corner of each game on the pick sheet
+   (PickForm.tsx YahnPill): a quiet grey "Model" pill, or amber with the
+   model's projected line on a game it has a pick on. */
+.yahn-pill {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px 3px 4px;
+  border-radius: 999px;
+  border: 1px solid var(--border-soft);
+  background: var(--panel-alt);
+  color: var(--dim);
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+  text-decoration: none;
 }
-.yahn-link:hover img, .yahn-link:active img { opacity: 1; filter: none; }
-.yahn-mark {
-  position: absolute; top: 6px; right: 7px;
-  display: inline-flex; align-items: center; gap: 3px;
-  font-family: var(--font-mono), ui-monospace, monospace;
-  font-size: 10px; font-weight: 700; color: #e0a94a;
-  pointer-events: none;
+.yahn-pill img {
+  border-radius: 50%;
+  display: block;
+  opacity: 0.4;
+  filter: grayscale(0.85);
 }
-.yahn-mark img { border-radius: 50%; }
-.pill-btn.selected .yahn-mark { color: #fff; }
+.yahn-pill.pick {
+  color: #e0a94a;
+  border-color: rgba(224, 169, 74, 0.5);
+  background: rgba(224, 169, 74, 0.1);
+}
+.yahn-pill.pick img {
+  opacity: 1;
+  filter: none;
+}
 
 .pill-btn.selected {
   background: var(--action);

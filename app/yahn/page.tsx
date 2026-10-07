@@ -167,7 +167,8 @@ export default async function YahnPage() {
           </table>
           <p className="meta" style={{ margin: "10px 0 0" }}>
             Edge = how many points the model disagrees with the line by. Tap a game to open it on the
-            yahngorithm. On your pick sheet, Joe&apos;s face marks the side the model took. {GHOST_NAME} on the
+            yahngorithm. On your pick sheet, those games get an amber pill showing the line the model
+            projects (for example &ldquo;TENN -18.9&rdquo;) instead of the grey &ldquo;Model&rdquo; link. {GHOST_NAME} on the
             Standings plays the five biggest of these each week.
           </p>
         </div>

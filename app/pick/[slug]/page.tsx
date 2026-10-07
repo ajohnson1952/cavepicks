@@ -95,8 +95,6 @@ export default async function PickPage(
     .map((g) => {
     const snapshots = g.oddsSnapshots;
     const yahnGame = findYahnGame(yahnFeed, g.homeTeam, g.awayTeam);
-    const yahnSpread = SHOW_YAHN_MARKS ? yahnGame?.picks.find((p) => p.market === "spread") : undefined;
-    const yahnTotal = SHOW_YAHN_MARKS ? yahnGame?.picks.find((p) => p.market === "total") : undefined;
     const latest = snapshots[snapshots.length - 1] ?? null;
     const opening = snapshots[0] ?? null;
 
@@ -189,14 +187,12 @@ export default async function PickPage(
           }
         : null,
       lockedByOthers: lockedByOthersByGame.get(g.id) ?? [],
-      // Joe link (always there: the exact game if matched, else that week's
-      // board) + which side the model took, if it has a pick on this game
+      // Link to this game on the yahngorithm (the exact game if matched, else
+      // that week's board) + the model's picks on it, each at the model's own
+      // projected line ("TENN -18.9", "Under 51.2"); empty if it has none.
       yahn: {
         url: yahnGame?.url ?? yahnWeekUrl(weekNumber),
-        spreadSide: yahnSpread ? (yahnSpread.side as "home" | "away") : null,
-        spreadEdge: yahnSpread?.edge ?? null,
-        totalSide: yahnTotal ? (yahnTotal.side as "over" | "under") : null,
-        totalEdge: yahnTotal?.edge ?? null,
+        picks: SHOW_YAHN_MARKS ? (yahnGame?.picks ?? []).map((p) => p.modelLabel ?? p.label) : [],
       },
     };
   });

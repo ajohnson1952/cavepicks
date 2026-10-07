@@ -103,7 +103,8 @@ export default function JoeButtonMock() {
         Yahngo link on each game
       </div>
       <p className="subtext" style={{ margin: "4px 0 0" }}>
-        Ways the link to the model site could look on the pick sheet. Samples only.
+        The options that were on offer. Option 4 is live now, showing the model&apos;s projected line
+        instead of its edge. Samples only.
       </p>
 
       <Option n={0} title="Today" blurb="Small faded Joe in the corner. Easy to miss, which was the point - maybe too easy.">

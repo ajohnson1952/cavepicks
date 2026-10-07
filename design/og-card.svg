@@ -79,7 +79,10 @@
   </g>
 </g>
   </g>
-  <text x="634" y="280" font-family="Arial Black, Arial, sans-serif" font-weight="900" font-size="78" fill="#edefee" letter-spacing="-2">CAVEPICKS</text>
+  <!-- The wordmark matches the site's top bar: Manrope 800, wide tracking, PICKS in green.
+       app/opengraph-image.png is rendered from this file with the Manrope font supplied to the
+       renderer (Manrope is not a system font - without it this line falls back to Arial Black). -->
+  <text x="640" y="280" font-family="Manrope, Arial Black, Arial, sans-serif" font-weight="800" font-size="74" letter-spacing="4.4" fill="#edefee">CAVE<tspan fill="#3ddc7a">PICKS</tspan></text>
   <text x="644" y="345" font-family="Arial, sans-serif" font-weight="700" font-size="34" fill="#7c8985">College football pick&apos;em</text>
   <text x="644" y="420" font-family="Arial, sans-serif" font-weight="700" font-size="30" fill="#3ddc7a">5 picks · 1 dog · $25 a week</text>
 </svg>

@@ -248,11 +248,14 @@ any new scheduled job.
   feed (`/api/feed?week=N`: each game's page URL there, the exact Odds API
   team names, and the model's picks). Games match on `Game.homeTeam` /
   `awayTeam`, which hold those same Odds API names - no shared ids. Three
-  things use it: (1) Joe's face (`public/yahn-joe.png`) in the corner of
-  every game card on the pick sheet links to that game on the yahngorithm;
-  (2) a small Joe + edge in the corner of a pick pill marks the side the
-  model picked - `SHOW_YAHN_MARKS` in `lib/yahn.ts` is the one switch to
-  hide those from everyone; (3) `/yahn` ("Yahngo's Picks", a sub-tab under
+  things use it: (1) + (2) a pill in the corner of every game card on the
+  pick sheet (`YahnPill` in `PickForm.tsx`) links to that game on the
+  yahngorithm - a quiet grey "Model" pill normally, amber with the model's
+  PROJECTED line ("Yahngo: TENN -18.9", the feed's `modelLabel`) on a game
+  the model has a pick on. That pill is the only place the model's pick
+  shows on the sheet (it replaced the Joe marks on the pick buttons).
+  `SHOW_YAHN_MARKS` in `lib/yahn.ts` is the one switch to turn the amber
+  version off for everyone; (3) `/yahn` ("Yahngo's Picks", a sub-tab under
   Board) lists the model's picks for the week, plus "Cave vs. Yahngo" (where
   the league's locked picks lean against / with the model, from
   `lib/caveSplits.ts` counts). The feed fetch is

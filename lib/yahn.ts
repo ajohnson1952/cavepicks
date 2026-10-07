@@ -12,15 +12,17 @@
 export const YAHN_SITE = "https://the-yahngorithm.com";
 const FEED_BASE = process.env.YAHN_URL ?? YAHN_SITE; // override only for local testing
 
-// One switch for the Joe marks on the pick pills (the side the model took).
-// Flip to false to hide them from everyone - the Joe link in the corner of
-// each game and the /yahn page stay.
+// One switch for showing the model's pick on the pick sheet. On: a game the
+// model has a pick on gets an amber "Yahngo: TENN -18.9" pill (the model's
+// projected line). Off: every game just gets the quiet grey "Model" link.
+// The /yahn page is unaffected either way.
 export const SHOW_YAHN_MARKS = true;
 
 export type YahnPick = {
   market: "spread" | "total";
   side: "home" | "away" | "over" | "under";
   label: string; // e.g. "TENN -13.5" / "Under 57.5", as the model logged it
+  modelLabel?: string; // the same pick at the MODEL's projected number: "TENN -18.9" / "Under 51.2"
   edge: number; // points the model disagrees with the market by (always +)
   why: string[];
   result: string | null; // win | loss | push once graded
