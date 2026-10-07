@@ -327,6 +327,18 @@ any new scheduled job.
   exempt (cron-job.org and the-yahngorithm send no cookies); keep it that way
   for any new endpoint another service must call.
 
+- **Navigation** (`app/Nav.tsx`, Oct 2026 "app style"): `Nav` is the top
+  brand bar (caveman, CAVEPICKS wordmark, "WK n · $pot" pill linking to /pot)
+  plus the current section's sub-tabs; `BottomNav` is the fixed tab bar
+  (Picks, Board, Live, Standings, More). `BottomNav` is rendered OUTSIDE
+  `<PullToRefresh>` in `layout.tsx` on purpose - the pull wrapper gets a CSS
+  transform while pulling, which would drag a fixed bar with the page.
+  Anything fixed to the bottom of the screen (e.g. `.pick-float`) must clear
+  the bar (~62px + safe area). The pill's pot amount is the one cached number
+  in the layout (`lib/headerPill.ts`: refreshed when games are graded, hourly
+  at worst) - never put an uncached database read in `layout.tsx`, it would
+  run on every page.
+
 ## New season checklist
 
 1. `lib/currentWeek.ts`: set `SEASON_YEAR` and `SEASON_WEEK_ZERO_ANCHOR`

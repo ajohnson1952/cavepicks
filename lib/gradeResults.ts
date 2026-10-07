@@ -3,6 +3,7 @@ import { prisma } from "./db";
 import { fetchEspnScoreboard, teamNamesMatch, toYyyymmdd, EspnResult } from "./espnScores";
 import { gradePick } from "./scoring";
 import { runGhost } from "./ghost";
+import { bumpHeaderPill } from "./headerPill";
 
 // Cap games processed per invocation so a pathological backlog (e.g. a whole
 // season's worth of ungraded games) can't spike memory on Render's 512MB
@@ -117,6 +118,9 @@ export async function runGradeResults() {
       picksGraded++;
     }
   }
+
+  // a week may have just settled - refresh the top bar's cached pot amount
+  if (gamesGraded > 0) bumpHeaderPill();
 
   // "Yahn" the ghost player: lock any of its picks whose deadline has passed
   // and grade any that just went final (lib/ghost.ts). Runs here because this

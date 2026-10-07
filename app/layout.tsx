@@ -1,7 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { Manrope, Roboto_Mono } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
-import Nav, { Footer } from "./Nav";
+import Nav, { BottomNav } from "./Nav";
+import { getHeaderPill } from "@/lib/headerPill";
 import PullToRefresh from "./PullToRefresh";
 import "./globals.css";
 
@@ -32,19 +33,22 @@ export const viewport: Viewport = {
   themeColor: "#0a0e0d",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  // week + this week's pot for the top bar (cached - see lib/headerPill.ts)
+  const pill = await getHeaderPill();
   return (
     <html lang="en" className={`${manrope.variable} ${robotoMono.variable}`}>
       <body>
         <PullToRefresh>
-          <Nav />
+          <Nav weekNumber={pill.weekNumber} potAmount={pill.potAmount} />
           {children}
-          <Footer />
         </PullToRefresh>
+        {/* outside the pull-to-refresh wrapper on purpose - see BottomNav */}
+        <BottomNav />
         <Analytics />
       </body>
     </html>

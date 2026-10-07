@@ -146,7 +146,8 @@ export default function NavMock() {
     <div className="card">
       <div className="matchup">🧭 Navigation + title bar mockups</div>
       <p className="subtext" style={{ margin: "4px 0 0" }}>
-        Three directions, drawn as phone previews. Static pictures only - the real nav hasn&apos;t changed.
+        The three directions that were on offer. A with name style 1 is live now - these are just the
+        original pictures.
       </p>
 
       <div className="divider" />
