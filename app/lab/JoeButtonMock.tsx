@@ -36,30 +36,42 @@ function Card({
   corner,
   metaExtra,
   footer,
+  away = "TENN",
+  home = "ARK",
+  awayLine = "-13.5",
+  homeLine = "+13.5",
+  when = "Sat 11:00 AM \u00b7 ABC",
 }: {
   corner?: React.ReactNode;
   metaExtra?: React.ReactNode;
   footer?: React.ReactNode;
+  away?: string;
+  home?: string;
+  awayLine?: string;
+  homeLine?: string;
+  when?: string;
 }) {
   return (
     <div style={{ background: "var(--void)", border: "1px solid var(--border)", borderRadius: 8, padding: "12px 14px", marginTop: 8 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
-        <div className="matchup">TENN @ ARK</div>
+        <div className="matchup">
+          {away} @ {home}
+        </div>
         {corner}
       </div>
       <div className="meta" style={{ marginTop: 2, display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-        <span>Sat 11:00 AM &middot; ABC</span>
+        <span>{when}</span>
         {metaExtra}
       </div>
       <div className="pill-grid">
         <div className="pill-btn" style={{ cursor: "default" }}>
-          <div className="pill-label">TENN</div>
-          <div className="pill-value">-13.5</div>
+          <div className="pill-label">{away}</div>
+          <div className="pill-value">{awayLine}</div>
           <div className="pill-juice">-110</div>
         </div>
         <div className="pill-btn" style={{ cursor: "default" }}>
-          <div className="pill-label">ARK</div>
-          <div className="pill-value">+13.5</div>
+          <div className="pill-label">{home}</div>
+          <div className="pill-value">{homeLine}</div>
           <div className="pill-juice">-110</div>
         </div>
       </div>
@@ -161,6 +173,45 @@ export default function JoeButtonMock() {
               <Joe size={15} faded /> See this game on the yahngorithm
               <span style={{ marginLeft: "auto" }}>›</span>
             </div>
+          }
+        />
+      </Option>
+
+      <Option
+        n={6}
+        title="The model's number is the link"
+        blurb="Nothing in the corner. The kickoff line ends with what the model makes the spread, and that is the link. It gives a reason to tap, and takes no extra room - but it shows the model's lean on every game, not just its picks."
+      >
+        <Card
+          metaExtra={
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 4, color: "var(--action-soft)", fontWeight: 700 }}>
+              &middot; <Joe size={13} /> model TENN -18.9 ›
+            </span>
+          }
+        />
+        <p className="meta" style={{ margin: "6px 0 0" }}>
+          ↑ Model is 5.4 points off the line here. ↓ Here it agrees with the line, so there&apos;s little to see.
+        </p>
+        <Card
+          away="MICH"
+          home="MINN"
+          awayLine="-5.5"
+          homeLine="+5.5"
+          when={"Sat 2:30 PM \u00b7 FOX"}
+          metaExtra={
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 4, color: "var(--action-soft)", fontWeight: 700 }}>
+              &middot; <Joe size={13} /> model MICH -5.3 ›
+            </span>
+          }
+        />
+        <p className="meta" style={{ margin: "10px 0 0" }}>
+          A quieter take on the same idea: same spot, grey instead of blue, no Joe.
+        </p>
+        <Card
+          metaExtra={
+            <span style={{ color: "var(--dim)", fontWeight: 700, textDecoration: "underline", textDecorationColor: "var(--border-soft)" }}>
+              &middot; model TENN -18.9 ›
+            </span>
           }
         />
       </Option>
