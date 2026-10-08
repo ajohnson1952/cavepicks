@@ -338,6 +338,7 @@ export async function seedHistoricalSeason2025() {
     await recordJobRun("seed-historical-2025", "manual", false, err.message);
   }
   revalidatePath("/history");
+  revalidatePath("/stats");
   revalidatePath("/admin");
 }
 

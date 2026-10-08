@@ -530,3 +530,11 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
   pull with a number, not the true market opener.
 - Reads four one-row-per-game lookups (`DISTINCT ON`), never the full snapshot
   history. A failed lookup just hides the chips - it can't break the Board.
+
+## /stats vs /history
+- `/history` is only the leaderboards (all-time and per season). Records, the
+  Sharp Report, Behavior Awards and Group Trends are on `/stats` (split Oct
+  2026). Both read career numbers from `lib/careerStats.ts`.
+- Group Trends rows show how often the group picks each side of a split (share
+  of graded picks, the bar) and, under it, how that side has done.
+

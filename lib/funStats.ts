@@ -1,5 +1,5 @@
 // Fun, lighthearted "behavior" stats derived from real lock timestamps and
-// pick selections - not standings, just for laughs on /history. Only covers
+// pick selections - not standings, just for laughs on /stats. Only covers
 // the live season (HistoricalSeasonRecord rows are hand-entered summaries
 // with no lockedAt/selection data behind them, so pre-app seasons can't
 // feed these).

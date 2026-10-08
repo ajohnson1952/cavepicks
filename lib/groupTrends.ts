@@ -1,4 +1,4 @@
-// Group-wide (not per-player) pick trends for /history - how the group as a
+// Group-wide (not per-player) pick trends for /stats - how the group as a
 // whole leans and performs, not individual behavior. Only covers the live
 // season (HistoricalSeasonRecord rows are hand-entered summaries with no
 // per-pick selection/line data behind them).
@@ -47,6 +47,8 @@ export async function computeGroupTrends(seasonYear: number) {
   const underdogRecord = toRecord(spreadPicks.filter((p) => (p.lockedLine ?? 0) > 0));
   const homeRecord = toRecord(spreadPicks.filter((p) => p.selection === p.game.homeTeam));
   const awayRecord = toRecord(spreadPicks.filter((p) => p.selection === p.game.awayTeam));
+  const spreadRecord = toRecord(spreadPicks);
+  const totalRecord = toRecord(totalPicks);
   const overRecord = toRecord(totalPicks.filter((p) => p.selection.toLowerCase() === "over"));
   const underRecord = toRecord(totalPicks.filter((p) => p.selection.toLowerCase() === "under"));
 
@@ -83,6 +85,8 @@ export async function computeGroupTrends(seasonYear: number) {
     .filter((w) => w.total > 0);
 
   return {
+    spreadRecord,
+    totalRecord,
     favoriteRecord,
     underdogRecord,
     homeRecord,

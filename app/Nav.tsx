@@ -41,6 +41,7 @@ const SECTIONS: Section[] = [
     subs: [
       { label: "Standings", href: "/standings" },
       { label: "Pot", href: "/pot" },
+      { label: "Stats", href: "/stats" },
       { label: "History", href: "/history" },
     ],
   },
@@ -52,6 +53,7 @@ const MORE_LINKS = [
   { label: "Yahngo's Picks", href: "/yahn" },
   { label: "Guide", href: "/guide" },
   { label: "Pot", href: "/pot" },
+  { label: "Stats", href: "/stats" },
   { label: "History", href: "/history" },
   { label: "Rules", href: "/rules" },
   { label: "Admin", href: "/admin" },

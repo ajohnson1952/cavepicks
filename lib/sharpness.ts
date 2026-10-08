@@ -1,4 +1,4 @@
-// "Sharp Report" - who's sharp, who's square. Shared by /history's Sharp
+// "Sharp Report" - who's sharp, who's square. Shared by /stats's Sharp
 // Report card and the read-only /api/debug-sharpness endpoint.
 //
 // Per player, from locked 2026 side picks (weeks 1+):

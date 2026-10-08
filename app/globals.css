@@ -1086,3 +1086,11 @@ html.ptr-enabled body {
   float: right; font-family: var(--font-mono), monospace; font-size: 11px; font-weight: 700;
   font-style: normal; line-height: 22px;
 }
+
+/* /stats Group Trends: share of picks on each side of a split */
+.split-row { font-size: 13px; margin: 0 0 12px; }
+.split-bar {
+  height: 8px; border-radius: 4px; overflow: hidden; margin: 4px 0 3px;
+  background: var(--border-soft);
+}
+.split-bar > div { height: 100%; background: var(--action-soft); }
