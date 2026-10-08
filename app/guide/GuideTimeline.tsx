@@ -62,7 +62,7 @@ function relStyle(rel: GuideGame["rel"]): { border: string; background: string }
     case "watch":
       return { border: "1px solid var(--border-soft)", background: "var(--panel-alt)" };
     case "dog":
-      return { border: "1px solid var(--up)", background: "rgba(61, 220, 122, 0.1)" };
+      return { border: "1px solid var(--up)", background: "rgba(63, 208, 122, 0.1)" };
     default:
       return { border: "1px solid var(--border)", background: "var(--panel)" };
   }

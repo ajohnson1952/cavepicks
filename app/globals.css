@@ -1,4 +1,6 @@
 :root {
+  /* green / red / amber / --action-soft are the SHARED accents - identical in
+     the-yahngorithm's globals.css. Change them in both or not at all. */
   --void: #0a0e0d;
   --panel: #131917;
   --panel-alt: #1c2422;
@@ -6,15 +8,15 @@
   --border-soft: #2a332f;
   --ink: #edefee;
   --dim: #7c8985;
-  --up: #3ddc7a;
-  --down: #ff4b4b;
+  --up: #3fd07a;
+  --down: #f8565c;
   --action: #2f6bff;
-  --action-soft: #6c97ff;
+  --action-soft: #5b98ff;
   --action-ink: #ffffff;
   /* corners: 4 chip · 6 button/input · 8 box inside a card · 12 card · 999 pill.
      text sizes: 10 11 12 13 14 15 16 18 22 26 - no half sizes. Same scales as the-yahngorithm. */
   /* amber = the yahngorithm model ("Yahngo"); the dim one is pushes and voided games */
-  --amber: #e0a94a;
+  --amber: #e6ac44;
   --amber-dim: #b98f42;
 }
 
@@ -478,7 +480,7 @@ h1 {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  background: rgba(61, 220, 122, 0.12);
+  background: rgba(63, 208, 122, 0.12);
   padding: 3px 8px;
   border-radius: 4px;
 }
@@ -503,7 +505,7 @@ h1 {
   font-weight: 700;
   letter-spacing: 0.04em;
   color: var(--down);
-  background: rgba(255, 75, 75, 0.12);
+  background: rgba(248, 86, 92, 0.12);
   padding: 3px 8px;
   border-radius: 4px;
   white-space: nowrap;
@@ -511,7 +513,7 @@ h1 {
 
 /* Error / status banners */
 .banner-error {
-  background: rgba(255, 75, 75, 0.12);
+  background: rgba(248, 86, 92, 0.12);
   border: 1px solid var(--down);
   color: #ffb3b3;
   padding: 10px 12px;
@@ -628,7 +630,7 @@ h1 {
 }
 
 .stat-table tr.rank-first td {
-  background: rgba(61, 220, 122, 0.08);
+  background: rgba(63, 208, 122, 0.08);
   color: var(--up);
   font-weight: 700;
 }
@@ -918,7 +920,7 @@ html.ptr-enabled body {
   border: 1px solid var(--up);
   border-radius: 12px;
   padding: 22px 28px 20px;
-  box-shadow: 0 0 40px rgba(61, 220, 122, 0.25);
+  box-shadow: 0 0 40px rgba(63, 208, 122, 0.25);
   animation: money-pop 0.5s cubic-bezier(0.2, 1.4, 0.4, 1) both;
 }
 
@@ -1030,7 +1032,7 @@ html.ptr-enabled body {
 
 .hold-armed .hold-fill {
   transform: scaleX(1);
-  background: rgba(61, 220, 122, 0.35);
+  background: rgba(63, 208, 122, 0.35);
   transition: background 0.12s;
 }
 
