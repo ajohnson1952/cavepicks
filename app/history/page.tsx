@@ -256,7 +256,7 @@ export default async function HistoryPage() {
                           fontSize: "11px",
                           background: "var(--panel-alt)",
                           border: "1px solid var(--border-soft)",
-                          borderRadius: "10px",
+                          borderRadius: "999px",
                           padding: "1px 7px",
                           color: "var(--dim)",
                         }}

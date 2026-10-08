@@ -264,7 +264,7 @@ export default async function BoardPage(props: { searchParams: Promise<{ week?: 
                   {lineNumber}
                   {v && <ValueChip v={v} />}
                   {p.game.voided && (
-                    <span className="meta" style={{ color: "#b98f42" }}>
+                    <span className="meta" style={{ color: "var(--amber-dim)" }}>
                       {` (voided \u2014 ${p.game.voidReason})`}
                     </span>
                   )}

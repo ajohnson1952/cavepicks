@@ -12,9 +12,10 @@ const manrope = Manrope({
   variable: "--font-sans",
 });
 
+// variable font (no fixed weights): chips and totals ask for 700, which the
+// old 500/600-only load had the browser fake
 const robotoMono = Roboto_Mono({
   subsets: ["latin"],
-  weight: ["500", "600"],
   variable: "--font-mono",
 });
 
