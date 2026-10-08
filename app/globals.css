@@ -407,7 +407,7 @@ h1 {
 }
 
 .btn-lock {
-  border-color: var(--action);
+  border-color: var(--action-soft);
   color: var(--action-soft);
   width: 100%;
   margin-top: 10px;
@@ -1021,7 +1021,7 @@ html.ptr-enabled body {
   position: absolute;
   inset: 0;
   z-index: -1;
-  background: rgba(47, 107, 255, 0.35);
+  background: color-mix(in srgb, var(--action-soft) 35%, transparent);
   transform: scaleX(0);
   transform-origin: left center;
   transition: transform 0.18s ease-out;
