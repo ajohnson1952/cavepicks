@@ -96,7 +96,7 @@ export default function PickFeelMock() {
     <div className="card">
       <style>{CSS}</style>
       <div className="matchup">👆 Selected-pick colour + movement</div>
-      <p className="subtext" style={{ margin: "4px 0 0" }}>Tap the buttons and tabs. Samples only.</p>
+      <p className="subtext" style={{ margin: "4px 0 0" }}>The options that were on offer. Colour B and movement 1 are live now.</p>
 
       <Head note="Deep blue fill, white text.">Colour A &middot; today</Head>
       <Pair cls="pf-deep" />

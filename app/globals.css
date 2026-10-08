@@ -332,10 +332,16 @@ h1 {
   filter: none;
 }
 
+/* A chosen pick: the shared light blue with dark text (Oct 2026 - was deep
+   blue with white text). The text flipping dark is part of the signal. */
 .pill-btn.selected {
-  background: var(--action);
-  border-color: var(--action);
+  background: var(--action-soft);
+  border-color: var(--action-soft);
+  color: var(--void);
 }
+/* the green/red "moved since open" numbers would vanish on light blue */
+.pill-btn.selected .move-up { color: #0a5a2b; }
+.pill-btn.selected .move-down { color: #8f1218; }
 
 .pill-label {
   font-size: 12px;
@@ -343,8 +349,9 @@ h1 {
   font-weight: 500;
 }
 
-.pill-btn.selected .pill-label {
-  color: #cfdcff;
+.pill-btn.selected .pill-label,
+.pill-btn.selected .pill-juice {
+  color: rgba(10, 14, 13, 0.72);
 }
 
 .pill-value {
@@ -366,7 +373,7 @@ h1 {
 }
 
 .pill-btn.selected .pill-value {
-  color: #fff;
+  color: var(--void);
   font-weight: 700;
 }
 
@@ -1094,3 +1101,26 @@ html.ptr-enabled body {
   background: var(--border-soft);
 }
 .split-bar > div { height: 100%; background: var(--action-soft); }
+
+/* ---------- Movement (the "subtle" level, picked on /lab Oct 2026) ----------
+   Taps should feel acknowledged without anyone noticing an animation: a
+   ~0.14s colour fade and a tiny press-in on picks, the active tab's icon
+   lifts 2px, pages fade in. Nothing bounces or slides. Keep it that way. */
+.pill-btn {
+  transition: background-color 0.14s ease, border-color 0.14s ease, transform 0.09s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+.pill-btn .pill-label,
+.pill-btn .pill-value,
+.pill-btn .pill-juice { transition: color 0.14s ease; }
+.pill-btn:active { transform: scale(0.97); }
+.bottom-tab { transition: color 0.14s ease; }
+.bottom-tab svg { transition: transform 0.14s ease; }
+.bottom-tab.active svg { transform: translateY(-2px); }
+main { animation: page-in 0.16s ease; }
+@keyframes page-in { from { opacity: 0; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) {
+  .pill-btn, .pill-btn *, .bottom-tab, .bottom-tab svg { transition: none; }
+  .pill-btn:active { transform: none; }
+  main { animation: none; }
+}
