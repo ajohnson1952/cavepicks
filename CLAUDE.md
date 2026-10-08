@@ -544,3 +544,19 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
   stops for everyone after `JOKE_ENDS`. `JOKE_ON = false` kills it at once.
   The file's header lists exactly what to delete once it has had its laugh.
 
+## PARKED: adding players mid-season (do NOT just add one)
+- Not built - the owner chose (Oct 8 2026) to wait until a straggler actually
+  wants in. Adding a user mid-season today breaks the money: the app treats
+  every `User` as in every week, so each past pot grows by $25
+  (`lib/seasonStats.ts`: `WEEKLY_BUYIN * users.length`), past payouts and
+  rollovers shift, and `lib/ledger.ts` bills the newcomer for weeks they
+  missed. Adding players BEFORE week 1 of a season is fine.
+- The agreed outline for when it's needed: a "joined in week N" marker and an
+  "in the dog race" flag per player; pot and ledger count a player only from
+  their first week; an add-player form on `/admin`. Proposed rules, NOT yet
+  confirmed by the league: stragglers pay $25/week from joining and can win
+  that week's buy-ins but never rolled-over money; out of the Cavedogs money
+  race by default; no side pot.
+- Ship it only behind an admin check page that runs old and new maths on the
+  real season and shows zero differences for the existing players.
+
