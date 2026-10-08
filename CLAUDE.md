@@ -520,3 +520,13 @@ This version has breaking changes — APIs, conventions, and file structure may 
 This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
 
 <!-- END:nextjs-agent-rules -->
+
+## Board: line value on locked picks
+- `lib/lineValue.ts` - each locked pick on `/board` (and Yahngo's card) shows a
+  coloured chip: points its locked number beat (+) or trailed (-) the game's
+  last line (the close once kicked off, otherwise the current line, labelled
+  "now"). Tap the pick for open -> locked -> close; the card header sums the
+  week. Same sign convention as the Sharp Report's CLV. "Open" = our first
+  pull with a number, not the true market opener.
+- Reads four one-row-per-game lookups (`DISTINCT ON`), never the full snapshot
+  history. A failed lookup just hides the chips - it can't break the Board.

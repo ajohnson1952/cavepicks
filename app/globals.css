@@ -1056,3 +1056,26 @@ html.ptr-enabled body {
   padding: 9px 12px;
   margin: 8px 0 10px;
 }
+
+/* Board: line value on each locked pick (lib/lineValue.ts). The row is a
+   <details> - tap it for open -> locked -> close. */
+.line-row > summary { list-style: none; cursor: pointer; }
+.line-row > summary::-webkit-details-marker { display: none; }
+.line-chip {
+  display: inline-block; margin-left: 6px; padding: 0 6px; border-radius: 999px;
+  font-family: var(--font-mono), monospace; font-size: 11px; font-weight: 700;
+  border: 1px solid currentColor; white-space: nowrap; font-style: normal;
+}
+.line-chip.up, .line-total.up { color: var(--up); }
+.line-chip.down, .line-total.down { color: var(--down); }
+.line-chip.flat, .line-total.flat { color: var(--dim); }
+.line-chip.flat { opacity: 0.7; }
+.line-trail {
+  margin: 3px 0 2px; padding: 4px 8px; border-radius: 6px; background: var(--panel-alt);
+  font-size: 11px; color: var(--ink);
+}
+.line-trail span { color: var(--dim); }
+.line-total {
+  float: right; font-family: var(--font-mono), monospace; font-size: 11px; font-weight: 700;
+  font-style: normal; line-height: 22px;
+}

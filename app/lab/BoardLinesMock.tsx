@@ -106,7 +106,7 @@ export default function BoardLinesMock() {
       <style>{`.blm summary::-webkit-details-marker{display:none}`}</style>
       <div className="matchup">📈 Board: open / locked / close on each pick</div>
       <p className="subtext" style={{ margin: "4px 0 0" }}>
-        Four ways to show whether a lock beat the line. Green means the pick got a better number than the
+        The four ways that were on offer. Option 3 is live on the Board now. Green means the pick got a better number than the
         close; red means locking early cost points. Before kickoff the last number is the current line,
         labelled &ldquo;now&rdquo;. &ldquo;Open&rdquo; is our first pull of the week. Samples only.
       </p>

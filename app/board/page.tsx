@@ -7,6 +7,7 @@ import { buildPickShareText } from "@/lib/pickShareText";
 import WeekNav from "../WeekNav";
 import CopyPicksButton from "./CopyPicksButton";
 import { GHOST_NAME } from "@/lib/ghost";
+import { getLinePaths, lineValue, formatValue, valueTone, type LineValue } from "@/lib/lineValue";
 
 export const dynamic = "force-dynamic";
 
@@ -42,6 +43,59 @@ function Logo({ src, alt }: { src: string | null; alt: string }) {
       alt={alt}
       style={{ width: "14px", height: "14px", objectFit: "contain", verticalAlign: "-2px", marginRight: "4px" }}
     />
+  );
+}
+
+// The little coloured number after a locked pick: points its line is better
+// (+, green) or worse (-, red) than the close - or than the current line, if
+// the game hasn't kicked off yet.
+function ValueChip({ v }: { v: LineValue }) {
+  return <span className={`line-chip ${valueTone(v.value)}`}>{formatValue(v.value)}</span>;
+}
+
+// One pick on a card. When there's a line history for it the row can be tapped
+// open to show open -> locked -> close; otherwise it's the plain row it always was.
+function PickRow({
+  className,
+  style,
+  v,
+  children,
+}: {
+  className?: string;
+  style?: React.CSSProperties;
+  v: LineValue | null;
+  children: React.ReactNode;
+}) {
+  if (!v) {
+    return (
+      <div className={className} style={style}>
+        {children}
+      </div>
+    );
+  }
+  return (
+    <details className={`line-row ${className ?? ""}`} style={style}>
+      <summary>{children}</summary>
+      <div className="line-trail mono">
+        {v.open != null && (
+          <>
+            <span>open</span> {v.open} <span>&rarr;</span>{" "}
+          </>
+        )}
+        <span>locked</span> <strong>{v.locked}</strong> <span>&rarr; {v.lastLabel}</span> {v.last}
+      </div>
+    </details>
+  );
+}
+
+function ValueTotal({ values }: { values: (LineValue | null)[] }) {
+  const have = values.filter((v): v is LineValue => v != null);
+  if (have.length === 0) return null;
+  const total = Math.round(have.reduce((s, v) => s + v.value, 0) * 10) / 10;
+  return (
+    <span className={`line-total ${valueTone(total)}`}>
+      {formatValue(total)} pts line value
+    </span>
   );
 }
 
@@ -118,6 +172,17 @@ export default async function BoardPage(props: { searchParams: Promise<{ week?: 
   const ghostSides = ghostPicks.filter((p) => p.pickType !== "DOG");
   const ghostDog = ghostPicks.find((p) => p.pickType === "DOG");
 
+  // Open / last line for every game someone (or the bot) has a locked pick on.
+  // Never allowed to break the board - without it the picks just show no chips.
+  const linePaths = await getLinePaths(
+    [...picks, ...ghostPicks].filter((p) => p.lockedLine != null || p.dogSpreadValue != null).map((p) => p.gameId)
+  ).catch((e) => {
+    console.error("board: line paths lookup failed", e);
+    return new Map();
+  });
+  const now = new Date();
+  const valueOf = (p: (typeof picks)[number] | (typeof ghostPicks)[number]) => lineValue(p, linePaths, now);
+
   const picksByUser = new Map<string, typeof picks>();
   for (const p of picks) {
     const list = picksByUser.get(p.userId) ?? [];
@@ -130,6 +195,12 @@ export default async function BoardPage(props: { searchParams: Promise<{ week?: 
       <h1>The Board</h1>
       <WeekNav basePath="/board" weekNumber={weekNumber} minWeek={minWeek} maxWeek={maxWeek} isCurrent={weekNumber === currentWeekNumber} />
       <p className="subtext">Week {week.weekNumber} &middot; everyone&apos;s picks, live.</p>
+      {linePaths.size > 0 && (
+        <p className="meta" style={{ margin: "-6px 0 12px" }}>
+          The coloured number is how many points a lock beat (+) or trailed (&minus;) the closing line &mdash; or the
+          current line, until kickoff. Tap a pick for open &rarr; locked &rarr; close.
+        </p>
+      )}
 
       {users.map((u) => {
         const userPicks = picksByUser.get(u.id) ?? [];
@@ -143,6 +214,7 @@ export default async function BoardPage(props: { searchParams: Promise<{ week?: 
             <div className="matchup">
               {u.name}
               {shareText && <CopyPicksButton name={u.name} text={shareText} />}
+              <ValueTotal values={userPicks.map(valueOf)} />
             </div>
             <div className="meta" style={{ marginTop: "2px" }}>
               {lockedSideCount}/5 locked &middot; dog{" "}
@@ -179,8 +251,9 @@ export default async function BoardPage(props: { searchParams: Promise<{ week?: 
                 }
               }
 
+              const v = valueOf(p);
               return (
-                <div key={p.id} className={rClass} style={{ fontSize: "13px", marginBottom: "4px" }}>
+                <PickRow key={p.id} className={rClass} style={{ fontSize: "13px", marginBottom: "4px" }} v={v}>
                   <span className="mono" style={{ color: rClass ? "inherit" : "var(--dim)" }}>
                     {p.pickType === "SPREAD" ? "SPRD" : "TOTL"}
                   </span>{" "}
@@ -189,6 +262,7 @@ export default async function BoardPage(props: { searchParams: Promise<{ week?: 
                   <Logo src={p.game.homeLogo} alt={p.game.homeTeam} />
                   {p.game.homeAbbr ?? p.game.homeTeam} &mdash; {pickLabel}
                   {lineNumber}
+                  {v && <ValueChip v={v} />}
                   {p.game.voided && (
                     <span className="meta" style={{ color: "#b98f42" }}>
                       {` (voided \u2014 ${p.game.voidReason})`}
@@ -208,13 +282,14 @@ export default async function BoardPage(props: { searchParams: Promise<{ week?: 
                     {kickoffDisplay(p.game.commenceTime)}
                     {p.game.broadcast ? ` \u00b7 ${p.game.broadcast}` : ""}
                   </div>
-                </div>
+                </PickRow>
               );
             })}
             {dogPick && (
-              <div
+              <PickRow
                 className={resultClass(dogPick.graded, dogPick.isWin, dogPick.isPush)}
                 style={{ fontSize: "13px", marginTop: "6px" }}
+                v={valueOf(dogPick)}
               >
                 <span className="mono" style={{ color: "var(--dim)" }}>DOG</span>{" "}
                 <Logo src={dogPick.game.awayLogo} alt={dogPick.game.awayTeam} />
@@ -243,6 +318,10 @@ export default async function BoardPage(props: { searchParams: Promise<{ week?: 
                 ) : (
                   <span className="meta"> (not locked)</span>
                 )}
+                {(() => {
+                  const v = valueOf(dogPick);
+                  return v ? <ValueChip v={v} /> : null;
+                })()}
                 {liveGameIds.has(dogPick.game.id) && !dogPick.graded && (
                   <span className="live-badge" style={{ marginLeft: "6px" }}>
                     <span className="live-dot" /> LIVE
@@ -252,7 +331,7 @@ export default async function BoardPage(props: { searchParams: Promise<{ week?: 
                   {kickoffDisplay(dogPick.game.commenceTime)}
                   {dogPick.game.broadcast ? ` \u00b7 ${dogPick.game.broadcast}` : ""}
                 </div>
-              </div>
+              </PickRow>
             )}
           </div>
         );
@@ -269,6 +348,7 @@ export default async function BoardPage(props: { searchParams: Promise<{ week?: 
               style={{ borderRadius: "50%", verticalAlign: "-3px", marginRight: "6px", opacity: 0.6 }}
             />
             {GHOST_NAME} <span style={{ fontWeight: 400 }}>&middot; bot</span>
+            <ValueTotal values={ghostPicks.map(valueOf)} />
           </div>
           <div className="meta" style={{ marginTop: "2px" }}>
             The yahngorithm model, for reference only &middot; not in the pot &middot; {ghostSides.length}/5 locked &middot; dog{" "}
@@ -284,23 +364,29 @@ export default async function BoardPage(props: { searchParams: Promise<{ week?: 
                   }`
                 : `${p.selection === "over" ? "o" : "u"}${p.lockedLine ?? ""}`;
             const paren = metaParen(null, p.lockedOdds, p.lockedBook);
+            const v = valueOf(p);
             return (
-              <div key={p.id} className={rClass} style={{ fontSize: "13px", marginBottom: "4px" }}>
+              <PickRow key={p.id} className={rClass} style={{ fontSize: "13px", marginBottom: "4px" }} v={v}>
                 <span className="mono">{p.pickType === "SPREAD" ? "SPRD" : "TOTL"}</span>{" "}
                 <Logo src={p.game.awayLogo} alt={p.game.awayTeam} />
                 {p.game.awayAbbr ?? p.game.awayTeam} @ <Logo src={p.game.homeLogo} alt={p.game.homeTeam} />
                 {p.game.homeAbbr ?? p.game.homeTeam} &mdash; {label}
                 {paren}
+                {v && <ValueChip v={v} />}
                 {liveGameIds.has(p.game.id) && !p.graded && (
                   <span className="live-badge" style={{ marginLeft: "6px" }}>
                     <span className="live-dot" /> LIVE
                   </span>
                 )}
-              </div>
+              </PickRow>
             );
           })}
           {ghostDog && (
-            <div className={resultClass(ghostDog.graded, ghostDog.isWin, ghostDog.isPush)} style={{ fontSize: "13px", marginTop: "6px" }}>
+            <PickRow
+              className={resultClass(ghostDog.graded, ghostDog.isWin, ghostDog.isPush)}
+              style={{ fontSize: "13px", marginTop: "6px" }}
+              v={valueOf(ghostDog)}
+            >
               <span className="mono">DOG</span>{" "}
               <Logo src={ghostDog.game.awayLogo} alt={ghostDog.game.awayTeam} />
               {ghostDog.game.awayAbbr ?? ghostDog.game.awayTeam} @{" "}
@@ -325,7 +411,11 @@ export default async function BoardPage(props: { searchParams: Promise<{ week?: 
                     : ""}
                 </span>
               )}
-            </div>
+              {(() => {
+                const v = valueOf(ghostDog);
+                return v ? <ValueChip v={v} /> : null;
+              })()}
+            </PickRow>
           )}
           <div className="meta" style={{ marginTop: "8px" }}>
             It locks its picks early in the week, at the line showing when the model&apos;s picks come in.
