@@ -208,7 +208,6 @@ export default async function PickPage(
     if (gv.dog) s.push({ has: !!gv.dog.pickId, locked: gv.dog.locked, past: gv.pastLockDeadline });
     return s;
   });
-  const openPickCount = pickSlots.filter((s) => s.has && !s.locked && !s.past).length;
   const missedLockCount = pickSlots.filter((s) => s.has && !s.locked && s.past).length;
 
   // This player's weekly-pot balance (through the last settled week), shown
@@ -275,15 +274,8 @@ export default async function PickPage(
           locked before kickoff and {missedLockCount > 1 ? "don't" : "doesn't"} count this week.
         </p>
       )}
-      {/* Floating (position: fixed), not inline: this appears/disappears as
-          picks are selected and locked, and as an inline banner above the
-          list it shoved every game card up/down mid-tap. */}
-      {openPickCount > 0 && isCurrentWeek && (
-        <div className="pick-float pick-float-note" role="status">
-          🔓 {openPickCount} pick{openPickCount > 1 ? "s" : ""} selected but not locked &mdash; lock{" "}
-          {openPickCount > 1 ? "each one" : "it"} before kickoff or it won&apos;t count.
-        </div>
-      )}
+      {/* The "N picks not locked" note that used to float here is now part of
+          the "Your picks" tray in PickForm.tsx (running list + lock status). */}
       {voidedGames.length > 0 && (
         <p className="banner-note">
           {voidedGames.length} game{voidedGames.length > 1 ? "s" : ""} this week{" "}

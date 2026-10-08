@@ -325,6 +325,61 @@ export default function PickForm({
     );
   const myCount = games.filter(isMine).length;
 
+  // --- "Your picks" tray (pinned above the tab bar) -------------------------
+  // Everything picked this week, in game order, so nobody has to scroll back
+  // up to see what they have and how many are left. Built from the on-screen
+  // choices, so it changes the instant a pick is tapped. A pick that missed
+  // its lock deadline is left out - it doesn't count.
+  type TrayPick = { key: string; gameId: string; label: string; locked: boolean; dog: boolean };
+  const tray: TrayPick[] = [];
+  for (const g of games) {
+    const dead = (locked: boolean) => g.pastLockDeadline && !locked;
+    const side = spreadChoice[g.id];
+    if (side && !dead(g.spread.locked)) {
+      const line = g.spread.locked ? g.spread.lockedLine : side === "home" ? g.snap?.spreadHome : g.snap?.spreadAway;
+      const team = side === "home" ? g.homeAbbr ?? g.homeTeam : g.awayAbbr ?? g.awayTeam;
+      tray.push({
+        key: `${g.id}-s`, gameId: g.id, locked: g.spread.locked, dog: false,
+        label: `${team}${line != null ? ` ${formatSpread(line)}` : ""}`,
+      });
+    }
+    const ou = totalChoice[g.id];
+    if (ou && !dead(g.total.locked)) {
+      const line = g.total.locked ? g.total.lockedLine : g.snap?.total;
+      tray.push({
+        key: `${g.id}-t`, gameId: g.id, locked: g.total.locked, dog: false,
+        label: `${g.awayAbbr ?? g.awayTeam}/${g.homeAbbr ?? g.homeTeam} ${ou === "over" ? "o" : "u"}${line ?? ""}`,
+      });
+    }
+    // a locked dog shows even if that team has since stopped being the underdog
+    const dogIsLocked = !!g.dog?.locked;
+    const dogTeam = dogIsLocked
+      ? g.dog?.selection ?? null
+      : dogChoice && dogChoice.split("|")[0] === g.id ? dogChoice.split("|")[1] : null;
+    if (dogTeam && !dead(dogIsLocked)) {
+      const worth = dogIsLocked
+        ? g.dog?.dogSpreadValue
+        : dogTeam === g.homeTeam ? g.snap?.spreadHome : g.snap?.spreadAway;
+      const team = dogTeam === g.homeTeam ? g.homeAbbr ?? g.homeTeam : g.awayAbbr ?? g.awayTeam;
+      tray.push({
+        key: `${g.id}-d`, gameId: g.id, locked: dogIsLocked, dog: true,
+        label: `${team}${worth != null ? ` ${Math.abs(worth)} pts` : ""}`,
+      });
+    }
+  }
+  const traySides = tray.filter((t) => !t.dog);
+  const trayDog = tray.find((t) => t.dog);
+  const trayOpen = tray.filter((t) => !t.locked).length;
+  // a week that's completely over doesn't need a running tally
+  const weekStillLive = games.some((g) => !g.pastLockDeadline);
+  const showTray = tray.length > 0 && weekStillLive;
+  const jumpTo = (gameId: string) => {
+    // the game may be hidden by the search box or the "My picks" filter
+    setSearch("");
+    setOnlyMine(false);
+    setTimeout(() => document.getElementById(`game-${gameId}`)?.scrollIntoView({ behavior: "smooth", block: "center" }), 0);
+  };
+
   const query = search.trim().toLowerCase();
   const visibleGames = games.filter((g) => {
     if (onlyMine && !isMine(g)) return false;
@@ -338,7 +393,39 @@ export default function PickForm({
   });
 
   return (
-    <div>
+    <div style={showTray ? { paddingBottom: "72px" } : undefined}>
+      {showTray && (
+        <div className="pick-float pick-tray" role="status" data-no-ptr>
+          <div className="pick-tray-head">
+            <span>
+              <strong>{traySides.length}</strong> of 5 picks &middot; dog {trayDog ? "\u2713" : "\u2014"}
+            </span>
+            <span className={trayOpen > 0 ? "pick-tray-open" : "pick-tray-done"}>
+              {trayOpen > 0
+                ? isCurrentWeek
+                  ? `${trayOpen} not locked \u00b7 hold to lock`
+                  : `${trayOpen} saved \u00b7 locking opens that week`
+                : traySides.length >= 5 && trayDog
+                  ? "all locked in \u2713"
+                  : "all locked so far"}
+            </span>
+          </div>
+          <div className="pick-tray-chips">
+            {tray.map((t) => (
+              <button
+                key={t.key}
+                type="button"
+                className={`pick-tray-chip${t.locked ? " locked" : ""}`}
+                onClick={() => jumpTo(t.gameId)}
+              >
+                {t.dog ? "\ud83d\udc15 " : ""}
+                {t.label}
+                {t.locked ? " \ud83d\udd12" : ""}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
       {games.length > 0 && (
         <div style={{ display: "flex", gap: "8px", marginBottom: "12px", alignItems: "stretch" }}>
           <input
@@ -401,7 +488,7 @@ export default function PickForm({
         const hasOdds = showSpread || showTotal || !!g.dog;
 
         return (
-          <div key={g.id} className="card">
+          <div key={g.id} id={`game-${g.id}`} className="card pick-card">
             <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "flex-start", gap: "4px 8px" }}>
               <div className="matchup">
                 <TeamLogo src={g.awayLogo} alt={g.awayTeam} />

@@ -988,7 +988,7 @@ html.ptr-enabled body {
 }
 
 .pick-float-error {
-  bottom: calc(124px + env(safe-area-inset-bottom));
+  bottom: calc(150px + env(safe-area-inset-bottom)); /* above the picks tray */
   color: #ffb3b3;
   background: #2c1616;
   border: 1px solid var(--down);
@@ -1127,3 +1127,33 @@ html.ptr-enabled body {
   .pill-btn, .pill-btn *, .bottom-tab, .bottom-tab svg { transition: none; }
   .pill-btn:active { transform: none; }
 }
+
+/* Pick sheet: the "Your picks" tray pinned above the tab bar - how many picks
+   are in, which are still unlocked, and a chip per pick (tap = jump to it).
+   One row of chips that scrolls sideways, so the tray never grows taller. */
+.pick-tray {
+  padding: 8px 10px 9px;
+  background: var(--panel-alt);
+  border: 1px solid var(--border-soft);
+  color: var(--ink);
+}
+.pick-tray-head {
+  display: flex; justify-content: space-between; align-items: baseline; gap: 8px;
+  font-size: 12px; white-space: nowrap;
+}
+.pick-tray-open { color: var(--amber); font-weight: 700; overflow: hidden; text-overflow: ellipsis; }
+.pick-tray-done { color: var(--up); font-weight: 700; }
+.pick-tray-chips {
+  display: flex; gap: 6px; margin-top: 7px; overflow-x: auto;
+  scrollbar-width: none; -webkit-overflow-scrolling: touch;
+}
+.pick-tray-chips::-webkit-scrollbar { display: none; }
+.pick-tray-chip {
+  flex-shrink: 0; padding: 3px 9px; border-radius: 999px; cursor: pointer;
+  font-family: var(--font-mono), monospace; font-size: 11px; font-weight: 700; white-space: nowrap;
+  color: var(--amber); background: color-mix(in srgb, var(--amber) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--amber) 50%, transparent);
+  -webkit-tap-highlight-color: transparent;
+}
+.pick-tray-chip.locked { color: var(--ink); background: var(--panel); border-color: var(--border-soft); }
+.pick-card { scroll-margin-top: 80px; }
