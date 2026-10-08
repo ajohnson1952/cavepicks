@@ -58,7 +58,7 @@ function minutesSinceMidnightCT(d: Date): number {
 function relStyle(rel: GuideGame["rel"]): { border: string; background: string } {
   switch (rel) {
     case "swing":
-      return { border: "1px solid var(--action)", background: "rgba(47, 107, 255, 0.16)" };
+      return { border: "1px solid var(--action)", background: "rgba(91, 152, 255, 0.16)" };
     case "watch":
       return { border: "1px solid var(--border-soft)", background: "var(--panel-alt)" };
     case "dog":

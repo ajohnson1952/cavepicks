@@ -538,3 +538,9 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 - Group Trends rows show how often the group picks each side of a split (share
   of graded picks, the bar) and, under it, how that side has done.
 
+## TEMPORARY: the joke "rate us" pop-up
+- `app/RateUsJoke.tsx`, rendered on `/board`. A prank on the league, not a real
+  review prompt. Each phone sees it twice (localStorage `cp_rate_joke`), and it
+  stops for everyone after `JOKE_ENDS`. `JOKE_ON = false` kills it at once.
+  The file's header lists exactly what to delete once it has had its laugh.
+

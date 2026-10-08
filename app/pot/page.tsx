@@ -18,7 +18,7 @@ function StatusChip({ balance }: { balance: number }) {
   }
   if (balance < 0) return <span className="miss-badge">OWES {money(-balance)}</span>;
   return (
-    <span className="locked-text" style={{ color: "var(--action-soft)", background: "rgba(47, 107, 255, 0.14)", padding: "3px 8px", borderRadius: "4px" }}>
+    <span className="locked-text" style={{ color: "var(--action-soft)", background: "rgba(91, 152, 255, 0.14)", padding: "3px 8px", borderRadius: "4px" }}>
       CREDIT {money(balance)}
     </span>
   );

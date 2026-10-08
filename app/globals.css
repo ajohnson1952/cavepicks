@@ -10,9 +10,12 @@
   --dim: #7c8985;
   --up: #3fd07a;
   --down: #f8565c;
-  --action: #2f6bff;
+  /* one blue now (Oct 2026): the old deeper --action (#2f6bff) is gone, so card
+     accents, outlines and tints all match the selected-pick blue. Text on a
+     filled blue is dark (--action-ink), never white. */
+  --action: #5b98ff;
   --action-soft: #5b98ff;
-  --action-ink: #ffffff;
+  --action-ink: #0a0e0d;
   /* corners: 4 chip · 6 button/input · 8 box inside a card · 12 card · 999 pill.
      text sizes: 10 11 12 13 14 15 16 18 22 26 - no half sizes. Same scales as the-yahngorithm. */
   /* amber = the yahngorithm model ("Yahngo"); the dim one is pushes and voided games */
@@ -159,7 +162,7 @@ main {
 }
 .more-sheet a.active {
   color: var(--action-soft);
-  background: rgba(47, 107, 255, 0.12);
+  background: rgba(91, 152, 255, 0.12);
 }
 
 .nav-link {
@@ -175,7 +178,7 @@ main {
 
 .nav-link.active {
   color: var(--action-soft);
-  background: rgba(47, 107, 255, 0.12);
+  background: rgba(91, 152, 255, 0.12);
 }
 
 .nav-main {
@@ -823,10 +826,10 @@ h1 {
 @keyframes guide-pulse {
   0%,
   100% {
-    box-shadow: 0 0 0 0 rgba(47, 107, 255, 0.35);
+    box-shadow: 0 0 0 0 rgba(91, 152, 255, 0.35);
   }
   50% {
-    box-shadow: 0 0 0 4px rgba(47, 107, 255, 0);
+    box-shadow: 0 0 0 4px rgba(91, 152, 255, 0);
   }
 }
 

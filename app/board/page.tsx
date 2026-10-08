@@ -7,6 +7,7 @@ import { buildPickShareText } from "@/lib/pickShareText";
 import WeekNav from "../WeekNav";
 import CopyPicksButton from "./CopyPicksButton";
 import { GHOST_NAME } from "@/lib/ghost";
+import RateUsJoke from "../RateUsJoke"; // temporary joke - see that file for how to remove it
 import { getLinePaths, lineValue, formatValue, valueTone, type LineValue } from "@/lib/lineValue";
 
 export const dynamic = "force-dynamic";
@@ -192,6 +193,7 @@ export default async function BoardPage(props: { searchParams: Promise<{ week?: 
 
   return (
     <main>
+      <RateUsJoke />
       <h1>The Board</h1>
       <WeekNav basePath="/board" weekNumber={weekNumber} minWeek={minWeek} maxWeek={maxWeek} isCurrent={weekNumber === currentWeekNumber} />
       <p className="subtext">Week {week.weekNumber} &middot; everyone&apos;s picks, live.</p>

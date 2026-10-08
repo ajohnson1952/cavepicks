@@ -1,105 +1,8 @@
 "use client";
-// /lab only, for now: the joke "please rate us 5 stars" pop-up. Not a real
-// review prompt - Cavepicks isn't in any app store. Two gags: whatever star
-// you tap, all five fill in; and "Not now" dodges your finger a few times
-// before it gives up and lets you leave. Self-contained so it can be dropped into the real app
-// behind a switch later, and deleted just as easily.
-import { useEffect, useState } from "react";
-
-const CSS = `
-.ru-back{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.62);display:flex;align-items:center;justify-content:center;padding:24px;animation:ru-fade .18s ease}
-.ru-card{width:100%;max-width:300px;background:var(--panel-alt);border:1px solid var(--border-soft);border-radius:12px;padding:20px 18px 14px;text-align:center;box-shadow:0 18px 50px rgba(0,0,0,.6);animation:ru-up .22s ease}
-.ru-card img{border-radius:14px;display:block;margin:0 auto 10px}
-.ru-title{font-weight:800;font-size:16px;color:var(--ink)}
-.ru-body{font-size:13px;color:var(--dim);margin:6px 0 12px;line-height:1.4;min-height:36px}
-.ru-stars{display:flex;justify-content:center;gap:6px;margin-bottom:14px}
-.ru-star{background:none;border:0;padding:2px;font-size:30px;line-height:1;color:var(--border-soft);cursor:pointer;transition:color .12s ease,transform .12s ease;-webkit-tap-highlight-color:transparent}
-.ru-star.on{color:var(--amber);transform:scale(1.12)}
-.ru-row{position:relative;height:40px;border-top:1px solid var(--border-soft);margin:0 -18px;padding-top:6px}
-.ru-btn{position:absolute;top:6px;left:50%;background:none;border:0;font:inherit;font-size:14px;font-weight:700;color:var(--action-soft);padding:8px 14px;cursor:pointer;white-space:nowrap;transform:translateX(-50%);transition:transform .16s cubic-bezier(.2,.9,.3,1.2);-webkit-tap-highlight-color:transparent}
-@keyframes ru-fade{from{opacity:0}to{opacity:1}}
-@keyframes ru-up{from{opacity:0;transform:translateY(10px) scale(.97)}to{opacity:1;transform:none}}
-`;
-
-// Where "Not now" runs to on each tap (px from its home spot, kept inside the
-// card so it never leaves the screen), and what it says when it gets there.
-// After the last one it comes home and actually works.
-const DODGES = [
-  { x: 74, y: -150, r: 6, label: "Not now" },
-  { x: -78, y: -64, r: -8, label: "Too slow" },
-  { x: 62, y: -226, r: 10, label: "Nope" },
-  { x: -70, y: -118, r: -5, label: "So close" },
-  { x: 0, y: 0, r: 0, label: "Fine. Not now" },
-];
-
-export function RateUsPopup({ onClose }: { onClose: () => void }) {
-  const [filled, setFilled] = useState(0); // stars lit so far
-  const [rated, setRated] = useState(false);
-  const [dodges, setDodges] = useState(0); // times "Not now" has run away
-
-  // whatever they tapped, light all five, one after another
-  useEffect(() => {
-    if (!rated || filled >= 5) return;
-    const t = setTimeout(() => setFilled((n) => n + 1), 110);
-    return () => clearTimeout(t);
-  }, [rated, filled]);
-
-  const done = rated && filled >= 5;
-  return (
-    <div className="ru-back" role="dialog" aria-modal="true" aria-label="Rate Cavepicks">
-      <style>{CSS}</style>
-      <div className="ru-card">
-        <img src="/icon-192.png" alt="" width={56} height={56} />
-        <div className="ru-title">{done ? "5 stars! Wow." : "Enjoying Cavepicks?"}</div>
-        <div className="ru-body">
-          {done
-            ? "Thank you for your honest and completely voluntary feedback."
-            : "Tap a star to rate us on the App Store. It really helps a small cave like ours."}
-        </div>
-        <div className="ru-stars">
-          {[1, 2, 3, 4, 5].map((n) => (
-            <button
-              key={n}
-              type="button"
-              className={`ru-star${n <= filled ? " on" : ""}`}
-              aria-label={`${n} star${n > 1 ? "s" : ""}`}
-              onClick={() => {
-                if (!rated) {
-                  setFilled(Math.min(n, 1));
-                  setRated(true);
-                }
-              }}
-            >
-              ★
-            </button>
-          ))}
-        </div>
-        <div className="ru-row">
-          {done ? (
-            <button type="button" className="ru-btn" onClick={onClose}>
-              You&apos;re welcome
-            </button>
-          ) : (
-            <button
-              type="button"
-              className="ru-btn"
-              style={
-                dodges > 0
-                  ? {
-                      transform: `translateX(-50%) translate(${DODGES[dodges - 1].x}px, ${DODGES[dodges - 1].y}px) rotate(${DODGES[dodges - 1].r}deg)`,
-                    }
-                  : undefined
-              }
-              onClick={() => (dodges >= DODGES.length ? onClose() : setDodges(dodges + 1))}
-            >
-              {dodges > 0 ? DODGES[dodges - 1].label : "Not now"}
-            </button>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
+// /lab only: a button to preview the joke pop-up (app/RateUsJoke.tsx) on
+// demand, without using up one of your two real ambushes on the Board.
+import { useState } from "react";
+import { RateUsPopup } from "../RateUsJoke";
 
 export default function RateUsMock() {
   const [open, setOpen] = useState(false);
@@ -108,7 +11,7 @@ export default function RateUsMock() {
       <div className="matchup">⭐ The fake &ldquo;rate us&rdquo; pop-up</div>
       <p className="subtext" style={{ margin: "4px 0 10px" }}>
         The joke review prompt. Tap any star and all five fill in. &ldquo;Not now&rdquo; jumps away four
-        times before it gives in. Only lives here until it&apos;s switched on.
+        times before it gives in. It ambushes each phone twice on the Board; this button is just for a preview.
       </p>
       <button type="button" className="btn btn-lock" onClick={() => setOpen(true)}>
         Show the pop-up
