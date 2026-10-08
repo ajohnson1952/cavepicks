@@ -71,10 +71,14 @@ function WeekAccuracyBar({ weekNumber, correct, total, pct }: { weekNumber: numb
 // Behavior Awards and Group Trends. Split off /history (Oct 2026) so that
 // page could go back to being just the leaderboards.
 export default async function StatsPage() {
-  const { bestSeason, worstSeason, careerWeeksLeader, careerDogLeader } = await computeCareer();
-  const funStats = await computeFunStats(CURRENT_SEASON_YEAR);
-  const groupTrends = await computeGroupTrends(CURRENT_SEASON_YEAR);
-  const sharpAll = await computeSharpness(CURRENT_SEASON_YEAR);
+  // four independent reads - run together, not one after another
+  const [{ bestSeason, worstSeason, careerWeeksLeader, careerDogLeader }, funStats, groupTrends, sharpAll] =
+    await Promise.all([
+      computeCareer(),
+      computeFunStats(CURRENT_SEASON_YEAR),
+      computeGroupTrends(CURRENT_SEASON_YEAR),
+      computeSharpness(CURRENT_SEASON_YEAR),
+    ]);
   const sharpRanked = sharpAll.filter((p) => p.wins + p.losses >= MIN_SHARP_SAMPLE);
 
   return (

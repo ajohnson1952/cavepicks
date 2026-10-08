@@ -136,16 +136,12 @@ export default async function BoardPage(props: { searchParams: Promise<{ week?: 
     );
   }
 
-  const users = await prisma.user.findMany({ orderBy: { name: "asc" } });
-  const picks = await prisma.pick.findMany({
-    where: { weekId: week.id },
-    include: { game: true },
-    orderBy: { game: { commenceTime: "asc" } },
-  });
-
-  // Fresh live-game check on every page load - checks today +/- 1 day so
-  // nothing near a midnight boundary gets missed.
-  const weekGames = await prisma.game.findMany({ where: { weekId: week.id } });
+  // One round of lookups, all at once (they don't depend on each other) -
+  // run one after another they were the bulk of this page's load time.
+  // Live-game check is fresh on every load: today +/- 1 day so nothing near a
+  // midnight boundary gets missed. "Yahngo" the ghost player's picks
+  // (lib/ghost.ts) are its own table, for reference only, and never allowed
+  // to break the board.
   const today = new Date();
   const datesToCheck = Array.from(
     new Set([
@@ -154,7 +150,19 @@ export default async function BoardPage(props: { searchParams: Promise<{ week?: 
       toYyyymmdd(new Date(today.getTime() + 86_400_000)),
     ])
   );
-  const liveResultsArrays = await Promise.all(datesToCheck.map((d) => fetchEspnScoreboard(d)));
+  const [users, picks, weekGames, liveResultsArrays, ghostPicks] = await Promise.all([
+    prisma.user.findMany({ orderBy: { name: "asc" } }),
+    prisma.pick.findMany({
+      where: { weekId: week.id },
+      include: { game: true },
+      orderBy: { game: { commenceTime: "asc" } },
+    }),
+    prisma.game.findMany({ where: { weekId: week.id } }),
+    Promise.all(datesToCheck.map((d) => fetchEspnScoreboard(d))),
+    prisma.ghostPick
+      .findMany({ where: { weekId: week.id }, include: { game: true }, orderBy: { game: { commenceTime: "asc" } } })
+      .catch(() => []),
+  ]);
   const liveResults = liveResultsArrays.flat();
 
   const liveGameIds = new Set<string>();
@@ -165,11 +173,6 @@ export default async function BoardPage(props: { searchParams: Promise<{ week?: 
     if (match?.state === "in") liveGameIds.add(g.id);
   }
 
-  // "Yahngo" the ghost player's locked picks this week (lib/ghost.ts). Its
-  // own table, shown for reference only - and never allowed to break the board.
-  const ghostPicks = await prisma.ghostPick
-    .findMany({ where: { weekId: week.id }, include: { game: true }, orderBy: { game: { commenceTime: "asc" } } })
-    .catch(() => []);
   const ghostSides = ghostPicks.filter((p) => p.pickType !== "DOG");
   const ghostDog = ghostPicks.find((p) => p.pickType === "DOG");
 

@@ -17,8 +17,12 @@ export default async function StandingsPage() {
   // never counted for money. Future weeks that already have a placeholder
   // row (because a marquee game's line posted early) don't count as "real"
   // yet either - only weeks up through the actual current week matter here.
-  const { users, currentWeekNumber, weekResults, cavepicksStats, cavedogsStats } =
-    await computeCurrentSeasonStats(SEASON_YEAR);
+  // The ghost's numbers are read alongside (not after) the league's - see the
+  // note where `ghost` is used below.
+  const [{ users, currentWeekNumber, weekResults, cavepicksStats, cavedogsStats }, ghost] = await Promise.all([
+    computeCurrentSeasonStats(SEASON_YEAR),
+    ghostSeasonStats(SEASON_YEAR).catch(() => null),
+  ]);
 
   // The "current" week is the one matching today's actual date - not just
   // whichever week happens to be last in the list (that assumption broke
@@ -30,7 +34,6 @@ export default async function StandingsPage() {
   // lib/ghost.ts). Shown in both leaderboards where its record would rank,
   // but unranked and never part of the pot or the group totals. Wrapped so
   // the standings can't break if anything about it goes wrong.
-  const ghost = await ghostSeasonStats(SEASON_YEAR).catch(() => null);
   const ghostSideDenom = ghost ? ghost.side.wins + ghost.side.losses : 0;
   const ghostSidePct = ghostSideDenom > 0 ? (ghost!.side.wins / ghostSideDenom) * 100 : 0;
   const ghostDogDenom = ghost ? ghost.dog.wins + ghost.dog.losses : 0;
