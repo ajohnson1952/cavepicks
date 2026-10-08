@@ -304,7 +304,7 @@ export default async function BoardPage(props: { searchParams: Promise<{ week?: 
                   </span>
                 ) : dogPick.locked ? (
                   <span>
-                    {` worth ${dogPick.dogSpreadValue ?? "?"} pts`}
+                    {` ${dogPick.dogSpreadValue ?? "?"} pts`}
                     {(() => {
                       const parts = [
                         dogPick.lockedOdds != null ? `${formatOdds(dogPick.lockedOdds)} ML` : null,
@@ -400,7 +400,7 @@ export default async function BoardPage(props: { searchParams: Promise<{ week?: 
                 </span>
               ) : (
                 <span>
-                  {` worth ${ghostDog.dogSpreadValue ?? "?"} pts`}
+                  {` ${ghostDog.dogSpreadValue ?? "?"} pts`}
                   {ghostDog.lockedOdds != null || ghostDog.lockedBook
                     ? ` (${[
                         ghostDog.lockedOdds != null ? `${formatOdds(ghostDog.lockedOdds)} ML` : null,
