@@ -1,8 +1,8 @@
 "use client";
 // /lab only, for now: the joke "please rate us 5 stars" pop-up. Not a real
 // review prompt - Cavepicks isn't in any app store. Two gags: whatever star
-// you tap, all five fill in; and "Not now" dodges your finger once before it
-// lets you leave. Self-contained so it can be dropped into the real app
+// you tap, all five fill in; and "Not now" dodges your finger a few times
+// before it gives up and lets you leave. Self-contained so it can be dropped into the real app
 // behind a switch later, and deleted just as easily.
 import { useEffect, useState } from "react";
 
@@ -17,15 +17,25 @@ const CSS = `
 .ru-star.on{color:var(--amber);transform:scale(1.12)}
 .ru-row{position:relative;height:40px;border-top:1px solid var(--border-soft);margin:0 -18px;padding-top:6px}
 .ru-btn{position:absolute;top:6px;left:50%;background:none;border:0;font:inherit;font-size:14px;font-weight:700;color:var(--action-soft);padding:8px 14px;cursor:pointer;white-space:nowrap;transform:translateX(-50%);transition:transform .16s cubic-bezier(.2,.9,.3,1.2);-webkit-tap-highlight-color:transparent}
-.ru-btn.dodged{transform:translateX(-50%) translate(74px,-150px) rotate(6deg)}
 @keyframes ru-fade{from{opacity:0}to{opacity:1}}
 @keyframes ru-up{from{opacity:0;transform:translateY(10px) scale(.97)}to{opacity:1;transform:none}}
 `;
 
+// Where "Not now" runs to on each tap (px from its home spot, kept inside the
+// card so it never leaves the screen), and what it says when it gets there.
+// After the last one it comes home and actually works.
+const DODGES = [
+  { x: 74, y: -150, r: 6, label: "Not now" },
+  { x: -78, y: -64, r: -8, label: "Too slow" },
+  { x: 62, y: -226, r: 10, label: "Nope" },
+  { x: -70, y: -118, r: -5, label: "So close" },
+  { x: 0, y: 0, r: 0, label: "Fine. Not now" },
+];
+
 export function RateUsPopup({ onClose }: { onClose: () => void }) {
   const [filled, setFilled] = useState(0); // stars lit so far
   const [rated, setRated] = useState(false);
-  const [dodged, setDodged] = useState(false);
+  const [dodges, setDodges] = useState(0); // times "Not now" has run away
 
   // whatever they tapped, light all five, one after another
   useEffect(() => {
@@ -72,10 +82,17 @@ export function RateUsPopup({ onClose }: { onClose: () => void }) {
           ) : (
             <button
               type="button"
-              className={`ru-btn${dodged ? " dodged" : ""}`}
-              onClick={() => (dodged ? onClose() : setDodged(true))}
+              className="ru-btn"
+              style={
+                dodges > 0
+                  ? {
+                      transform: `translateX(-50%) translate(${DODGES[dodges - 1].x}px, ${DODGES[dodges - 1].y}px) rotate(${DODGES[dodges - 1].r}deg)`,
+                    }
+                  : undefined
+              }
+              onClick={() => (dodges >= DODGES.length ? onClose() : setDodges(dodges + 1))}
             >
-              {dodged ? "Fine. Not now" : "Not now"}
+              {dodges > 0 ? DODGES[dodges - 1].label : "Not now"}
             </button>
           )}
         </div>
@@ -90,8 +107,8 @@ export default function RateUsMock() {
     <div className="card">
       <div className="matchup">⭐ The fake &ldquo;rate us&rdquo; pop-up</div>
       <p className="subtext" style={{ margin: "4px 0 10px" }}>
-        The joke review prompt. Tap any star and all five fill in. &ldquo;Not now&rdquo; jumps away the first
-        time you go for it. Only lives here until it&apos;s switched on.
+        The joke review prompt. Tap any star and all five fill in. &ldquo;Not now&rdquo; jumps away four
+        times before it gives in. Only lives here until it&apos;s switched on.
       </p>
       <button type="button" className="btn btn-lock" onClick={() => setOpen(true)}>
         Show the pop-up
