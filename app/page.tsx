@@ -45,7 +45,10 @@ export default async function Home() {
       <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "16px" }}>
         <img src="/icon-192.png" alt="" width={56} height={56} style={{ borderRadius: "14px" }} />
         <div>
-          <h1 style={{ margin: 0 }}>Cavepicks</h1>
+          {/* same wordmark as the top bar (.brand-name), just bigger */}
+          <h1 className="brand-name" style={{ margin: "0 0 5px", fontSize: "22px" }} aria-label="Cavepicks">
+            CAVE<span>PICKS</span>
+          </h1>
           <p className="subtext" style={{ margin: 0 }}>
             {currentWeekNumber >= 1 ? `Week ${currentWeekNumber}` : "Preseason"} &middot;{" "}
             {CT(new Date(), { weekday: "long", month: "short", day: "numeric" })}
