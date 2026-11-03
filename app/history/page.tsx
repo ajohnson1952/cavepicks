@@ -1,5 +1,7 @@
 import { computeCareer, CURRENT_SEASON_YEAR } from "@/lib/careerStats";
 
+export const metadata = { title: "History" };
+
 export const dynamic = "force-dynamic";
 
 function rankLabel(i: number): string {

@@ -1,3 +1,5 @@
+export const metadata = { title: "Rules" };
+
 export default function RulesPage() {
   return (
     <main>

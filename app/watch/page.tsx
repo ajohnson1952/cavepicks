@@ -3,6 +3,8 @@ import { isDecided, PickOutcome } from "@/lib/weeklyRace";
 import { computeWatchData, Rel } from "@/lib/watchData";
 import RefreshButton from "./RefreshButton";
 
+export const metadata = { title: "Watch" };
+
 export const dynamic = "force-dynamic";
 
 const CT = (d: Date, opts: Intl.DateTimeFormatOptions) =>

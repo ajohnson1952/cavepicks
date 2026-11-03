@@ -8,6 +8,8 @@ import { computeLedger } from "@/lib/ledger";
 import { BANKER_NAME } from "@/lib/pot";
 import { getYahnFeed, findYahnGame, yahnWeekUrl, SHOW_YAHN_MARKS } from "@/lib/yahn";
 
+export const metadata = { title: "My Picks" };
+
 export default async function PickPage(
   props: {
     params: Promise<{ slug: string }>;

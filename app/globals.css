@@ -1157,3 +1157,34 @@ html.ptr-enabled body {
 }
 .pick-tray-chip.locked { color: var(--ink); background: var(--panel); border-color: var(--border-soft); }
 .pick-card { scroll-margin-top: 80px; }
+
+/* ---------- desktop (laptop width and up) ----------
+   Phones and tablets keep the app layout above untouched. On a big screen
+   the menu moves into the top bar, the bottom tab bar goes away, and the
+   busier pages (main.wide) put their cards in two columns. */
+.nav-desktop { display: none; }
+@media (min-width: 1024px) {
+  body { padding-bottom: 3rem; }
+  .bottom-nav, .more-sheet, .more-backdrop { display: none; }
+
+  .brand-row, .nav-sub { max-width: 1080px; }
+  .nav-bar { padding: 12px 24px; }
+  .nav-desktop { display: flex; gap: 4px; margin-left: 28px; margin-right: auto; }
+  .brand-name { font-size: 18px; }
+  .brand-pill { font-size: 11px; padding: 5px 11px; }
+
+  main { max-width: 720px; }
+  /* newspaper-style columns: cards fill the left column top to bottom, then
+     the right, so a short card next to a tall one doesn't leave a hole */
+  main.wide { max-width: 1080px; columns: 2; column-gap: 20px; }
+  /* headings, week switcher, notes etc. run across both columns */
+  main.wide > :not(.card) { column-span: all; }
+  /* !important: a few cards carry an inline top margin (home's pot card),
+     which would knock one column out of line with the other */
+  main.wide > .card { break-inside: avoid; margin-top: 0 !important; }
+  /* home's pick-link note / button sits right above the columns */
+  main.wide > .banner-note, main.wide > .btn-lock { margin-bottom: 12px !important; }
+  main.wide > .card.span-2 { column-span: all; }
+
+  h1 { font-size: 28px; }
+}

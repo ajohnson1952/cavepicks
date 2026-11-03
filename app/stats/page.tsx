@@ -3,6 +3,8 @@ import { computeFunStats } from "@/lib/funStats";
 import { computeGroupTrends } from "@/lib/groupTrends";
 import { computeSharpness, MIN_SHARP_SAMPLE } from "@/lib/sharpness";
 
+export const metadata = { title: "Stats" };
+
 export const dynamic = "force-dynamic";
 
 type SplitRecord = { wins: number; losses: number; pushes: number; pct: number; count: number };
@@ -82,7 +84,7 @@ export default async function StatsPage() {
   const sharpRanked = sharpAll.filter((p) => p.wins + p.losses >= MIN_SHARP_SAMPLE);
 
   return (
-    <main>
+    <main className="wide">
       <h1>Stats</h1>
       <p className="subtext">Records, who&apos;s sharp, and how the cave picks.</p>
 
@@ -271,9 +273,13 @@ export default async function StatsPage() {
           )}
           {funStats.flipFlopper && (
             <p style={{ fontSize: "13px", margin: "0 0 6px" }}>
-              🔄 Flip-Flopper: <strong>{funStats.flipFlopper.name}</strong> &mdash; changes their mind{" "}
-              {funStats.flipFlopper.avgChanges.toFixed(1)}x per pick on average ({funStats.flipFlopper.totalChanges}{" "}
-              total changes this season)
+              🔄 Flip-Flopper: <strong>{funStats.flipFlopper.name}</strong> &mdash; switched sides{" "}
+              {funStats.flipFlopper.totalChanges} {funStats.flipFlopper.totalChanges === 1 ? "time" : "times"} before
+              locking in this season
+              {/* a per-pick rate only reads well once it's at least ~1 a pick;
+                  below that it rounded to a silly "0.0x" */}
+              {funStats.flipFlopper.avgChanges >= 0.95 &&
+                ` (about ${funStats.flipFlopper.avgChanges.toFixed(1)}x per pick)`}
             </p>
           )}
           {funStats.quickDraw && (

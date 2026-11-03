@@ -8,6 +8,9 @@ import WeekNav from "../WeekNav";
 import CopyPicksButton from "./CopyPicksButton";
 import { GHOST_NAME } from "@/lib/ghost";
 import { getLinePaths, lineValue, formatValue, valueTone, type LineValue } from "@/lib/lineValue";
+import { darkLogo } from "@/lib/darkLogo";
+
+export const metadata = { title: "Board" };
 
 export const dynamic = "force-dynamic";
 
@@ -39,7 +42,7 @@ function Logo({ src, alt }: { src: string | null; alt: string }) {
   if (!src) return null;
   return (
     <img
-      src={src}
+      src={darkLogo(src) ?? undefined}
       alt={alt}
       style={{ width: "14px", height: "14px", objectFit: "contain", verticalAlign: "-2px", marginRight: "4px" }}
     />
@@ -194,7 +197,7 @@ export default async function BoardPage(props: { searchParams: Promise<{ week?: 
   }
 
   return (
-    <main>
+    <main className="wide">
       <h1>The Board</h1>
       <WeekNav basePath="/board" weekNumber={weekNumber} minWeek={minWeek} maxWeek={maxWeek} isCurrent={weekNumber === currentWeekNumber} />
       <p className="subtext">Week {week.weekNumber} &middot; everyone&apos;s picks, live.</p>

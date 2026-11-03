@@ -4,6 +4,8 @@ import { computeWatchData } from "@/lib/watchData";
 import RefreshButton from "../watch/RefreshButton";
 import GuideTimeline, { GuideDay, GuideGame, GuidePick } from "./GuideTimeline";
 
+export const metadata = { title: "Guide" };
+
 export const dynamic = "force-dynamic";
 
 const CT = (d: Date, opts: Intl.DateTimeFormatOptions) =>

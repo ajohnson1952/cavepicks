@@ -21,7 +21,8 @@ const robotoMono = Roboto_Mono({
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://www.cavepicks.com"),
-  title: "Cavepicks",
+  // each page sets its own title; this turns "Board" into "Board · Cavepicks"
+  title: { default: "Cavepicks", template: "%s · Cavepicks" },
   description: "College football pick'em with friends",
   // Home-screen app on iOS: full-screen, dark status bar, "Cavepicks" label.
   // The icon itself comes from app/apple-icon.png, the link-preview card

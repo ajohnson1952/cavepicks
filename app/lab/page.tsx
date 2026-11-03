@@ -9,7 +9,7 @@ import PickFeelMock from "./PickFeelMock";
 
 // Hidden test bench (not linked anywhere) for the tactile stuff: haptics,
 // the "fully locked in" money shower, and pull-to-refresh. Touches no data.
-export const metadata = { title: "Cavepicks Lab", robots: { index: false } };
+export const metadata = { title: "Lab", robots: { index: false } };
 export const dynamic = "force-dynamic"; // so the "rendered at" time proves a refresh happened
 
 export default function LabPage() {

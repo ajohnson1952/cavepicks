@@ -41,7 +41,7 @@ export default async function Home() {
   const leaders = current ? current.standings.filter((s) => s.correct === top && top > 0).map((s) => s.name) : [];
 
   return (
-    <main>
+    <main className="wide">
       <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "16px" }}>
         <img src="/icon-192.png" alt="" width={56} height={56} style={{ borderRadius: "14px" }} />
         <div>

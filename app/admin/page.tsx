@@ -24,6 +24,9 @@ import { BANKER_NAME, isBanker } from "@/lib/pot";
 import { formatSpread } from "@/lib/format";
 import { getJobRuns } from "@/lib/jobRun";
 import { getNextScheduledRuns } from "@/lib/cronJobOrg";
+import { darkLogo } from "@/lib/darkLogo";
+
+export const metadata = { title: "Admin" };
 
 // Hardcoded rather than derived from the request - this app has one fixed
 // live domain (see CLAUDE.md), not a multi-environment setup.
@@ -359,7 +362,7 @@ export default async function AdminPage(
           <div className="matchup">
             {g.awayLogo && (
               <img
-                src={g.awayLogo}
+                src={darkLogo(g.awayLogo) ?? undefined}
                 alt={g.awayTeam}
                 style={{ width: "16px", height: "16px", objectFit: "contain", verticalAlign: "-3px", marginRight: "5px" }}
               />
@@ -367,7 +370,7 @@ export default async function AdminPage(
             {g.awayAbbr ?? g.awayTeam} @{" "}
             {g.homeLogo && (
               <img
-                src={g.homeLogo}
+                src={darkLogo(g.homeLogo) ?? undefined}
                 alt={g.homeTeam}
                 style={{ width: "16px", height: "16px", objectFit: "contain", verticalAlign: "-3px", marginRight: "5px" }}
               />

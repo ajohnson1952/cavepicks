@@ -2,6 +2,8 @@ import { computeLedger } from "@/lib/ledger";
 import { SEASON_YEAR } from "@/lib/currentWeek";
 import { BANKER_NAME, TIE_SPLIT_START_WEEK, WEEKLY_BUYIN } from "@/lib/pot";
 
+export const metadata = { title: "The Pot" };
+
 export const dynamic = "force-dynamic";
 
 const money = (n: number) => (n < 0 ? `-$${-n}` : `$${n}`);
@@ -40,7 +42,7 @@ export default async function PotPage() {
     .sort((a, b) => Number(a.isBank) - Number(b.isBank) || a.balance - b.balance || a.name.localeCompare(b.name));
 
   return (
-    <main>
+    <main className="wide">
       <h1>The Pot</h1>
       <p className="subtext">Weekly pot, who owes what, and every payment made.</p>
 

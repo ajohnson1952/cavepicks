@@ -103,6 +103,7 @@ function useMySlug(pathname: string) {
 /** Top: caveman + CAVEPICKS + this week's pot, and the section's sub-tabs. */
 export default function Nav({ weekNumber, potAmount }: { weekNumber: number; potAmount: number | null }) {
   const pathname = usePathname();
+  const mySlug = useMySlug(pathname);
   const activeSection = SECTIONS.find((s) => inSection(pathname, s));
 
   return (
@@ -114,6 +115,22 @@ export default function Nav({ weekNumber, potAmount }: { weekNumber: number; pot
             CAVE<span>PICKS</span>
           </span>
         </a>
+        {/* desktop only (CSS hides it on phones/tablets, which keep the
+            bottom tab bar): the same four sections plus Rules, up top */}
+        <div className="nav-desktop">
+          {SECTIONS.map((s) => (
+            <a
+              key={s.key}
+              href={s.key === "picks" ? (mySlug ? `/pick/${mySlug}` : "/") : s.href}
+              className={`nav-link${s === activeSection ? " active" : ""}`}
+            >
+              {s.label}
+            </a>
+          ))}
+          <a href="/rules" className={`nav-link${startsWith(pathname, "/rules") ? " active" : ""}`}>
+            Rules
+          </a>
+        </div>
         {weekNumber >= 1 && (
           <a href="/pot" className="brand-pill">
             WK {weekNumber}

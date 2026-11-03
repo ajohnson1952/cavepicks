@@ -3,6 +3,8 @@ import { SEASON_YEAR } from "@/lib/currentWeek";
 import { computeCurrentSeasonStats } from "@/lib/seasonStats";
 import { ghostSeasonStats, GHOST_NAME } from "@/lib/ghost";
 
+export const metadata = { title: "Standings" };
+
 export const dynamic = "force-dynamic";
 
 function rankLabel(i: number): string {
@@ -104,7 +106,7 @@ export default async function StandingsPage() {
   const groupDogPct = groupDogDenom > 0 ? (groupDogTotals.wins / groupDogDenom) * 100 : 0;
 
   return (
-    <main>
+    <main className="wide">
       <h1>Standings</h1>
       <p className="subtext">Weekly pot, season records, and the dog race.</p>
 
