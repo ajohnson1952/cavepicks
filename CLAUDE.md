@@ -40,6 +40,10 @@ any new scheduled job.
   ever changes, a preview deploy from a branch would also run `db push`
   against the same production database.
 - No local dev server is used day-to-day - changes go straight to GitHub -> Vercel
+- `npm run sync-logos` - copies the dark-logo picks from the-yahngorithm's
+  /admin/logos page into `lib/darkLogoIds.ts` (needs nothing but internet).
+  Run it after logo picks change on yahn, then commit + push that file.
+  Cavepicks never checks yahn for logos at runtime, on purpose.
 - `DATABASE_URL` should be Neon's **pooled** (PgBouncer) connection string,
   not the direct one - Vercel functions are short-lived, so pooling matters
   here in a way it didn't on Render's one long-lived process. Prisma talks

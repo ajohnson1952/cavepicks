@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "next dev",
     "build": "prisma generate && prisma db push && next build",
-    "start": "next start"
+    "start": "next start",
+    "sync-logos": "node scripts/syncLogos.mjs"
   },
   "dependencies": {
     "@prisma/client": "5.18.0",

@@ -9,7 +9,6 @@ import CopyPicksButton from "./CopyPicksButton";
 import { GHOST_NAME } from "@/lib/ghost";
 import { getLinePaths, lineValue, formatValue, valueTone, type LineValue } from "@/lib/lineValue";
 import { logoFor } from "@/lib/darkLogo";
-import { getLogoPicks } from "@/lib/yahn";
 
 export const metadata = { title: "Board" };
 
@@ -153,7 +152,7 @@ export default async function BoardPage(props: { searchParams: Promise<{ week?: 
       toYyyymmdd(new Date(today.getTime() + 86_400_000)),
     ])
   );
-  const [users, picks, weekGames, liveResultsArrays, ghostPicks, darkIds] = await Promise.all([
+  const [users, picks, weekGames, liveResultsArrays, ghostPicks] = await Promise.all([
     prisma.user.findMany({ orderBy: { name: "asc" } }),
     prisma.pick.findMany({
       where: { weekId: week.id },
@@ -165,7 +164,6 @@ export default async function BoardPage(props: { searchParams: Promise<{ week?: 
     prisma.ghostPick
       .findMany({ where: { weekId: week.id }, include: { game: true }, orderBy: { game: { commenceTime: "asc" } } })
       .catch(() => []),
-    getLogoPicks(),
   ]);
   const liveResults = liveResultsArrays.flat();
 
@@ -265,9 +263,9 @@ export default async function BoardPage(props: { searchParams: Promise<{ week?: 
                   <span className="mono" style={{ color: rClass ? "inherit" : "var(--dim)" }}>
                     {p.pickType === "SPREAD" ? "SPRD" : "TOTL"}
                   </span>{" "}
-                  <Logo src={logoFor(p.game.awayLogo, darkIds)} alt={p.game.awayTeam} />
+                  <Logo src={logoFor(p.game.awayLogo)} alt={p.game.awayTeam} />
                   {p.game.awayAbbr ?? p.game.awayTeam} @{" "}
-                  <Logo src={logoFor(p.game.homeLogo, darkIds)} alt={p.game.homeTeam} />
+                  <Logo src={logoFor(p.game.homeLogo)} alt={p.game.homeTeam} />
                   {p.game.homeAbbr ?? p.game.homeTeam} &mdash; {pickLabel}
                   {lineNumber}
                   {v && <ValueChip v={v} />}
@@ -300,9 +298,9 @@ export default async function BoardPage(props: { searchParams: Promise<{ week?: 
                 v={valueOf(dogPick)}
               >
                 <span className="mono" style={{ color: "var(--dim)" }}>DOG</span>{" "}
-                <Logo src={logoFor(dogPick.game.awayLogo, darkIds)} alt={dogPick.game.awayTeam} />
+                <Logo src={logoFor(dogPick.game.awayLogo)} alt={dogPick.game.awayTeam} />
                 {dogPick.game.awayAbbr ?? dogPick.game.awayTeam} @{" "}
-                <Logo src={logoFor(dogPick.game.homeLogo, darkIds)} alt={dogPick.game.homeTeam} />
+                <Logo src={logoFor(dogPick.game.homeLogo)} alt={dogPick.game.homeTeam} />
                 {dogPick.game.homeAbbr ?? dogPick.game.homeTeam}
                 {" \u2014 "}
                 {abbr(dogPick.selection, dogPick.game.homeTeam, dogPick.game.homeAbbr, dogPick.game.awayTeam, dogPick.game.awayAbbr)}
@@ -376,8 +374,8 @@ export default async function BoardPage(props: { searchParams: Promise<{ week?: 
             return (
               <PickRow key={p.id} className={rClass} style={{ fontSize: "13px", marginBottom: "4px" }} v={v}>
                 <span className="mono">{p.pickType === "SPREAD" ? "SPRD" : "TOTL"}</span>{" "}
-                <Logo src={logoFor(p.game.awayLogo, darkIds)} alt={p.game.awayTeam} />
-                {p.game.awayAbbr ?? p.game.awayTeam} @ <Logo src={logoFor(p.game.homeLogo, darkIds)} alt={p.game.homeTeam} />
+                <Logo src={logoFor(p.game.awayLogo)} alt={p.game.awayTeam} />
+                {p.game.awayAbbr ?? p.game.awayTeam} @ <Logo src={logoFor(p.game.homeLogo)} alt={p.game.homeTeam} />
                 {p.game.homeAbbr ?? p.game.homeTeam} &mdash; {label}
                 {paren}
                 {v && <ValueChip v={v} />}
@@ -396,9 +394,9 @@ export default async function BoardPage(props: { searchParams: Promise<{ week?: 
               v={valueOf(ghostDog)}
             >
               <span className="mono">DOG</span>{" "}
-              <Logo src={logoFor(ghostDog.game.awayLogo, darkIds)} alt={ghostDog.game.awayTeam} />
+              <Logo src={logoFor(ghostDog.game.awayLogo)} alt={ghostDog.game.awayTeam} />
               {ghostDog.game.awayAbbr ?? ghostDog.game.awayTeam} @{" "}
-              <Logo src={logoFor(ghostDog.game.homeLogo, darkIds)} alt={ghostDog.game.homeTeam} />
+              <Logo src={logoFor(ghostDog.game.homeLogo)} alt={ghostDog.game.homeTeam} />
               {ghostDog.game.homeAbbr ?? ghostDog.game.homeTeam}
               {" \u2014 "}
               {abbr(ghostDog.selection, ghostDog.game.homeTeam, ghostDog.game.homeAbbr, ghostDog.game.awayTeam, ghostDog.game.awayAbbr)}
