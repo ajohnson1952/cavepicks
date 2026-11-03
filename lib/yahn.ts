@@ -80,3 +80,21 @@ export const yahnWeekUrl = (weekNumber: number) => `${YAHN_SITE}/?week=${weekNum
 export function unitsAt110(win: number, loss: number): number {
   return Math.round((win * (100 / 110) - loss) * 100) / 100;
 }
+
+/** ESPN team ids whose dark-background logo was picked on the-yahngorithm's
+ *  /admin/logos page (see lib/darkLogo.ts). Cached 15 min like the feed; if
+ *  the site is down this is just empty and every team shows its standard
+ *  logo. */
+export async function getLogoPicks(): Promise<Set<number>> {
+  try {
+    const res = await fetch(`${FEED_BASE}/api/logo-picks`, {
+      next: { revalidate: 900 },
+      signal: AbortSignal.timeout(2500),
+    });
+    if (!res.ok) return new Set();
+    const body = (await res.json()) as { dark?: unknown };
+    return new Set(Array.isArray(body.dark) ? body.dark.filter((n): n is number => typeof n === "number") : []);
+  } catch {
+    return new Set();
+  }
+}

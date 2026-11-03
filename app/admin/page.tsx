@@ -24,7 +24,8 @@ import { BANKER_NAME, isBanker } from "@/lib/pot";
 import { formatSpread } from "@/lib/format";
 import { getJobRuns } from "@/lib/jobRun";
 import { getNextScheduledRuns } from "@/lib/cronJobOrg";
-import { darkLogo } from "@/lib/darkLogo";
+import { logoFor } from "@/lib/darkLogo";
+import { getLogoPicks } from "@/lib/yahn";
 
 export const metadata = { title: "Admin" };
 
@@ -104,6 +105,7 @@ export default async function AdminPage(
     ? await prisma.game.findMany({ where: { weekId: week.id }, orderBy: { commenceTime: "asc" } })
     : [];
   const games = showAll ? allGames : allGames.filter((g) => !g.isFinal || g.voided);
+  const darkIds = await getLogoPicks();
   const hiddenCount = allGames.length - games.length;
 
   const lockedPicks = week
@@ -362,7 +364,7 @@ export default async function AdminPage(
           <div className="matchup">
             {g.awayLogo && (
               <img
-                src={darkLogo(g.awayLogo) ?? undefined}
+                src={logoFor(g.awayLogo, darkIds) ?? undefined}
                 alt={g.awayTeam}
                 style={{ width: "16px", height: "16px", objectFit: "contain", verticalAlign: "-3px", marginRight: "5px" }}
               />
@@ -370,7 +372,7 @@ export default async function AdminPage(
             {g.awayAbbr ?? g.awayTeam} @{" "}
             {g.homeLogo && (
               <img
-                src={darkLogo(g.homeLogo) ?? undefined}
+                src={logoFor(g.homeLogo, darkIds) ?? undefined}
                 alt={g.homeTeam}
                 style={{ width: "16px", height: "16px", objectFit: "contain", verticalAlign: "-3px", marginRight: "5px" }}
               />

@@ -7,7 +7,6 @@ import MoneyShower from "./MoneyShower";
 import { formatSpread, formatOdds, bookLabel } from "@/lib/format";
 import HapticButton from "../../HapticButton";
 import HoldToLock from "../../HoldToLock";
-import { darkLogo } from "@/lib/darkLogo";
 
 type Snap = {
   spreadHome: number | null;
@@ -133,7 +132,7 @@ function TeamLogo({ src, alt }: { src: string | null; alt: string }) {
   if (!src) return null;
   return (
     <img
-      src={darkLogo(src) ?? undefined}
+      src={src}
       alt={alt}
       style={{ width: "16px", height: "16px", objectFit: "contain", verticalAlign: "-3px", marginRight: "5px" }}
     />

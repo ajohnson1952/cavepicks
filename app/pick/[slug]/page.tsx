@@ -6,7 +6,8 @@ import WeekNav from "../../WeekNav";
 import { notFound } from "next/navigation";
 import { computeLedger } from "@/lib/ledger";
 import { BANKER_NAME } from "@/lib/pot";
-import { getYahnFeed, findYahnGame, yahnWeekUrl, SHOW_YAHN_MARKS } from "@/lib/yahn";
+import { getYahnFeed, findYahnGame, yahnWeekUrl, SHOW_YAHN_MARKS, getLogoPicks } from "@/lib/yahn";
+import { logoFor } from "@/lib/darkLogo";
 
 export const metadata = { title: "My Picks" };
 
@@ -90,7 +91,10 @@ export default async function PickPage(
 
   // The model site's picks for this week (the-yahngorithm). Only fetched for
   // the current week - that's the one it keeps ready - and null if it's down.
-  const yahnFeed = isCurrentWeek ? await getYahnFeed(weekNumber) : null;
+  const [yahnFeed, darkIds] = await Promise.all([
+    isCurrentWeek ? getYahnFeed(weekNumber) : Promise.resolve(null),
+    getLogoPicks(),
+  ]);
 
   const gameViews = games
     .filter((g) => !g.voided)
@@ -118,8 +122,8 @@ export default async function PickPage(
       awayTeam: g.awayTeam,
       homeAbbr: g.homeAbbr,
       awayAbbr: g.awayAbbr,
-      homeLogo: g.homeLogo,
-      awayLogo: g.awayLogo,
+      homeLogo: logoFor(g.homeLogo, darkIds),
+      awayLogo: logoFor(g.awayLogo, darkIds),
       broadcast: g.broadcast,
       kickoffDisplay:
         g.commenceTime.toLocaleString("en-US", {
