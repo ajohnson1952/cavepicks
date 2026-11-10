@@ -6,7 +6,8 @@ import { conferenceBoard, fmtPts as pts, loadSeason } from "@/lib/playerStats";
 import { TROPHIES, beats, curses, rivalries, trophiesFor } from "@/lib/bragging";
 import { logoFor } from "@/lib/darkLogo";
 import { pctText } from "../players/parts";
-import { PlayerLink } from "@/app/PlayerTag";
+import { PlayerLink } from "@/app/PlayerLink";
+import { PlayerLink as PlayerTag } from "@/app/PlayerTag";
 
 export const metadata = { title: "Stats" };
 
@@ -119,25 +120,25 @@ export default async function StatsPage() {
           <div className="divider" />
           {bestSeason && bestSeason.wins > 0 && (
             <p style={{ fontSize: "13px", margin: "0 0 6px" }}>
-              Best season on record: <strong><PlayerLink name={bestSeason.name} /></strong> &mdash; {bestSeason.pct.toFixed(1)}%
+              Best season on record: <strong><PlayerTag name={bestSeason.name} /></strong> &mdash; {bestSeason.pct.toFixed(1)}%
               ({bestSeason.seasonLabel})
             </p>
           )}
           {worstSeason && (
             <p style={{ fontSize: "13px", margin: "0 0 6px" }}>
-              Rock bottom: <strong><PlayerLink name={worstSeason.name} /></strong> &mdash; {worstSeason.pct.toFixed(1)}%
+              Rock bottom: <strong><PlayerTag name={worstSeason.name} /></strong> &mdash; {worstSeason.pct.toFixed(1)}%
               ({worstSeason.seasonLabel})
             </p>
           )}
           {careerWeeksLeader && careerWeeksLeader.weeksWon > 0 && (
             <p style={{ fontSize: "13px", margin: "0 0 6px" }}>
-              Most weeks won, all-time: <strong><PlayerLink name={careerWeeksLeader.name} /></strong> &mdash;{" "}
+              Most weeks won, all-time: <strong><PlayerTag name={careerWeeksLeader.name} /></strong> &mdash;{" "}
               {careerWeeksLeader.weeksWon}
             </p>
           )}
           {careerDogLeader && careerDogLeader.points > 0 && (
             <p style={{ fontSize: "13px", margin: "0" }}>
-              Career Cavedogs points leader: <strong><PlayerLink name={careerDogLeader.name} /></strong> &mdash;{" "}
+              Career Cavedogs points leader: <strong><PlayerTag name={careerDogLeader.name} /></strong> &mdash;{" "}
               {careerDogLeader.points} pts
             </p>
           )}
@@ -177,7 +178,7 @@ export default async function StatsPage() {
                 <div className="row-between" style={{ alignItems: "center" }}>
                   <span style={{ fontSize: "14px" }}>
                     <span style={{ display: "inline-block", width: "24px", textAlign: "center" }}>{badge}</span>
-                    <strong><PlayerLink name={p.name} /></strong>
+                    <strong><PlayerTag name={p.name} /></strong>
                     {i === 0 && <span className="meta"> &middot; sharpest 🚬</span>}
                     {last && <span className="meta"> &middot; squarest</span>}
                   </span>
@@ -316,7 +317,7 @@ export default async function StatsPage() {
               {beatBoard.map((x) => (
                 <tr key={x.name}>
                   <td style={{ fontFamily: "inherit" }}>
-                    <PlayerLink name={x.name} />
+                    <PlayerTag name={x.name} />
                   </td>
                   <td className="pick-loss">{x.bad}</td>
                   <td className="pick-win">{x.lucky}</td>
@@ -383,7 +384,7 @@ export default async function StatsPage() {
           </p>
           {trophyBoard.map((x) => (
             <div key={x.name} style={{ fontSize: "13px", padding: "5px 0", borderBottom: "1px solid var(--border)" }}>
-              <PlayerLink name={x.name} />
+              <PlayerTag name={x.name} />
               <span style={{ marginLeft: "8px" }}>
                 {x.t.map((t) => (
                   <span key={t.key} title={t.name} style={{ marginRight: "8px", whiteSpace: "nowrap" }}>

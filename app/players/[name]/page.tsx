@@ -1,7 +1,8 @@
 import { notFound } from "next/navigation";
 import { CURRENT_SEASON_YEAR } from "@/lib/careerStats";
 import { buildProfile, findPlayer, fmtPts as pts, loadSeason, MIN_SAMPLE, type Profile } from "@/lib/playerStats";
-import { SpiritLogo, getSpirits, PlayerLink } from "../../PlayerTag";
+import { SpiritLogo, getSpirits, PlayerLink as PlayerTag } from "../../PlayerTag";
+import { PlayerLink } from "../../PlayerLink";
 import { TROPHIES, beats, curses, pickLabel, rivalsOf, trophiesFor } from "@/lib/bragging";
 import { logoFor } from "@/lib/darkLogo";
 import { ChartKey, FormBadge, RecSpan, SplitTable, TrendChart, VsRow, pctText, recText } from "../parts";
@@ -293,7 +294,7 @@ export default async function PlayerPage({ params }: { params: Promise<{ name: s
                 {p.mates.map((m, i) => (
                   <div key={m.name} className="row-between" style={{ fontSize: "13px", padding: "3px 0" }}>
                     <span>
-                      <PlayerLink name={m.name} />
+                      <PlayerTag name={m.name} />
                       {i === 0 && <span className="meta"> &middot; twin</span>}
                       {i === p.mates.length - 1 && p.mates.length > 1 && <span className="meta"> &middot; opposite</span>}
                     </span>

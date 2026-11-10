@@ -366,6 +366,10 @@ any new scheduled job.
   History) names use `app/PlayerTag.tsx` instead, which puts the logo of the
   player's most-picked team in front (`spiritTeams`). Deliberately NOT on the
   Board, Watch, Guide or pick sheet - team logos there mean "this is the pick".
+  Rule of thumb (owner, Nov 2026): logo for lists of players (leaderboards,
+  tables) and single-name headlines (pot winner, page header); plain
+  `app/PlayerLink.tsx` in any sentence about bets or schools (recap
+  highlights / head-to-head / news, rivalries, kiss of death, awards).
 - **Bragging rights** (`lib/bragging.ts`, pure functions over `loadSeason`):
   rivalries (head-to-head when players took opposite sides of one market),
   bad beats / lucky covers (decided by <= 1 point, from final score vs locked

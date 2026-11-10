@@ -3,7 +3,8 @@ import { loadSeason } from "@/lib/playerStats";
 import { weekRecap, recapText, type Beat } from "@/lib/bragging";
 import { fmtPts as pts, recText } from "@/lib/playerStats";
 import WeekNav from "../WeekNav";
-import { PlayerLink, PlayerNames } from "../PlayerTag";
+import { PlayerLink, PlayerNames } from "../PlayerLink";
+import { PlayerLink as PlayerTag, PlayerNames as PlayerTags } from "../PlayerTag";
 import { RecSpan } from "../players/parts";
 import CopyRecap from "./CopyRecap";
 
@@ -65,11 +66,11 @@ export default async function RecapPage({ searchParams }: { searchParams: Promis
                   <span className="meta">Week still in progress.</span>
                 ) : r.pot.leader ? (
                   <>
-                    <strong><PlayerLink name={r.pot.leader} /></strong> takes it 🍕
+                    <strong><PlayerTag name={r.pot.leader} /></strong> takes it 🍕
                   </>
                 ) : r.pot.tied.length && r.pot.payouts.length ? (
                   <>
-                    <PlayerNames names={r.pot.tied} /> split it &mdash; ${r.pot.payouts[0].amount} each, ${r.pot.carryOut} rolls
+                    <PlayerTags names={r.pot.tied} /> split it &mdash; ${r.pot.payouts[0].amount} each, ${r.pot.carryOut} rolls
                   </>
                 ) : (
                   <>Nobody won it &mdash; ${r.pot.carryOut} rolls to next week</>
@@ -92,7 +93,7 @@ export default async function RecapPage({ searchParams }: { searchParams: Promis
                 {r.players.map((p, i) => (
                   <tr key={p.name} className={i === 0 && p.correct > 0 && r.settled ? "rank-first" : undefined}>
                     <td style={{ fontFamily: "inherit" }}>
-                      <PlayerLink name={p.name} />
+                      <PlayerTag name={p.name} />
                       {r.sweeps.includes(p.name) && " 🧹"}
                       {r.geese.includes(p.name) && " 🥚"}
                     </td>
@@ -261,7 +262,7 @@ export default async function RecapPage({ searchParams }: { searchParams: Promis
               <div style={{ marginTop: "6px" }}>
                 {r.top3.map((t, i) => (
                   <Item key={t.name} emoji={["🥇", "🥈", "🥉"][i]}>
-                    <PlayerLink name={t.name} /> <RecSpan r={t.rec} />
+                    <PlayerTag name={t.name} /> <RecSpan r={t.rec} />
                   </Item>
                 ))}
               </div>
