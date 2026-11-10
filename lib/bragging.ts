@@ -24,7 +24,8 @@ export const gameLabel = (r: PickRow) => `${r.away} @ ${r.home}`;
 
 /** "Georgia Bulldogs -7", "Over 52.5", "Navy (dog +14)". */
 export function pickLabel(r: PickRow): string {
-  if (r.type === "TOTAL") return `${isOver(r) ? "Over" : "Under"} ${r.line ?? ""}`.trim();
+  if (r.type === "TOTAL")
+    return `${isOver(r) ? "Over" : "Under"} ${r.line ?? ""} (${r.awayAbbr ?? r.away} @ ${r.homeAbbr ?? r.home})`;
   if (r.type === "DOG") return `${r.selection} (dog${r.dogValue != null ? ` +${r.dogValue}` : ""})`;
   if (r.line == null) return r.selection;
   return `${r.selection} ${r.line > 0 ? "+" : r.line === 0 ? "" : ""}${r.line === 0 ? "PK" : r.line}`;
@@ -417,7 +418,7 @@ export function recapText(r: Recap): string {
   for (const p of r.players) {
     const tag = p.rec.w >= 5 ? " 🧹" : p.rec.w === 0 && decided(p.rec) >= 4 ? " 🥚" : "";
     const dog = p.dog ? (p.dog.win === true ? ` · 🐕 +${pts(p.dog.points)}` : "") : "";
-    L.push(`${p.name} ${p.correct}/5 (${recStr(p.rec)})${tag}${dog}`);
+    L.push(`${p.name} ${recStr(p.rec)}${tag}${dog}`);
   }
   L.push(`Cave: ${recStr(r.group)}${r.group.pct != null ? ` (${r.group.pct.toFixed(0)}%)` : ""}`);
   L.push("");

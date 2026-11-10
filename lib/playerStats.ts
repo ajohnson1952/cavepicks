@@ -36,6 +36,8 @@ export type PickRow = {
   away: string;
   homeLogo: string | null;
   awayLogo: string | null;
+  homeAbbr: string | null;
+  awayAbbr: string | null;
   homeConf: string | null;
   awayConf: string | null;
   homeLevel: "FBS" | "FCS" | null;
@@ -126,6 +128,8 @@ async function load(seasonYear: number): Promise<SeasonData> {
         away: g.awayTeam,
         homeLogo: g.homeLogo,
         awayLogo: g.awayLogo,
+        homeAbbr: g.homeAbbr,
+        awayAbbr: g.awayAbbr,
         homeConf: hc?.conf ?? null,
         awayConf: ac?.conf ?? null,
         homeLevel: hc?.level ?? null,

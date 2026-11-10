@@ -84,7 +84,6 @@ export default async function RecapPage({ searchParams }: { searchParams: Promis
               <thead>
                 <tr>
                   <th>Player</th>
-                  <th>Hits</th>
                   <th>Record</th>
                   <th>Dog</th>
                 </tr>
@@ -97,7 +96,6 @@ export default async function RecapPage({ searchParams }: { searchParams: Promis
                       {p.rec.w >= 5 && " 🧹"}
                       {r.settled && p.rec.w === 0 && p.rec.w + p.rec.l >= 4 && " 🥚"}
                     </td>
-                    <td>{p.correct}/5</td>
                     <td>{recText(p.rec)}</td>
                     <td>
                       {!p.dog
