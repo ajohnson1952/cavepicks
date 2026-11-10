@@ -74,7 +74,7 @@ export function findYahnGame(feed: YahnFeed | null, homeTeam: string, awayTeam: 
 }
 
 /** Where Joe links when a game has no match (or the feed is down). */
-export const yahnWeekUrl = (weekNumber: number) => `${YAHN_SITE}/?week=${weekNumber}`;
+export const yahnWeekUrl = (weekNumber: number) => `${YAHN_SITE}/cfb?week=${weekNumber}`;
 
 /** Profit betting 1 unit per decided pick at -110. */
 export function unitsAt110(win: number, loss: number): number {
