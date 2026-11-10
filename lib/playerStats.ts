@@ -12,6 +12,9 @@ import { prisma } from "./db";
 import { getWeekNumberForDate } from "./currentWeek";
 import { computeCurrentSeasonStats } from "./seasonStats";
 import { conferenceOf } from "./conferences";
+import { playerSlug } from "./playerSlug";
+
+export { playerSlug };
 
 const TAG = "player-stats";
 
@@ -168,7 +171,13 @@ async function load(seasonYear: number): Promise<SeasonData> {
   };
 }
 
-export const loadSeason = unstable_cache(load, [TAG], { revalidate: 3600, tags: [TAG] });
+const cachedLoad = unstable_cache(load, [TAG], { revalidate: 3600, tags: [TAG] });
+
+/** The cached season, with the current week always taken fresh from the clock. */
+export async function loadSeason(seasonYear: number): Promise<SeasonData> {
+  const data = await cachedLoad(seasonYear);
+  return { ...data, currentWeek: getWeekNumberForDate() };
+}
 
 export function bumpPlayerStats() {
   try {
@@ -180,8 +189,6 @@ export function bumpPlayerStats() {
 
 // ---------------------------------------------------------------- helpers
 
-import { playerSlug } from "./playerSlug";
-export { playerSlug };
 
 export type Rec = { w: number; l: number; p: number; n: number; pct: number | null };
 
@@ -200,6 +207,10 @@ export function rec(rows: PickRow[]): Rec {
 }
 
 export const decided = (r: Rec) => r.w + r.l;
+/** "7-3", or "7-3-1" with pushes. */
+export const recText = (r: Rec) => `${r.w}-${r.l}${r.p ? `-${r.p}` : ""}`;
+/** Points without a pointless ".0": 14 -> "14", 5.5 -> "5.5". */
+export const fmtPts = (n: number) => (Number.isInteger(n) ? String(n) : n.toFixed(1));
 export const isSide = (r: PickRow) => r.type === "SPREAD" || r.type === "TOTAL";
 export const isOver = (r: PickRow) => r.selection.toLowerCase() === "over";
 
@@ -282,7 +293,6 @@ export type WeekPoint = { week: number; w: number; l: number; p: number; pct: nu
 export type Form = {
   season: Rec;
   last3: Rec;
-  last3Weeks: number[];
   status: "hot" | "cold" | null;
   series: WeekPoint[];
   streak: { kind: "W" | "L"; count: number } | null;
@@ -322,7 +332,7 @@ export function formFor(sides: PickRow[], data: SeasonData): Form {
     else break;
   }
 
-  return { season, last3, last3Weeks: recentWeeks, status, series, streak };
+  return { season, last3, status, series, streak };
 }
 
 // ---------------------------------------------------------------- one player
@@ -339,7 +349,6 @@ export type Profile = {
   weeksWon: number;
   potWon: number;
   bestWeek: { week: number; correct: number } | null;
-  worstWeek: { week: number; correct: number } | null;
   byType: { spread: Rec; total: Rec; over: Rec; under: Rec; fav: Rec; dog: Rec; home: Rec; road: Rec };
   lineSize: Labeled[];
   days: Labeled[];
@@ -400,7 +409,6 @@ export function buildProfile(data: SeasonData, name: string): Profile {
     correct: sides.filter((r) => r.week === w.week && r.win === true).length,
   }));
   const bestWeek = perWeek.length ? perWeek.reduce((a, b) => (b.correct > a.correct ? b : a)) : null;
-  const worstWeek = perWeek.length ? perWeek.reduce((a, b) => (b.correct < a.correct ? b : a)) : null;
 
   // teams (spread + dog picks are "on" a team; totals aren't)
   const teamMap = new Map<string, { spreads: PickRow[]; dogs: PickRow[] }>();
@@ -420,10 +428,13 @@ export function buildProfile(data: SeasonData, name: string): Profile {
       dogWins: v.dogs.filter((d) => d.win === true).length,
     }))
     .sort((a, b) => b.picks - a.picks || (b.ats.pct ?? 0) - (a.ats.pct ?? 0));
-  const atsQualified = teams.filter((t) => decided(t.ats) >= 3);
-  const bestTeam = atsQualified.length ? atsQualified.reduce((a, b) => ((b.ats.pct ?? 0) > (a.ats.pct ?? 0) ? b : a)) : null;
-  const nemesisPick = atsQualified.length ? atsQualified.reduce((a, b) => ((b.ats.pct ?? 0) < (a.ats.pct ?? 0) ? b : a)) : null;
-  const nemesis = nemesisPick && nemesisPick.team !== bestTeam?.team && (nemesisPick.ats.pct ?? 100) < 50 ? nemesisPick : null;
+  // perfect records (N-0 / 0-N) are the Midas touch / kiss of death lines instead,
+  // so best team and nemesis only cover the ones in between
+  const atsQualified = teams.filter((t) => decided(t.ats) >= 3 && t.ats.w > 0 && t.ats.l > 0);
+  const byPct = [...atsQualified].sort((a, b) => (b.ats.pct ?? 0) - (a.ats.pct ?? 0) || b.ats.w - a.ats.w);
+  const bestTeam = byPct[0] && (byPct[0].ats.pct ?? 0) > 50 ? byPct[0] : null;
+  const last = byPct[byPct.length - 1];
+  const nemesis = last && last !== bestTeam && (last.ats.pct ?? 100) < 50 ? last : null;
   const fadeMap = new Map<string, number>();
   for (const r of spreads) {
     const opp = pickedIsHome(r) ? r.awayShort ?? r.away : r.homeShort ?? r.home;
@@ -496,7 +507,6 @@ export function buildProfile(data: SeasonData, name: string): Profile {
     weeksWon,
     potWon,
     bestWeek,
-    worstWeek,
     byType: {
       spread: rec(sides.filter((r) => r.type === "SPREAD")),
       total: rec(totals),

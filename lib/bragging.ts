@@ -6,6 +6,8 @@ import {
   type Rec,
   type SeasonData,
   rec,
+  recText,
+  fmtPts,
   decided,
   isSide,
   isOver,
@@ -133,8 +135,10 @@ export function showdowns(rows: PickRow[]): Showdown[] {
     for (const p of picks) sides.set(p.selection.toLowerCase(), [...(sides.get(p.selection.toLowerCase()) ?? []), p]);
     if (sides.size < 2) continue;
     const [x, y] = [...sides.values()];
-    const xWon = x[0].win === true && !x[0].push;
-    const [w, l] = xWon ? [x, y] : [y, x];
+    const push = !!x[0].push;
+    const won = (s: PickRow[]) => s[0].win === true && !s[0].push;
+    if (!push && !won(x) && !won(y)) continue; // nobody cashed (shouldn't happen) - not a showdown
+    const [w, l] = push || won(x) ? [x, y] : [y, x];
     out.push({
       week: x[0].week,
       game: gameLabel(x[0]),
@@ -142,7 +146,7 @@ export function showdowns(rows: PickRow[]): Showdown[] {
       winPick: pickLabel(w[0]),
       losers: l.map((r) => r.user),
       losePick: pickLabel(l[0]),
-      push: !!x[0].push,
+      push,
     });
   }
   return out.sort((a, b) => b.winners.length + b.losers.length - (a.winners.length + a.losers.length));
@@ -219,7 +223,7 @@ export const TROPHIES: TrophyDef[] = [
   { key: "crystal", emoji: "🔮", name: "Crystal Ball", desc: "Beat the closing line on all 5 picks in a week" },
   { key: "heater", emoji: "🚬", name: "Heater", desc: "Won 5 picks in a row" },
   { key: "island", emoji: "🏝️", name: "Island Hopper", desc: "Won 3+ picks nobody else took in one week" },
-  { key: "goose", emoji: "🥚", name: "Goose Egg", desc: "0 for 5 in a week" },
+  { key: "goose", emoji: "🥚", name: "Goose Egg", desc: "Didn't win a single pick in a week" },
   { key: "icebath", emoji: "🧊", name: "Ice Bath", desc: "Lost 5 picks in a row" },
   { key: "heartbreak", emoji: "😭", name: "Heartbreak Kid", desc: "Lost a pick by a point or less" },
 ];
@@ -287,7 +291,6 @@ export type Recap = {
   dogPicks: number;
   badBeats: Beat[];
   lucky: Beat[];
-  meetings: Meeting[];
   showdowns: Showdown[];
   consensus: { pick: string; game: string; count: number; of: number; result: "win" | "loss" | "push" | "pending" } | null;
   islands: { user: string; pick: string }[];
@@ -313,8 +316,8 @@ export function weekRecap(data: SeasonData, week: number): Recap {
       const r = rec(mine);
       return { name, correct: r.w, rec: r, dog: rows.find((x) => x.user === name && x.type === "DOG") ?? null };
     })
-    .filter((p) => p.rec.n > 0 || p.dog)
-    .sort((a, b) => b.correct - a.correct || a.rec.l - b.rec.l);
+    // most hits first; anyone who didn't pick at all goes to the bottom
+    .sort((a, b) => Number(b.rec.n > 0) - Number(a.rec.n > 0) || b.correct - a.correct || a.rec.l - b.rec.l);
 
   const graded = sides.filter((r) => r.graded);
   const dogs = rows.filter((r) => r.type === "DOG");
@@ -379,7 +382,6 @@ export function weekRecap(data: SeasonData, week: number): Recap {
     dogPicks: dogs.length,
     badBeats: bad,
     lucky,
-    meetings: meetings(rows),
     showdowns: showdowns(rows),
     consensus,
     islands,
@@ -400,8 +402,8 @@ export function weekRecap(data: SeasonData, week: number): Recap {
   };
 }
 
-const recStr = (r: Rec) => `${r.w}-${r.l}${r.p ? `-${r.p}` : ""}`;
-const pts = (n: number) => (Number.isInteger(n) ? String(n) : n.toFixed(1));
+const recStr = recText;
+const pts = fmtPts;
 
 /** The recap as plain text for the group chat. */
 export function recapText(r: Recap): string {
@@ -417,7 +419,11 @@ export function recapText(r: Recap): string {
   L.push("");
   L.push("📊 THE WEEK");
   for (const p of r.players) {
-    const tag = p.rec.w >= 5 ? " 🧹" : p.rec.w === 0 && decided(p.rec) >= 4 ? " 🥚" : "";
+    if (p.rec.n === 0 && !p.dog) {
+      L.push(`${p.name} 👻 no picks`);
+      continue;
+    }
+    const tag = r.sweeps.includes(p.name) ? " 🧹" : r.geese.includes(p.name) ? " 🥚" : "";
     const dog = p.dog ? (p.dog.win === true ? ` · 🐕 +${pts(p.dog.points)}` : "") : "";
     L.push(`${p.name} ${recStr(p.rec)}${tag}${dog}`);
   }
@@ -461,8 +467,8 @@ export function recapText(r: Recap): string {
   const news: string[] = [];
   for (const k of r.newKings) news.push(`👑 ${k.name} is the new King of the ${k.conf}${k.from ? ` (dethroned ${k.from})` : ""}`);
   for (const t of r.newTrophies) news.push(`${t.trophy.emoji} ${t.name} earned ${t.trophy.name}`);
-  if (r.hot.length) news.push(`🚬 Heaters: ${r.hot.join(", ")}`);
-  if (r.cold.length) news.push(`🧊 Ice cold: ${r.cold.join(", ")}`);
+  if (r.hot.length) news.push(`🚬 Hot: ${r.hot.join(", ")}`);
+  if (r.cold.length) news.push(`🧊 Cold: ${r.cold.join(", ")}`);
   if (news.length) {
     L.push("📰 NEWS");
     L.push(...news);

@@ -4,6 +4,7 @@
 // per-pick selection/line data behind them).
 import { prisma } from "./db";
 import { getWeekNumberForDate } from "./currentWeek";
+import { conferenceOf } from "./conferences";
 
 export type SplitRecord = { wins: number; losses: number; pushes: number; pct: number; count: number };
 export type TeamPopularity = {
@@ -54,7 +55,12 @@ export async function computeGroupTrends(seasonYear: number) {
 
   // --- Most popular teams: which teams the group has piled onto most, ATS ---
   const teamStats = new Map<string, { count: number; wins: number; losses: number; pushes: number }>();
+  const schoolName = new Map<string, string>();
   for (const p of spreadPicks) {
+    if (!schoolName.has(p.selection)) {
+      const logo = p.selection === p.game.homeTeam ? p.game.homeLogo : p.game.awayLogo;
+      schoolName.set(p.selection, conferenceOf(p.selection, logo)?.short ?? p.selection);
+    }
     const cur = teamStats.get(p.selection) ?? { count: 0, wins: 0, losses: 0, pushes: 0 };
     cur.count++;
     if (p.isWin === true) cur.wins++;
@@ -64,7 +70,7 @@ export async function computeGroupTrends(seasonYear: number) {
   }
   const mostPickedTeams: TeamPopularity[] = Array.from(teamStats.entries())
     .map(([team, s]) => ({
-      team,
+      team: schoolName.get(team) ?? team,
       count: s.count,
       wins: s.wins,
       losses: s.losses,

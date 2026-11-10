@@ -2,7 +2,7 @@ import { computeCareer, CURRENT_SEASON_YEAR } from "@/lib/careerStats";
 import { computeFunStats } from "@/lib/funStats";
 import { computeGroupTrends } from "@/lib/groupTrends";
 import { computeSharpness, MIN_SHARP_SAMPLE } from "@/lib/sharpness";
-import { conferenceBoard, formBoard, loadSeason } from "@/lib/playerStats";
+import { conferenceBoard, fmtPts as pts, formBoard, loadSeason } from "@/lib/playerStats";
 import { TROPHIES, beats, curses, rivalries, trophiesFor } from "@/lib/bragging";
 import { logoFor } from "@/lib/darkLogo";
 import { FormBadge, RecSpan, Sparkline, pctText } from "../players/parts";
@@ -107,7 +107,6 @@ export default async function StatsPage() {
     .map((name) => ({ name, t: trophiesFor(season, name) }))
     .filter((x) => x.t.length > 0)
     .sort((a, b) => b.t.reduce((s, t) => s + t.weeks.length, 0) - a.t.reduce((s, t) => s + t.weeks.length, 0));
-  const pts = (n: number) => (Number.isInteger(n) ? String(n) : n.toFixed(1));
   const sharpRanked = sharpAll.filter((p) => p.wins + p.losses >= MIN_SHARP_SAMPLE);
 
   return (

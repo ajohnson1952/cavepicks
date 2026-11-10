@@ -1,15 +1,15 @@
 import { CURRENT_SEASON_YEAR } from "@/lib/careerStats";
 import { loadSeason } from "@/lib/playerStats";
 import { weekRecap, recapText, type Beat } from "@/lib/bragging";
+import { fmtPts as pts, recText } from "@/lib/playerStats";
 import WeekNav from "../WeekNav";
 import { PlayerLink, PlayerNames } from "../PlayerTag";
-import { RecSpan, recText } from "../players/parts";
+import { RecSpan } from "../players/parts";
 import CopyRecap from "./CopyRecap";
 
 export const metadata = { title: "Weekly Recap" };
 export const dynamic = "force-dynamic";
 
-const pts = (n: number) => (Number.isInteger(n) ? String(n) : n.toFixed(1));
 
 function Item({ emoji, children }: { emoji: string; children: React.ReactNode }) {
   return (
@@ -48,7 +48,7 @@ export default async function RecapPage({ searchParams }: { searchParams: Promis
       <h1>Weekly Recap</h1>
       <WeekNav basePath="/recap" weekNumber={week} minWeek={1} maxWeek={maxWeek} isCurrent={week === data.currentWeek} />
 
-      {r.players.length === 0 ? (
+      {r.players.every((p) => p.rec.n === 0 && !p.dog) ? (
         <div className="card">
           <p className="meta" style={{ margin: 0 }}>No locked picks this week yet.</p>
         </div>
@@ -93,10 +93,10 @@ export default async function RecapPage({ searchParams }: { searchParams: Promis
                   <tr key={p.name} className={i === 0 && p.correct > 0 && r.settled ? "rank-first" : undefined}>
                     <td style={{ fontFamily: "inherit" }}>
                       <PlayerLink name={p.name} />
-                      {p.rec.w >= 5 && " 🧹"}
-                      {r.settled && p.rec.w === 0 && p.rec.w + p.rec.l >= 4 && " 🥚"}
+                      {r.sweeps.includes(p.name) && " 🧹"}
+                      {r.geese.includes(p.name) && " 🥚"}
                     </td>
-                    <td>{recText(p.rec)}</td>
+                    <td>{p.rec.n ? recText(p.rec) : <span className="meta">👻 no picks</span>}</td>
                     <td>
                       {!p.dog
                         ? "—"
@@ -243,12 +243,12 @@ export default async function RecapPage({ searchParams }: { searchParams: Promis
                 ))}
                 {r.hot.length > 0 && (
                   <Item emoji="🚬">
-                    Heaters: <PlayerNames names={r.hot} />
+                    Hot: <PlayerNames names={r.hot} />
                   </Item>
                 )}
                 {r.cold.length > 0 && (
                   <Item emoji="🧊">
-                    Ice cold: <PlayerNames names={r.cold} />
+                    Cold: <PlayerNames names={r.cold} />
                   </Item>
                 )}
               </div>

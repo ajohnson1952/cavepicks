@@ -11,6 +11,7 @@ import { recordJobRun } from "@/lib/jobRun";
 import { mergeGame } from "@/lib/mergeGames";
 import { UNLOCK_DATA } from "@/lib/unlockPick";
 import { bumpCaveSplits } from "@/lib/caveSplits";
+import { bumpPlayerStats } from "@/lib/playerStats";
 import { unlockStaleLocks } from "@/lib/unlockStaleLocks";
 import { fixApexCronUrls, reactivateAccidentallyDisabledJobs } from "@/lib/cronJobOrg";
 import { computeLedger } from "@/lib/ledger";
@@ -48,6 +49,7 @@ export async function voidGame(formData: FormData) {
     },
   });
 
+  bumpPlayerStats();
   revalidatePath("/admin");
   revalidatePath("/board");
   revalidatePath("/standings");
@@ -99,6 +101,7 @@ export async function unvoidGame(formData: FormData) {
 
   await prisma.game.update({ where: { id: gameId }, data: { voided: false, voidReason: null } });
 
+  bumpPlayerStats();
   revalidatePath("/admin");
   revalidatePath("/board");
   revalidatePath("/standings");

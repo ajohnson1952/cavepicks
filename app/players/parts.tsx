@@ -1,8 +1,9 @@
 // Shared bits for /players, /players/[name] and the /stats boards.
 import type { Rec, WeekPoint, Form } from "@/lib/playerStats";
-import { MIN_SAMPLE } from "@/lib/playerStats";
+import { MIN_SAMPLE, recText } from "@/lib/playerStats";
 
-export const recText = (r: Rec) => `${r.w}-${r.l}${r.p ? `-${r.p}` : ""}`;
+export { recText };
+
 export const pctText = (r: Rec) => (r.pct == null ? "—" : `${r.pct.toFixed(0)}%`);
 const thin = (r: Rec) => r.w + r.l < MIN_SAMPLE;
 

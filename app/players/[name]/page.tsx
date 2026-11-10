@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { CURRENT_SEASON_YEAR } from "@/lib/careerStats";
-import { buildProfile, findPlayer, loadSeason, playerSlug, MIN_SAMPLE, type Profile } from "@/lib/playerStats";
+import { buildProfile, findPlayer, fmtPts as pts, loadSeason, MIN_SAMPLE, type Profile } from "@/lib/playerStats";
 import { SpiritLogo, getSpirits, PlayerLink } from "../../PlayerTag";
 import { TROPHIES, beats, curses, pickLabel, rivalsOf, trophiesFor } from "@/lib/bragging";
 import { logoFor } from "@/lib/darkLogo";
@@ -111,7 +111,6 @@ export default async function PlayerPage({ params }: { params: Promise<{ name: s
   const { kiss, midas } = curses(data);
   const myKiss = kiss.filter((k) => k.user === name);
   const myMidas = midas.filter((k) => k.user === name);
-  const pts = (n: number) => (Number.isInteger(n) ? String(n) : n.toFixed(1));
 
   const sideCount = p.form.season.n;
 
@@ -294,8 +293,7 @@ export default async function PlayerPage({ params }: { params: Promise<{ name: s
                 {p.mates.map((m, i) => (
                   <div key={m.name} className="row-between" style={{ fontSize: "13px", padding: "3px 0" }}>
                     <span>
-                      <SpiritLogo name={m.name} />
-                      <a href={`/players/${playerSlug(m.name)}`} className="player-link">{m.name}</a>
+                      <PlayerLink name={m.name} />
                       {i === 0 && <span className="meta"> &middot; twin</span>}
                       {i === p.mates.length - 1 && p.mates.length > 1 && <span className="meta"> &middot; opposite</span>}
                     </span>
@@ -322,7 +320,7 @@ export default async function PlayerPage({ params }: { params: Promise<{ name: s
                     vs <PlayerLink name={r.opp} />
                     <span className="meta">
                       {" \u00b7 "}
-                      {r.w > r.l ? "owns them" : r.w < r.l ? "owned" : "dead even"}
+                      {r.w - r.l >= 3 ? "owns them" : r.w > r.l ? "leads" : r.l - r.w >= 3 ? "owned" : r.w < r.l ? "trails" : "dead even"}
                     </span>
                   </span>
                   <span className={`mono ${r.w > r.l ? "pick-win" : r.w < r.l ? "pick-loss" : ""}`}>
