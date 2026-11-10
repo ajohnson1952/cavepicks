@@ -137,7 +137,7 @@ export default async function PlayerPage({ params }: { params: Promise<{ name: s
                 <span className="trophy-emoji">{t.emoji}</span>
                 <span className="trophy-name">
                   {t.name}
-                  {won && won.weeks.length > 1 && <span className="trophy-count"> \u00d7{won.weeks.length}</span>}
+                  {won && won.weeks.length > 1 && <span className="trophy-count">{` \u00d7${won.weeks.length}`}</span>}
                 </span>
                 <span className="meta trophy-sub">{t.desc}</span>
                 {won && <span className="trophy-weeks">Wk {won.weeks.join(", ")}</span>}
