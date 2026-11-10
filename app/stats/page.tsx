@@ -415,9 +415,12 @@ export default async function StatsPage() {
               </span>
             </div>
           ))}
-          <p className="meta" style={{ margin: "8px 0 0", lineHeight: 1.5 }}>
-            {TROPHIES.map((t) => `${t.emoji} ${t.name}`).join(" \u00b7 ")}
-          </p>
+          <p className="split-title" style={{ marginTop: "12px" }}>What they mean</p>
+          {TROPHIES.map((t) => (
+            <p key={t.key} className="meta" style={{ margin: "0 0 4px", lineHeight: 1.45 }}>
+              {t.emoji} <strong style={{ color: "var(--ink)" }}>{t.name}</strong> &mdash; {t.desc}
+            </p>
+          ))}
         </div>
       )}
 

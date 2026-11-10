@@ -133,12 +133,14 @@ export default async function PlayerPage({ params }: { params: Promise<{ name: s
           {TROPHIES.map((t) => {
             const won = trophies.find((x) => x.key === t.key);
             return (
-              <div key={t.key} className={`trophy${won ? "" : " trophy-locked"}`} title={t.desc}>
+              <div key={t.key} className={`trophy${won ? "" : " trophy-locked"}`}>
                 <span className="trophy-emoji">{t.emoji}</span>
-                <span className="trophy-name">{t.name}</span>
-                <span className="meta trophy-sub">
-                  {won ? `${won.weeks.length > 1 ? `${won.weeks.length}x \u00b7 ` : ""}Wk ${won.weeks.slice(-3).join(", ")}` : t.desc}
+                <span className="trophy-name">
+                  {t.name}
+                  {won && won.weeks.length > 1 && <span className="trophy-count"> \u00d7{won.weeks.length}</span>}
                 </span>
+                <span className="meta trophy-sub">{t.desc}</span>
+                {won && <span className="trophy-weeks">Wk {won.weeks.join(", ")}</span>}
               </div>
             );
           })}
