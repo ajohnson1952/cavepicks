@@ -366,6 +366,14 @@ any new scheduled job.
   History) names use `app/PlayerTag.tsx` instead, which puts the logo of the
   player's most-picked team in front (`spiritTeams`). Deliberately NOT on the
   Board, Watch, Guide or pick sheet - team logos there mean "this is the pick".
+- **Bragging rights** (`lib/bragging.ts`, pure functions over `loadSeason`):
+  rivalries (head-to-head when players took opposite sides of one market),
+  bad beats / lucky covers (decided by <= 1 point, from final score vs locked
+  line), kiss of death / Midas touch (0-N or N-0 on a team, 3+ picks), the
+  trophy case (`TROPHIES`), and the weekly recap (`/recap?week=N`: the page
+  plus `recapText()` for the "copy for the group chat" button). Player pages
+  and /stats show all of it. Add a trophy by adding to `TROPHIES` and
+  awarding it in `trophiesFor`.
 - **The group's emojis**: 🚬 = a heater (also used to mock someone who thinks
   they're doing well - the Hot badge shows 🚬 "Hot" in quotes for a player
   who's hot but under .500 on the season). 🍕 = money being paid out or in.

@@ -1250,3 +1250,26 @@ html.ptr-enabled body {
   vertical-align: -0.22em;
   margin-right: 4px;
 }
+
+/* ---- trophy case (player pages) ---- */
+.trophy-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  margin-top: 10px;
+}
+.trophy {
+  background: var(--panel-alt);
+  border: 1px solid var(--border-soft);
+  border-radius: 8px;
+  padding: 8px;
+  display: grid;
+  grid-template-columns: 28px 1fr;
+  column-gap: 6px;
+  align-items: center;
+  min-width: 0;
+}
+.trophy-emoji { grid-row: span 2; font-size: 22px; text-align: center; }
+.trophy-name { font-size: 13px; font-weight: 700; }
+.trophy-sub { font-size: 11px; line-height: 1.3; }
+.trophy-locked { opacity: 0.35; filter: grayscale(1); }

@@ -126,7 +126,12 @@ export default async function Home() {
 
       {lastWeek && !lastWeek.inProgress && (
         <div className="card">
-          <div className="matchup">🏁 Last week</div>
+          <div className="row-between">
+            <div className="matchup">🏁 Last week</div>
+            <a href={`/recap?week=${lastWeek.weekNumber}`} className="meta" style={{ textDecoration: "none" }}>
+              recap &rarr;
+            </a>
+          </div>
           <p style={{ margin: "6px 0 0", fontSize: "13px" }}>
             {lastWeek.leader ? (
               <>

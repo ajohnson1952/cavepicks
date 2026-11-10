@@ -1,7 +1,8 @@
 import { notFound } from "next/navigation";
 import { CURRENT_SEASON_YEAR } from "@/lib/careerStats";
 import { buildProfile, findPlayer, loadSeason, playerSlug, MIN_SAMPLE, type Profile } from "@/lib/playerStats";
-import { SpiritLogo, getSpirits } from "../../PlayerTag";
+import { SpiritLogo, getSpirits, PlayerLink } from "../../PlayerTag";
+import { TROPHIES, beats, curses, rivalsOf, trophiesFor } from "@/lib/bragging";
 import { logoFor } from "@/lib/darkLogo";
 import { ChartKey, FormBadge, RecSpan, SplitTable, TrendChart, VsRow, pctText, recText } from "../parts";
 
@@ -104,6 +105,13 @@ export default async function PlayerPage({ params }: { params: Promise<{ name: s
   if (!name) notFound();
   const p = buildProfile(data, name);
   const spirit = (await getSpirits()).get(name) ?? null;
+  const trophies = trophiesFor(data, name);
+  const rivals = rivalsOf(data, name);
+  const myBeats = beats(data.rows.filter((r) => r.user === name));
+  const { kiss, midas } = curses(data);
+  const myKiss = kiss.filter((k) => k.user === name);
+  const myMidas = midas.filter((k) => k.user === name);
+  const pts = (n: number) => (Number.isInteger(n) ? String(n) : n.toFixed(1));
 
   const sideCount = p.form.season.n;
 
@@ -113,6 +121,29 @@ export default async function PlayerPage({ params }: { params: Promise<{ name: s
         <a href="/players">&larr; All players</a>
       </p>
       <Header p={p} career={p.career} />
+
+      <div className="card">
+        <div className="row-between">
+          <div className="matchup">🏆 Trophy case</div>
+          <span className="meta">
+            {trophies.length} of {TROPHIES.length}
+          </span>
+        </div>
+        <div className="trophy-grid">
+          {TROPHIES.map((t) => {
+            const won = trophies.find((x) => x.key === t.key);
+            return (
+              <div key={t.key} className={`trophy${won ? "" : " trophy-locked"}`} title={t.desc}>
+                <span className="trophy-emoji">{t.emoji}</span>
+                <span className="trophy-name">{t.name}</span>
+                <span className="meta trophy-sub">
+                  {won ? `${won.weeks.length > 1 ? `${won.weeks.length}x \u00b7 ` : ""}Wk ${won.weeks.slice(-3).join(", ")}` : t.desc}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
 
       {sideCount === 0 ? (
         <div className="card">
@@ -176,7 +207,7 @@ export default async function PlayerPage({ params }: { params: Promise<{ name: s
                 ))}
               </tbody>
             </table>
-            {(spirit || p.bestTeam || p.nemesis || p.fades.length > 0) && <div className="divider" />}
+            {(spirit || p.bestTeam || p.nemesis || p.fades.length > 0 || myKiss.length > 0 || myMidas.length > 0) && <div className="divider" />}
             {spirit && (
               <p className="player-note">
                 {logoFor(spirit.logo) && (
@@ -196,6 +227,16 @@ export default async function PlayerPage({ params }: { params: Promise<{ name: s
                 💀 Nemesis: <strong>{p.nemesis.team}</strong> &mdash; {recText(p.nemesis.ats)} ATS
               </p>
             )}
+            {myKiss.map((k) => (
+              <p key={`kiss${k.team}`} className="player-note">
+                💋 Kiss of death: <strong>{k.team}</strong> &mdash; {k.w}-{k.l} ATS when {p.name} takes them
+              </p>
+            ))}
+            {myMidas.map((k) => (
+              <p key={`midas${k.team}`} className="player-note">
+                ✨ Midas touch: <strong>{k.team}</strong> &mdash; {k.w}-{k.l} ATS when {p.name} takes them
+              </p>
+            ))}
             {p.fades.length > 0 && (
               <p className="player-note">
                 🙅 Fades most: {p.fades.map((f) => `${f.team} (${f.count}x)`).join(", ")}
@@ -262,6 +303,53 @@ export default async function PlayerPage({ params }: { params: Promise<{ name: s
                   </div>
                 ))}
               </>
+            )}
+          </div>
+
+          <div className="card">
+            <div className="matchup">⚔️ Rivalries</div>
+            <p className="subtext" style={{ margin: "4px 0 6px" }}>
+              Head-to-head when they took the opposite side of someone on the same game.
+            </p>
+            {rivals.length === 0 ? (
+              <p className="meta" style={{ margin: 0 }}>No head-to-heads yet.</p>
+            ) : (
+              rivals.map((r) => (
+                <div key={r.opp} className="row-between" style={{ fontSize: "13px", padding: "5px 0", borderBottom: "1px solid var(--border)" }}>
+                  <span>
+                    vs <PlayerLink name={r.opp} />
+                    <span className="meta">
+                      {" \u00b7 "}
+                      {r.w > r.l ? "owns them" : r.w < r.l ? "owned" : "dead even"}
+                    </span>
+                  </span>
+                  <span className={`mono ${r.w > r.l ? "pick-win" : r.w < r.l ? "pick-loss" : ""}`}>
+                    {r.w}-{r.l}
+                    {r.t ? `-${r.t}` : ""}
+                  </span>
+                </div>
+              ))
+            )}
+          </div>
+
+          <div className="card">
+            <div className="matchup">😭 Bad beats &amp; 🍀 lucky covers</div>
+            <p className="subtext" style={{ margin: "4px 0 6px" }}>Picks decided by a point or less.</p>
+            <div className="row-between" style={{ fontSize: "13px", padding: "5px 0", borderBottom: "1px solid var(--border)" }}>
+              <span>😭 Bad beats (lost by &le;1)</span>
+              <strong className="mono pick-loss">{myBeats.bad.length}</strong>
+            </div>
+            <div className="row-between" style={{ fontSize: "13px", padding: "5px 0", borderBottom: "1px solid var(--border)" }}>
+              <span>🍀 Lucky covers (won by &le;1)</span>
+              <strong className="mono pick-win">{myBeats.lucky.length}</strong>
+            </div>
+            {[...myBeats.bad.slice(0, 3).map((b) => ({ b, lucky: false })), ...myBeats.lucky.slice(0, 2).map((b) => ({ b, lucky: true }))].map(
+              ({ b, lucky }, i) => (
+                <p key={i} className="meta" style={{ margin: "6px 0 0", lineHeight: 1.45 }}>
+                  {lucky ? "🍀" : "😭"} Wk {b.week}: {b.pick} &mdash; {lucky ? "covered" : "missed"} by {pts(Math.abs(b.margin))}
+                  {b.score && ` (${b.score})`}
+                </p>
+              )
             )}
           </div>
 

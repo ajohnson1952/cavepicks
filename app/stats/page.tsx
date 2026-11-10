@@ -3,6 +3,8 @@ import { computeFunStats } from "@/lib/funStats";
 import { computeGroupTrends } from "@/lib/groupTrends";
 import { computeSharpness, MIN_SHARP_SAMPLE } from "@/lib/sharpness";
 import { conferenceBoard, formBoard, loadSeason } from "@/lib/playerStats";
+import { TROPHIES, beats, curses, rivalries, trophiesFor } from "@/lib/bragging";
+import { logoFor } from "@/lib/darkLogo";
 import { FormBadge, RecSpan, Sparkline, pctText } from "../players/parts";
 import { PlayerLink, PlayerNames, SpiritLogo } from "@/app/PlayerTag";
 
@@ -87,6 +89,25 @@ export default async function StatsPage() {
     ]);
   const hotBoard = formBoard(season);
   const confBoard = conferenceBoard(season);
+  // bragging rights (lib/bragging.ts) - all from the same cached season load
+  const rivalBoard = rivalries(season)
+    .filter((r) => r.meetings >= 3)
+    .sort((a, b) => b.aWins - b.bWins - (a.aWins - a.bWins) || b.meetings - a.meetings);
+  const allBeats = beats(season.rows);
+  const beatBoard = season.players
+    .map((name) => ({
+      name,
+      bad: allBeats.bad.filter((b) => b.user === name).length,
+      lucky: allBeats.lucky.filter((b) => b.user === name).length,
+    }))
+    .filter((x) => x.bad + x.lucky > 0)
+    .sort((a, b) => b.bad - a.bad || a.lucky - b.lucky);
+  const { kiss, midas } = curses(season);
+  const trophyBoard = season.players
+    .map((name) => ({ name, t: trophiesFor(season, name) }))
+    .filter((x) => x.t.length > 0)
+    .sort((a, b) => b.t.reduce((s, t) => s + t.weeks.length, 0) - a.t.reduce((s, t) => s + t.weeks.length, 0));
+  const pts = (n: number) => (Number.isInteger(n) ? String(n) : n.toFixed(1));
   const sharpRanked = sharpAll.filter((p) => p.wins + p.losses >= MIN_SHARP_SAMPLE);
 
   return (
@@ -275,6 +296,128 @@ export default async function StatsPage() {
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {rivalBoard.length > 0 && (
+        <div className="card">
+          <div className="matchup">⚔️ Rivalries</div>
+          <p className="subtext" style={{ margin: "4px 0 6px" }}>
+            Head-to-head when two of you took opposite sides of the same game (3+ meetings). Most lopsided first.
+          </p>
+          {rivalBoard.slice(0, 8).map((r) => (
+            <div key={`${r.a}${r.b}`} className="row-between" style={{ fontSize: "13px", padding: "5px 0", borderBottom: "1px solid var(--border)" }}>
+              <span>
+                <PlayerLink name={r.a} />{" "}
+                <span className="meta">{r.aWins === r.bWins ? "even with" : r.aWins - r.bWins >= 3 ? "owns" : "leads"}</span>{" "}
+                <PlayerLink name={r.b} />
+              </span>
+              <span className="mono">
+                {r.aWins}-{r.bWins}
+                {r.ties ? `-${r.ties}` : ""}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {beatBoard.length > 0 && (
+        <div className="card">
+          <div className="matchup">😭 Bad beats &amp; 🍀 luck</div>
+          <p className="subtext" style={{ margin: "4px 0 0" }}>Picks decided by a point or less, off the final score and the locked line.</p>
+          <table className="stat-table">
+            <thead>
+              <tr>
+                <th>Player</th>
+                <th>😭 Bad beats</th>
+                <th>🍀 Lucky</th>
+              </tr>
+            </thead>
+            <tbody>
+              {beatBoard.map((x) => (
+                <tr key={x.name}>
+                  <td style={{ fontFamily: "inherit" }}>
+                    <PlayerLink name={x.name} />
+                  </td>
+                  <td className="pick-loss">{x.bad}</td>
+                  <td className="pick-win">{x.lucky}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {allBeats.bad[0] && (
+            <p className="meta" style={{ margin: "8px 0 0", lineHeight: 1.45 }}>
+              Most painful: <PlayerLink name={allBeats.bad[0].user} /> &mdash; {allBeats.bad[0].pick}, missed by{" "}
+              {pts(-allBeats.bad[0].margin)} (Wk {allBeats.bad[0].week}
+              {allBeats.bad[0].score ? `, ${allBeats.bad[0].score}` : ""})
+            </p>
+          )}
+        </div>
+      )}
+
+      {(kiss.length > 0 || midas.length > 0) && (
+        <div className="card">
+          <div className="matchup">💋 Kiss of death</div>
+          <p className="subtext" style={{ margin: "4px 0 6px" }}>
+            Teams that never cover when a certain someone takes them (3+ picks). And the opposite.
+          </p>
+          {kiss.length === 0 && <p className="meta" style={{ margin: "0 0 4px" }}>Nobody&apos;s cursed a team yet.</p>}
+          {kiss.map((k) => (
+            <div key={`k${k.user}${k.team}`} className="row-between" style={{ fontSize: "13px", padding: "4px 0" }}>
+              <span>
+                💋 <PlayerLink name={k.user} /> <span className="meta">taking</span>{" "}
+                {logoFor(k.logo) && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={logoFor(k.logo)!} alt="" className="spirit-logo" />
+                )}
+                {k.team}
+              </span>
+              <span className="mono pick-loss">
+                {k.w}-{k.l}
+              </span>
+            </div>
+          ))}
+          {midas.length > 0 && <p className="split-title" style={{ marginTop: "10px" }}>✨ Midas touch</p>}
+          {midas.map((k) => (
+            <div key={`m${k.user}${k.team}`} className="row-between" style={{ fontSize: "13px", padding: "4px 0" }}>
+              <span>
+                ✨ <PlayerLink name={k.user} /> <span className="meta">taking</span>{" "}
+                {logoFor(k.logo) && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={logoFor(k.logo)!} alt="" className="spirit-logo" />
+                )}
+                {k.team}
+              </span>
+              <span className="mono pick-win">
+                {k.w}-{k.l}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {trophyBoard.length > 0 && (
+        <div className="card">
+          <div className="matchup">🏆 Trophy room</div>
+          <p className="subtext" style={{ margin: "4px 0 6px" }}>
+            Everyone&apos;s hardware this season. Tap a name for their full trophy case.
+          </p>
+          {trophyBoard.map((x) => (
+            <div key={x.name} style={{ fontSize: "13px", padding: "5px 0", borderBottom: "1px solid var(--border)" }}>
+              <PlayerLink name={x.name} />
+              <span style={{ marginLeft: "8px" }}>
+                {x.t.map((t) => (
+                  <span key={t.key} title={t.name} style={{ marginRight: "8px", whiteSpace: "nowrap" }}>
+                    {t.emoji}
+                    {t.weeks.length > 1 && <span className="mono meta">×{t.weeks.length}</span>}
+                  </span>
+                ))}
+              </span>
+            </div>
+          ))}
+          <p className="meta" style={{ margin: "8px 0 0", lineHeight: 1.5 }}>
+            {TROPHIES.map((t) => `${t.emoji} ${t.name}`).join(" \u00b7 ")}
+          </p>
         </div>
       )}
 

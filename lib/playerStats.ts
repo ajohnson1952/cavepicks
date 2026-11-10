@@ -41,6 +41,9 @@ export type PickRow = {
   homeLevel: "FBS" | "FCS" | null;
   awayLevel: "FBS" | "FCS" | null;
   kickoff: string;
+  homeScore: number | null;
+  awayScore: number | null;
+  isFinal: boolean;
   closeSpreadHome: number | null;
   closeSpreadAway: number | null;
   closeTotal: number | null;
@@ -53,7 +56,15 @@ export type SeasonData = {
   players: string[];
   rows: PickRow[];
   /** settled weeks only: who won it outright and what each player was paid */
-  weeks: { week: number; settled: boolean; leader: string | null; payouts: { name: string; amount: number }[] }[];
+  weeks: {
+    week: number;
+    settled: boolean;
+    leader: string | null;
+    tiedLeaders: string[];
+    payouts: { name: string; amount: number }[];
+    potAmount: number;
+    carryOut: number;
+  }[];
   /** seasons before this app, summed per player (HistoricalSeasonRecord) */
   history: { name: string; seasons: number; wins: number; losses: number; weeksWon: number; dogPoints: number }[];
 };
@@ -120,6 +131,9 @@ async function load(seasonYear: number): Promise<SeasonData> {
         homeLevel: hc?.level ?? null,
         awayLevel: ac?.level ?? null,
         kickoff: g.commenceTime.toISOString(),
+        homeScore: g.homeScore,
+        awayScore: g.awayScore,
+        isFinal: g.isFinal,
         closeSpreadHome: close?.spreadHome ?? null,
         closeSpreadAway: close?.spreadAway ?? null,
         closeTotal: close?.total ?? null,
@@ -136,7 +150,10 @@ async function load(seasonYear: number): Promise<SeasonData> {
       week: w.weekNumber,
       settled: !w.inProgress,
       leader: w.leader,
+      tiedLeaders: w.tiedLeaders,
       payouts: w.payouts,
+      potAmount: w.potAmount,
+      carryOut: w.carryOut,
     })),
     history: [...history.values()],
   };
@@ -162,7 +179,7 @@ export type Rec = { w: number; l: number; p: number; n: number; pct: number | nu
 /** Below this many decided picks a split is shown greyed out - too small to read anything into. */
 export const MIN_SAMPLE = 8;
 
-function rec(rows: PickRow[]): Rec {
+export function rec(rows: PickRow[]): Rec {
   let w = 0, l = 0, p = 0;
   for (const r of rows) {
     if (!r.graded) continue;
@@ -173,9 +190,9 @@ function rec(rows: PickRow[]): Rec {
   return { w, l, p, n: rows.length, pct: w + l > 0 ? (w / (w + l)) * 100 : null };
 }
 
-const decided = (r: Rec) => r.w + r.l;
-const isSide = (r: PickRow) => r.type === "SPREAD" || r.type === "TOTAL";
-const isOver = (r: PickRow) => r.selection.toLowerCase() === "over";
+export const decided = (r: Rec) => r.w + r.l;
+export const isSide = (r: PickRow) => r.type === "SPREAD" || r.type === "TOTAL";
+export const isOver = (r: PickRow) => r.selection.toLowerCase() === "over";
 
 const CT = "America/Chicago";
 const weekdayFmt = new Intl.DateTimeFormat("en-US", { timeZone: CT, weekday: "short" });
@@ -194,7 +211,7 @@ function ctMinutes(iso: string) {
 
 /** The team a side pick is ON (spread) - null for totals. */
 const pickedTeam = (r: PickRow) => (r.type === "TOTAL" ? null : r.selection);
-const pickedIsHome = (r: PickRow) => r.selection === r.home;
+export const pickedIsHome = (r: PickRow) => r.selection === r.home;
 
 /** Conference bucket for a team: its FBS conference, or "FCS" for any FCS team. */
 function bucket(conf: string | null, level: "FBS" | "FCS" | null) {
@@ -215,7 +232,7 @@ function pickConfs(r: PickRow): string[] {
 const isConfGame = (r: PickRow) =>
   !!r.homeConf && r.homeConf === r.awayConf && !/Indep/.test(r.homeConf);
 
-function clvOf(r: PickRow): number | null {
+export function clvOf(r: PickRow): number | null {
   if (r.line == null) return null;
   if (r.type === "SPREAD") {
     const close = pickedIsHome(r) ? r.closeSpreadHome : r.closeSpreadAway;
@@ -259,7 +276,7 @@ export type Form = {
   streak: { kind: "W" | "L"; count: number } | null;
 };
 
-function formFor(sides: PickRow[], data: SeasonData): Form {
+export function formFor(sides: PickRow[], data: SeasonData): Form {
   const weekNums = [...new Set(sides.filter((r) => r.graded).map((r) => r.week))].sort((a, b) => a - b);
   const series: WeekPoint[] = weekNums.map((wk, i) => {
     const r = rec(sides.filter((x) => x.week === wk));
@@ -625,4 +642,9 @@ export function spiritTeams(data: SeasonData): Map<string, SpiritTeam> {
     out.set(name, { team: best.team, logo: pickedIsHome(r) ? r.homeLogo : r.awayLogo, picks: best.rows.length, ats: best.ats });
   }
   return out;
+}
+
+/** The season as it stood at the end of week n (for "what changed this week"). */
+export function upTo(data: SeasonData, n: number): SeasonData {
+  return { ...data, rows: data.rows.filter((r) => r.week <= n), weeks: data.weeks.filter((w) => w.week <= n) };
 }
