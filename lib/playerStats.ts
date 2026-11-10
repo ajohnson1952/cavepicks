@@ -363,7 +363,7 @@ export type Profile = {
   avgHoursBefore: number | null;
   firstInstinct: Rec;
   changedMind: Rec;
-  crowd: { withCrowd: Rec; against: Rec; solo: Rec };
+  crowd: { withCrowd: Rec; against: Rec };
   mates: Mate[];
   yahngo: { with: Rec; against: Rec };
   clv: { avg: number | null; beatPct: number | null; sample: number };
@@ -468,14 +468,11 @@ export function buildProfile(data: SeasonData, name: string): Profile {
     arr.push(r);
     byMarket.set(k, arr);
   }
-  const withCrowd: PickRow[] = [], against: PickRow[] = [], solo: PickRow[] = [];
+  const withCrowd: PickRow[] = [], against: PickRow[] = [];
   const mateMap = new Map<string, { shared: number; same: number }>();
   for (const r of sides) {
     const o = byMarket.get(`${r.gameId}_${r.type}`) ?? [];
-    if (o.length === 0) {
-      solo.push(r);
-      continue;
-    }
+    if (o.length === 0) continue; // nobody else picked it - not a crowd call either way
     const same = o.filter((x) => x.selection.toLowerCase() === r.selection.toLowerCase());
     if (same.length > o.length - same.length) withCrowd.push(r);
     else if (same.length < o.length - same.length) against.push(r);
@@ -544,7 +541,7 @@ export function buildProfile(data: SeasonData, name: string): Profile {
     avgHoursBefore,
     firstInstinct: rec(sides.filter((r) => r.changes === 0)),
     changedMind: rec(sides.filter((r) => r.changes > 0)),
-    crowd: { withCrowd: rec(withCrowd), against: rec(against), solo: rec(solo) },
+    crowd: { withCrowd: rec(withCrowd), against: rec(against) },
     mates,
     yahngo: {
       with: rec(sides.filter((r) => r.modelSide && r.modelSide.toLowerCase() === r.selection.toLowerCase())),

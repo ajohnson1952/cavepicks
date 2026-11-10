@@ -278,9 +278,6 @@ export default async function PlayerPage({ params }: { params: Promise<{ name: s
             <Line label="🐺 Against the crowd">
               <RecSpan r={p.crowd.against} />
             </Line>
-            <Line label="🏝️ On an island (nobody else picked it)">
-              <RecSpan r={p.crowd.solo} />
-            </Line>
             <Line label="🤖 With Yahngo">
               <RecSpan r={p.yahngo.with} />
             </Line>
