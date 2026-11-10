@@ -176,12 +176,13 @@ export default async function RecapPage({ searchParams }: { searchParams: Promis
               {r.islands.length > 0 && (
                 <Item emoji="🏝️">
                   <span className="meta">Lone wolf wins: </span>
-                  {r.islands.map((x, i) => (
+                  {r.islands.slice(0, 5).map((x, i) => (
                     <span key={i}>
-                      {i > 0 && ", "}
+                      {i > 0 && "; "}
                       <PlayerLink name={x.user} />: {x.pick}
                     </span>
                   ))}
+                  {r.islands.length > 5 && <span className="meta">{` +${r.islands.length - 5} more`}</span>}
                 </Item>
               )}
               {r.yahngo.with.n + r.yahngo.against.n > 0 && (
