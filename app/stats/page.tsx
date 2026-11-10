@@ -151,7 +151,7 @@ export default async function StatsPage() {
             Everyone&apos;s last 3 weeks, trends and full pages live on the Players tab
           </span>
         </span>
-        <span className="meta" aria-hidden="true">
+        <span className="meta" aria-hidden="true" style={{ whiteSpace: "nowrap" }}>
           Players &rarr;
         </span>
       </a>
