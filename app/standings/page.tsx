@@ -2,7 +2,7 @@ import { dogPayouts } from "@/lib/pot";
 import { SEASON_YEAR } from "@/lib/currentWeek";
 import { computeCurrentSeasonStats } from "@/lib/seasonStats";
 import { ghostSeasonStats, GHOST_NAME } from "@/lib/ghost";
-import { PlayerLink, PlayerNames } from "@/app/PlayerLink";
+import { PlayerLink, PlayerNames, SpiritLogo } from "@/app/PlayerTag";
 
 export const metadata = { title: "Standings" };
 

@@ -1,7 +1,7 @@
 import { computeLedger } from "@/lib/ledger";
 import { SEASON_YEAR } from "@/lib/currentWeek";
 import { BANKER_NAME, TIE_SPLIT_START_WEEK, WEEKLY_BUYIN } from "@/lib/pot";
-import { PlayerLink, PlayerNames } from "@/app/PlayerLink";
+import { PlayerLink, PlayerNames, SpiritLogo } from "@/app/PlayerTag";
 
 export const metadata = { title: "The Pot" };
 

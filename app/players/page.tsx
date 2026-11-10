@@ -1,6 +1,7 @@
 import { CURRENT_SEASON_YEAR } from "@/lib/careerStats";
 import { formBoard, loadSeason } from "@/lib/playerStats";
 import { FormBadge, RecSpan, Sparkline, recText } from "./parts";
+import { SpiritLogo } from "../PlayerTag";
 
 export const metadata = { title: "Players" };
 export const dynamic = "force-dynamic";
@@ -24,6 +25,7 @@ export default async function PlayersPage() {
             style={{ borderBottom: i === board.length - 1 ? "none" : undefined }}
           >
             <span style={{ minWidth: 0 }}>
+              <SpiritLogo name={p.name} />
               <strong>{p.name}</strong> <FormBadge status={p.form.status} seasonPct={p.form.season.pct} />
               <span className="meta" style={{ display: "block", marginTop: "2px" }}>
                 Season {recText(p.form.season)}

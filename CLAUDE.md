@@ -362,6 +362,10 @@ any new scheduled job.
   shows a name, except inside something that's already a link (no nested <a>).
   👑 Conference king = best record in a conference, 5+ decided picks
   (`kingsOf`); shown on their page, the Players list and /stats.
+  **Spirit animal**: on player-centric pages (Standings, Players, Stats, Pot,
+  History) names use `app/PlayerTag.tsx` instead, which puts the logo of the
+  player's most-picked team in front (`spiritTeams`). Deliberately NOT on the
+  Board, Watch, Guide or pick sheet - team logos there mean "this is the pick".
 - **The group's emojis**: 🚬 = a heater (also used to mock someone who thinks
   they're doing well - the Hot badge shows 🚬 "Hot" in quotes for a player
   who's hot but under .500 on the season). 🍕 = money being paid out or in.

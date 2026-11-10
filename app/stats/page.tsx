@@ -4,7 +4,7 @@ import { computeGroupTrends } from "@/lib/groupTrends";
 import { computeSharpness, MIN_SHARP_SAMPLE } from "@/lib/sharpness";
 import { conferenceBoard, formBoard, loadSeason } from "@/lib/playerStats";
 import { FormBadge, RecSpan, Sparkline, pctText } from "../players/parts";
-import { PlayerLink, PlayerNames } from "@/app/PlayerLink";
+import { PlayerLink, PlayerNames, SpiritLogo } from "@/app/PlayerTag";
 
 export const metadata = { title: "Stats" };
 
@@ -138,7 +138,8 @@ export default async function StatsPage() {
               className="player-row"
               style={{ borderBottom: i === hotBoard.length - 1 ? "none" : undefined, padding: "7px 0" }}
             >
-              <span style={{ whiteSpace: "nowrap" }}>
+              <span style={{ minWidth: 0 }}>
+                <SpiritLogo name={p.name} />
                 <strong>{p.name}</strong> <FormBadge status={p.form.status} seasonPct={p.form.season.pct} />
               </span>
               <span style={{ display: "flex", alignItems: "center", gap: "10px" }}>

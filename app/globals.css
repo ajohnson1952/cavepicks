@@ -1241,3 +1241,12 @@ html.ptr-enabled body {
 }
 .split-title { font-size: 13px; font-weight: 600; margin: 0 0 2px; }
 .player-note { font-size: 13px; margin: 0 0 6px; }
+
+/* the "spirit animal" - most-picked team's logo in front of a player's name */
+.spirit-logo {
+  width: 1.15em;
+  height: 1.15em;
+  object-fit: contain;
+  vertical-align: -0.22em;
+  margin-right: 4px;
+}

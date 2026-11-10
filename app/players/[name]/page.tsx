@@ -1,6 +1,8 @@
 import { notFound } from "next/navigation";
 import { CURRENT_SEASON_YEAR } from "@/lib/careerStats";
 import { buildProfile, findPlayer, loadSeason, playerSlug, MIN_SAMPLE, type Profile } from "@/lib/playerStats";
+import { SpiritLogo, getSpirits } from "../../PlayerTag";
+import { logoFor } from "@/lib/darkLogo";
 import { ChartKey, FormBadge, RecSpan, SplitTable, TrendChart, VsRow, pctText, recText } from "../parts";
 
 export const dynamic = "force-dynamic";
@@ -38,6 +40,7 @@ function Header({ p, career }: { p: Profile; career: { seasons: number; wins: nu
       <div className="row-between" style={{ alignItems: "flex-start" }}>
         <div>
           <h1 style={{ margin: 0 }}>
+            <SpiritLogo name={p.name} />
             {p.name} <FormBadge status={p.form.status} seasonPct={p.form.season.pct} />
           </h1>
           <p className="subtext" style={{ margin: "2px 0 0" }}>
@@ -100,6 +103,7 @@ export default async function PlayerPage({ params }: { params: Promise<{ name: s
   const name = findPlayer(data, slug);
   if (!name) notFound();
   const p = buildProfile(data, name);
+  const spirit = (await getSpirits()).get(name) ?? null;
 
   const sideCount = p.form.season.n;
 
@@ -172,7 +176,16 @@ export default async function PlayerPage({ params }: { params: Promise<{ name: s
                 ))}
               </tbody>
             </table>
-            {(p.bestTeam || p.nemesis || p.fades.length > 0) && <div className="divider" />}
+            {(spirit || p.bestTeam || p.nemesis || p.fades.length > 0) && <div className="divider" />}
+            {spirit && (
+              <p className="player-note">
+                {logoFor(spirit.logo) && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={logoFor(spirit.logo)!} alt="" className="spirit-logo" />
+                )}
+                Spirit animal: <strong>{spirit.team}</strong> &mdash; {spirit.picks} picks, the logo next to their name
+              </p>
+            )}
             {p.bestTeam && (
               <p className="player-note">
                 💚 Best team: <strong>{p.bestTeam.team}</strong> &mdash; {recText(p.bestTeam.ats)} ATS
@@ -238,6 +251,7 @@ export default async function PlayerPage({ params }: { params: Promise<{ name: s
                 {p.mates.map((m, i) => (
                   <div key={m.name} className="row-between" style={{ fontSize: "13px", padding: "3px 0" }}>
                     <span>
+                      <SpiritLogo name={m.name} />
                       <a href={`/players/${playerSlug(m.name)}`} className="player-link">{m.name}</a>
                       {i === 0 && <span className="meta"> &middot; twin</span>}
                       {i === p.mates.length - 1 && p.mates.length > 1 && <span className="meta"> &middot; opposite</span>}

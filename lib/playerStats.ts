@@ -34,6 +34,8 @@ export type PickRow = {
   gameId: string;
   home: string;
   away: string;
+  homeLogo: string | null;
+  awayLogo: string | null;
   homeConf: string | null;
   awayConf: string | null;
   homeLevel: "FBS" | "FCS" | null;
@@ -111,6 +113,8 @@ async function load(seasonYear: number): Promise<SeasonData> {
         gameId: g.id,
         home: g.homeTeam,
         away: g.awayTeam,
+        homeLogo: g.homeLogo,
+        awayLogo: g.awayLogo,
         homeConf: hc?.conf ?? null,
         awayConf: ac?.conf ?? null,
         homeLevel: hc?.level ?? null,
@@ -591,4 +595,34 @@ export function kingsOf(data: SeasonData): Map<string, string[]> {
     m.set(c.best.name, [...(m.get(c.best.name) ?? []), c.conf]);
   }
   return m;
+}
+
+export type SpiritTeam = { team: string; logo: string | null; picks: number; ats: Rec };
+
+/**
+ * Each player's "spirit animal": the team they've picked most (spreads + dog
+ * picks, same as the Teams table on their page). Ties go to the team they've
+ * done better with ATS, then the most recent pick.
+ */
+export function spiritTeams(data: SeasonData): Map<string, SpiritTeam> {
+  const out = new Map<string, SpiritTeam>();
+  for (const name of data.players) {
+    const on = data.rows.filter((r) => r.user === name && (r.type === "DOG" || (r.type === "SPREAD" && r.line != null)));
+    const byTeam = new Map<string, PickRow[]>();
+    for (const r of on) byTeam.set(r.selection, [...(byTeam.get(r.selection) ?? []), r]);
+    let best: { team: string; rows: PickRow[]; ats: Rec; last: string } | null = null;
+    for (const [team, rows] of byTeam) {
+      const ats = rec(rows.filter((r) => r.type === "SPREAD"));
+      const last = rows.reduce((m, r) => (r.kickoff > m ? r.kickoff : m), "");
+      const better =
+        !best ||
+        rows.length > best.rows.length ||
+        (rows.length === best.rows.length && (ats.w - ats.l > best.ats.w - best.ats.l || (ats.w - ats.l === best.ats.w - best.ats.l && last > best.last)));
+      if (better) best = { team, rows, ats, last };
+    }
+    if (!best) continue;
+    const r = best.rows[best.rows.length - 1];
+    out.set(name, { team: best.team, logo: pickedIsHome(r) ? r.homeLogo : r.awayLogo, picks: best.rows.length, ats: best.ats });
+  }
+  return out;
 }

@@ -1,5 +1,5 @@
 import { computeCareer, CURRENT_SEASON_YEAR } from "@/lib/careerStats";
-import { PlayerLink, PlayerNames } from "@/app/PlayerLink";
+import { PlayerLink, PlayerNames, SpiritLogo } from "@/app/PlayerTag";
 
 export const metadata = { title: "History" };
 
