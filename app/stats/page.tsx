@@ -237,7 +237,7 @@ export default async function StatsPage() {
         <div className="card">
           <div className="matchup">🏈 Conference kings</div>
           <p className="subtext" style={{ margin: "4px 0 0" }}>
-            {CURRENT_SEASON_YEAR} &mdash; the king of each conference has the best record in it (5+ decided picks to qualify). A spread counts for
+            {CURRENT_SEASON_YEAR} &mdash; the king of each conference has the best record in it (5+ decided picks and a winning record to qualify). A spread counts for
             the team taken; a total for both teams&apos; conferences.
           </p>
           <table className="stat-table">

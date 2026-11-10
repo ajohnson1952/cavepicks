@@ -369,7 +369,7 @@ export type Profile = {
   clv: { avg: number | null; beatPct: number | null; sample: number };
   dog: { picks: number; wins: number; losses: number; points: number; avgChased: number | null; biggest: { team: string; points: number; week: number } | null };
   thisWeek: PickRow[];
-  /** conferences this player is king of (best record in it, 5+ decided picks) */
+  /** conferences this player is king of (best record in it, 5+ decided picks, above .500) */
   kings: string[];
   /** past seasons + this one; null when there's no history before this season */
   career: { seasons: number; wins: number; losses: number; weeksWon: number; dogPoints: number } | null;
@@ -616,7 +616,8 @@ export function conferenceBoard(data: SeasonData): ConfBoardRow[] {
         .map((name) => ({ name, slug: playerSlug(name), rec: rec(inConf.filter((r) => r.user === name)) }))
         .filter((p) => decided(p.rec) >= 5);
       const ranked = [...people].sort((a, b) => (b.rec.pct ?? 0) - (a.rec.pct ?? 0) || b.rec.w - a.rec.w);
-      const best = ranked[0] ?? null;
+      // a king needs a winning record - no crown for the least-bad loser
+      const best = ranked[0] && ranked[0].rec.w > ranked[0].rec.l ? ranked[0] : null;
       const worstPick = people.length > 1 ? people.reduce((a, b) => ((b.rec.pct ?? 0) < (a.rec.pct ?? 0) ? b : a)) : null;
       const worst = worstPick && worstPick.name !== best?.name ? worstPick : null;
       return { conf: c.label, group: c.rec, best, worst };
