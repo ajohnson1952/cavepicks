@@ -8,6 +8,7 @@ import { computeLedger } from "@/lib/ledger";
 import { BANKER_NAME } from "@/lib/pot";
 import { getYahnFeed, findYahnGame, yahnWeekUrl, SHOW_YAHN_MARKS } from "@/lib/yahn";
 import { logoFor } from "@/lib/darkLogo";
+import { PlayerLink } from "../../PlayerLink";
 
 export const metadata = { title: "My Picks" };
 
@@ -39,7 +40,7 @@ export default async function PickPage(
   if (!week) {
     return (
       <main>
-        <h1>{user.name}&apos;s Picks</h1>
+        <h1><PlayerLink name={user.name} />&apos;s Picks</h1>
         <WeekNav basePath={`/pick/${params.slug}`} weekNumber={weekNumber} minWeek={minWeek} maxWeek={maxWeek} isCurrent={isCurrentWeek} />
         <p className="subtext">No games found for week {weekNumber}.</p>
       </main>
@@ -220,7 +221,7 @@ export default async function PickPage(
 
   return (
     <main>
-      <h1>{user.name}&apos;s Picks</h1>
+      <h1><PlayerLink name={user.name} />&apos;s Picks</h1>
       <WeekNav basePath={`/pick/${params.slug}`} weekNumber={weekNumber} minWeek={minWeek} maxWeek={maxWeek} isCurrent={isCurrentWeek} />
       <a href="/pot" className="pot-strip">
         {myLedger?.isBank ? (

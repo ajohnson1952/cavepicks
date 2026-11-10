@@ -150,12 +150,8 @@ export function bumpPlayerStats() {
 
 // ---------------------------------------------------------------- helpers
 
-export const playerSlug = (name: string) =>
-  name
-    .toLowerCase()
-    .normalize("NFKD")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "");
+import { playerSlug } from "./playerSlug";
+export { playerSlug };
 
 export type Rec = { w: number; l: number; p: number; n: number; pct: number | null };
 
@@ -331,6 +327,8 @@ export type Profile = {
   clv: { avg: number | null; beatPct: number | null; sample: number };
   dog: { picks: number; wins: number; losses: number; points: number; avgChased: number | null; biggest: { team: string; points: number; week: number } | null };
   thisWeek: PickRow[];
+  /** conferences this player is king of (best record in it, 5+ decided picks) */
+  kings: string[];
   /** past seasons + this one; null when there's no history before this season */
   career: { seasons: number; wins: number; losses: number; weeksWon: number; dogPoints: number } | null;
 };
@@ -522,6 +520,7 @@ export function buildProfile(data: SeasonData, name: string): Profile {
       avgChased: chased.length ? chased.reduce((a, b) => a + b, 0) / chased.length : null,
       biggest: biggest ? { team: biggest.selection, points: biggest.points, week: biggest.week } : null,
     },
+    kings: kingsOf(data).get(name) ?? [],
     career: (() => {
       const h = data.history.find((x) => x.name === name);
       if (!h) return null;
@@ -542,12 +541,18 @@ export function buildProfile(data: SeasonData, name: string): Profile {
 
 // ---------------------------------------------------------------- group boards for /stats
 
-export type FormRow = { name: string; slug: string; form: Form };
+export type FormRow = { name: string; slug: string; form: Form; kings: string[] };
 
 /** Everyone's recent form, hottest first. */
 export function formBoard(data: SeasonData): FormRow[] {
+  const kings = kingsOf(data);
   return data.players
-    .map((name) => ({ name, slug: playerSlug(name), form: formFor(data.rows.filter((r) => r.user === name && isSide(r)), data) }))
+    .map((name) => ({
+      name,
+      slug: playerSlug(name),
+      form: formFor(data.rows.filter((r) => r.user === name && isSide(r)), data),
+      kings: kings.get(name) ?? [],
+    }))
     .filter((x) => x.form.season.n > 0)
     .sort((a, b) => (b.form.last3.pct ?? -1) - (a.form.last3.pct ?? -1));
 }
@@ -570,9 +575,20 @@ export function conferenceBoard(data: SeasonData): ConfBoardRow[] {
       const people = data.players
         .map((name) => ({ name, slug: playerSlug(name), rec: rec(inConf.filter((r) => r.user === name)) }))
         .filter((p) => decided(p.rec) >= 5);
-      const best = people.length ? people.reduce((a, b) => ((b.rec.pct ?? 0) > (a.rec.pct ?? 0) ? b : a)) : null;
+      const ranked = [...people].sort((a, b) => (b.rec.pct ?? 0) - (a.rec.pct ?? 0) || b.rec.w - a.rec.w);
+      const best = ranked[0] ?? null;
       const worstPick = people.length > 1 ? people.reduce((a, b) => ((b.rec.pct ?? 0) < (a.rec.pct ?? 0) ? b : a)) : null;
       const worst = worstPick && worstPick.name !== best?.name ? worstPick : null;
       return { conf: c.label, group: c.rec, best, worst };
     });
+}
+
+/** 👑 Conference kings: player name -> the conferences they're best at. */
+export function kingsOf(data: SeasonData): Map<string, string[]> {
+  const m = new Map<string, string[]>();
+  for (const c of conferenceBoard(data)) {
+    if (!c.best) continue;
+    m.set(c.best.name, [...(m.get(c.best.name) ?? []), c.conf]);
+  }
+  return m;
 }

@@ -43,6 +43,15 @@ function Header({ p, career }: { p: Profile; career: { seasons: number; wins: nu
           <p className="subtext" style={{ margin: "2px 0 0" }}>
             {p.rank > 0 ? `${ordinal(p.rank)} of ${p.of}` : "unranked"} &middot; {CURRENT_SEASON_YEAR} season
           </p>
+          {p.kings.length > 0 && (
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "4px", marginTop: "6px" }}>
+              {p.kings.map((c) => (
+                <span key={c} className="form-badge king">
+                  👑 King of the {c}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
         {p.form.streak && p.form.streak.count >= 2 && (
           <span className={`mono ${p.form.streak.kind === "W" ? "pick-win" : "pick-loss"}`} style={{ fontSize: "13px" }}>
@@ -132,7 +141,10 @@ export default async function PlayerPage({ params }: { params: Promise<{ name: s
             <p className="subtext" style={{ margin: "4px 0 0" }}>
               A spread counts for the team they took; a total counts for both teams&apos; conferences.
             </p>
-            <SplitTable rows={p.conferences} shareLabel="Of picks" />
+            <SplitTable
+              rows={p.conferences.map((c) => (p.kings.includes(c.label) ? { ...c, label: `👑 ${c.label}` } : c))}
+              shareLabel="Of picks"
+            />
             <div className="divider" />
             <VsRow leftLabel="Conference games" left={p.confGame.conf} rightLabel="Non-conference" right={p.confGame.nonConf} />
           </div>

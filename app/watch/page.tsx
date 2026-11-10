@@ -2,6 +2,7 @@ import { formatSpread } from "@/lib/format";
 import { isDecided, PickOutcome } from "@/lib/weeklyRace";
 import { computeWatchData, Rel } from "@/lib/watchData";
 import RefreshButton from "./RefreshButton";
+import { PlayerLink, PlayerNames } from "@/app/PlayerLink";
 
 export const metadata = { title: "Watch" };
 
@@ -134,7 +135,7 @@ export default async function WatchPage() {
           return (
             <div key={p.id} style={{ fontSize: "13px", marginBottom: "3px" }}>
               <span style={{ fontWeight: alive ? 700 : 400, color: alive ? "var(--ink)" : "var(--dim)" }}>
-                {p.user.name}
+                <PlayerLink name={p.user.name} />
               </span>
               {!alive && o !== "missed" && <span className="meta"> (out)</span>}
               {p.pickType === "DOG" && <span className="meta"> · dog</span>}
@@ -180,7 +181,7 @@ export default async function WatchPage() {
           .map((r) => (
             <div key={r.userId} className="row-between" style={{ fontSize: "13px", padding: "3px 0" }}>
               <span style={{ fontWeight: r.alive ? 700 : 400, color: r.alive ? "var(--ink)" : "var(--dim)" }}>
-                {r.name}
+                <PlayerLink name={r.name} />
                 {r.clinched ? " · clinched" : r.alive ? "" : " · out"}
               </span>
               <span className="mono" style={{ color: "var(--dim)" }}>

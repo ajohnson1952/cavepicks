@@ -1,4 +1,5 @@
 import { computeCareer, CURRENT_SEASON_YEAR } from "@/lib/careerStats";
+import { PlayerLink, PlayerNames } from "@/app/PlayerLink";
 
 export const metadata = { title: "History" };
 
@@ -46,7 +47,7 @@ export default async function HistoryPage() {
             {allTimeSide.map((s, i) => (
               <tr key={s.name} className={i === 0 && s.pct > 0 ? "rank-first" : undefined}>
                 <td className="rank-cell">{rankLabel(i)}</td>
-                <td>{s.name}</td>
+                <td><PlayerLink name={s.name} /></td>
                 <td>{s.weeksWon}</td>
                 <td>{s.wins}</td>
                 <td>{s.pushes}</td>
@@ -85,7 +86,7 @@ export default async function HistoryPage() {
             {allTimeDog.map((s, i) => (
               <tr key={s.name} className={i === 0 && s.points > 0 ? "rank-first" : undefined}>
                 <td className="rank-cell">{rankLabel(i)}</td>
-                <td>{s.name}</td>
+                <td><PlayerLink name={s.name} /></td>
                 <td>{s.points}</td>
                 <td>{s.wins}</td>
                 <td>{s.losses}</td>
@@ -158,7 +159,7 @@ export default async function HistoryPage() {
                     return (
                       <tr key={r.id} className={i === 0 && pct > 0 ? "rank-first" : undefined}>
                         <td className="rank-cell">{rankLabel(i)}</td>
-                        <td>{r.user.name}</td>
+                        <td><PlayerLink name={r.user.name} /></td>
                         <td>{r.weeksWon}</td>
                         <td>{r.sideWins}</td>
                         <td>{r.sidePushes}</td>
@@ -200,7 +201,7 @@ export default async function HistoryPage() {
                     return (
                       <tr key={r.id} className={i === 0 && r.dogPoints > 0 ? "rank-first" : undefined}>
                         <td className="rank-cell">{rankLabel(i)}</td>
-                        <td>{r.user.name}</td>
+                        <td><PlayerLink name={r.user.name} /></td>
                         <td>{r.dogPoints}</td>
                         <td>{r.dogWins}</td>
                         <td>{r.dogLosses}</td>

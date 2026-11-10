@@ -2,7 +2,7 @@ import { dogPayouts } from "@/lib/pot";
 import { SEASON_YEAR } from "@/lib/currentWeek";
 import { computeCurrentSeasonStats } from "@/lib/seasonStats";
 import { ghostSeasonStats, GHOST_NAME } from "@/lib/ghost";
-import { playerSlug } from "@/lib/playerStats";
+import { PlayerLink, PlayerNames } from "@/app/PlayerLink";
 
 export const metadata = { title: "Standings" };
 
@@ -121,16 +121,16 @@ export default async function StandingsPage() {
               {currentWeek.inProgress
                 ? "in progress"
                 : currentWeek.tiedLeaders.length > 0 && currentWeek.payouts.length > 0
-                ? `${currentWeek.tiedLeaders.join(" & ")} tied - $${currentWeek.payouts[0].amount} each, $${currentWeek.carryOut} rolls`
+                ? <><PlayerNames names={currentWeek.tiedLeaders} /> tied - ${currentWeek.payouts[0].amount} each, ${currentWeek.carryOut} rolls</>
                 : currentWeek.rollover
                 ? "tied - rolled over to next week"
-                : `won by ${currentWeek.leader}`}{" "}
+                : <>won by <PlayerLink name={currentWeek.leader ?? ""} /></>}{" "}
               &middot; <a href="/pot">balances</a>
             </p>
             <div className="divider" />
             {currentWeek.standings.map((s, i) => (
               <div key={s.name} className="row-between" style={{ fontSize: "13px", marginBottom: "4px" }}>
-                <a href={`/players/${playerSlug(s.name)}`} className="player-link">{s.name}</a>
+                <PlayerLink name={s.name} />
                 <span className="mono" style={{ color: i === 0 && s.correct > 0 ? "var(--up)" : "var(--dim)" }}>
                   {s.correct}/5
                 </span>
@@ -164,7 +164,7 @@ export default async function StandingsPage() {
               i === ghostSideAt ? ghostSideRow : null,
               <tr key={s.name} className={i === 0 && s.pct > 0 ? "rank-first" : undefined}>
                 <td className="rank-cell">{rankLabel(i)}</td>
-                <td><a href={`/players/${playerSlug(s.name)}`} className="player-link">{s.name}</a></td>
+                <td><PlayerLink name={s.name} /></td>
                 <td>{s.weeksWon}</td>
                 <td>{s.wins}</td>
                 <td>{s.pushes}</td>
@@ -201,7 +201,7 @@ export default async function StandingsPage() {
                   <span className="meta">in progress</span>
                 ) : w.tiedLeaders.length > 0 && w.payouts.length > 0 ? (
                   <span>
-                    {w.tiedLeaders.join(" & ")} split <span className="mono">${w.payouts[0].amount}</span> each 🍕
+                    <PlayerNames names={w.tiedLeaders} /> split <span className="mono">${w.payouts[0].amount}</span> each 🍕
                     <span className="meta"> &middot; ${w.carryOut} rolled</span>
                   </span>
                 ) : w.rollover ? (
@@ -211,7 +211,7 @@ export default async function StandingsPage() {
                     <span className="locked-badge" style={{ marginRight: "4px" }}>
                       <span className="locked-dot" />
                     </span>
-                    {w.leader} won <span className="mono">${w.potAmount}</span> 🍕
+                    <PlayerLink name={w.leader ?? ""} /> won <span className="mono">${w.potAmount}</span> 🍕
                   </span>
                 )}
               </div>
@@ -244,7 +244,7 @@ export default async function StandingsPage() {
                 i === ghostDogAt ? ghostDogRow : null,
                 <tr key={s.name} className={i === 0 && s.points > 0 ? "rank-first" : undefined}>
                   <td className="rank-cell">{rankLabel(i)}</td>
-                  <td><a href={`/players/${playerSlug(s.name)}`} className="player-link">{s.name}</a></td>
+                  <td><PlayerLink name={s.name} /></td>
                   <td>{s.points}</td>
                   <td>{s.wins}</td>
                   <td>{s.losses}</td>

@@ -1,6 +1,7 @@
 import { computeLedger } from "@/lib/ledger";
 import { SEASON_YEAR } from "@/lib/currentWeek";
 import { BANKER_NAME, TIE_SPLIT_START_WEEK, WEEKLY_BUYIN } from "@/lib/pot";
+import { PlayerLink, PlayerNames } from "@/app/PlayerLink";
 
 export const metadata = { title: "The Pot" };
 
@@ -26,10 +27,6 @@ function StatusChip({ balance }: { balance: number }) {
   );
 }
 
-function namesList(names: string[]): string {
-  if (names.length <= 2) return names.join(" & ");
-  return `${names.slice(0, -1).join(", ")} & ${names[names.length - 1]}`;
-}
 
 export default async function PotPage() {
   const { players, payments, ledgerWeeks, weekResults, currentWeekNumber, houseTotal, bankCheck } =
@@ -112,7 +109,7 @@ export default async function PotPage() {
           <tbody>
             {sorted.map((p) => (
               <tr key={p.userId}>
-                <td>{p.name}</td>
+                <td><PlayerLink name={p.name} /></td>
                 <td className={p.netFromWeeks > 0 ? "pick-win" : p.netFromWeeks < 0 ? "pick-loss" : undefined}>
                   {signed(p.netFromWeeks)}
                 </td>
@@ -222,11 +219,11 @@ export default async function PotPage() {
             <span>
               {p.direction === "in" ? (
                 <>
-                  <strong>{p.user.name}</strong> paid {BANKER_NAME}
+                  <strong><PlayerLink name={p.user.name} /></strong> paid <PlayerLink name={BANKER_NAME} />
                 </>
               ) : (
                 <>
-                  {BANKER_NAME} paid <strong>{p.user.name}</strong>
+                  <PlayerLink name={BANKER_NAME} /> paid <strong><PlayerLink name={p.user.name} /></strong>
                 </>
               )}{" "}
               <span className="mono">{money(p.amount)}</span>
@@ -261,18 +258,18 @@ function WeekOutcome({
     <div style={{ fontSize: "13px", marginTop: "4px", lineHeight: 1.6 }}>
       {w.leader && (
         <div>
-          🏆 <strong>{w.leader}</strong> won solo with {top}/5 &mdash; takes {money(w.potAmount)}
+          🏆 <strong><PlayerLink name={w.leader} /></strong> won solo with {top}/5 &mdash; takes {money(w.potAmount)}
         </div>
       )}
       {w.tiedLeaders.length > 0 && (
         <div>
-          🤝 <strong>{namesList(w.tiedLeaders)}</strong> tied at {top}/5
+          🤝 <strong><PlayerNames names={w.tiedLeaders} /></strong> tied at {top}/5
         </div>
       )}
       {!w.leader && w.tiedLeaders.length === 0 && <div>Nobody hit a pick &mdash; the whole pot rolls.</div>}
       {w.payouts.map((p) => (
         <div key={p.name} className="mono" style={{ fontSize: "12px" }}>
-          {p.name}: {money(p.amount)} won &minus; {money(WEEKLY_BUYIN)} buy-in ={" "}
+          <PlayerLink name={p.name} />: {money(p.amount)} won &minus; {money(WEEKLY_BUYIN)} buy-in ={" "}
           <span className="pick-win">{signed(p.amount - WEEKLY_BUYIN)} net 🍕</span>
         </div>
       ))}

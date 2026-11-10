@@ -1218,6 +1218,7 @@ html.ptr-enabled body {
 }
 .form-badge.hot { color: var(--up); background: rgba(63, 208, 122, 0.1); }
 .form-badge.cold { color: var(--action); background: rgba(91, 152, 255, 0.1); }
+.form-badge.king { color: var(--amber); background: rgba(230, 172, 68, 0.1); }
 .player-tiles {
   display: grid;
   grid-template-columns: repeat(4, 1fr);

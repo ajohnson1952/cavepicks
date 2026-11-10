@@ -357,6 +357,11 @@ any new scheduled job.
   worst. The URL uses the player's name (`playerSlug`), NEVER `pickSlug` (that's
   their private pick link). Conference comes from the ESPN id in each game's
   logo link (`lib/conferences.ts`). Splits under 8 decided picks are faded.
+  **Every player name on the site links to their page** via `app/PlayerLink.tsx`
+  (`<PlayerLink name>` / `<PlayerNames names>`) - use it for any new spot that
+  shows a name, except inside something that's already a link (no nested <a>).
+  👑 Conference king = best record in a conference, 5+ decided picks
+  (`kingsOf`); shown on their page, the Players list and /stats.
 - **The group's emojis**: 🚬 = a heater (also used to mock someone who thinks
   they're doing well - the Hot badge shows 🚬 "Hot" in quotes for a player
   who's hot but under .500 on the season). 🍕 = money being paid out or in.

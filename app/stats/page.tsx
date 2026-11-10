@@ -2,8 +2,9 @@ import { computeCareer, CURRENT_SEASON_YEAR } from "@/lib/careerStats";
 import { computeFunStats } from "@/lib/funStats";
 import { computeGroupTrends } from "@/lib/groupTrends";
 import { computeSharpness, MIN_SHARP_SAMPLE } from "@/lib/sharpness";
-import { conferenceBoard, formBoard, loadSeason, playerSlug } from "@/lib/playerStats";
+import { conferenceBoard, formBoard, loadSeason } from "@/lib/playerStats";
 import { FormBadge, RecSpan, Sparkline, pctText } from "../players/parts";
+import { PlayerLink, PlayerNames } from "@/app/PlayerLink";
 
 export const metadata = { title: "Stats" };
 
@@ -99,25 +100,25 @@ export default async function StatsPage() {
           <div className="divider" />
           {bestSeason && bestSeason.wins > 0 && (
             <p style={{ fontSize: "13px", margin: "0 0 6px" }}>
-              Best season on record: <strong>{bestSeason.name}</strong> &mdash; {bestSeason.pct.toFixed(1)}%
+              Best season on record: <strong><PlayerLink name={bestSeason.name} /></strong> &mdash; {bestSeason.pct.toFixed(1)}%
               ({bestSeason.seasonLabel})
             </p>
           )}
           {worstSeason && (
             <p style={{ fontSize: "13px", margin: "0 0 6px" }}>
-              Rock bottom: <strong>{worstSeason.name}</strong> &mdash; {worstSeason.pct.toFixed(1)}%
+              Rock bottom: <strong><PlayerLink name={worstSeason.name} /></strong> &mdash; {worstSeason.pct.toFixed(1)}%
               ({worstSeason.seasonLabel})
             </p>
           )}
           {careerWeeksLeader && careerWeeksLeader.weeksWon > 0 && (
             <p style={{ fontSize: "13px", margin: "0 0 6px" }}>
-              Most weeks won, all-time: <strong>{careerWeeksLeader.name}</strong> &mdash;{" "}
+              Most weeks won, all-time: <strong><PlayerLink name={careerWeeksLeader.name} /></strong> &mdash;{" "}
               {careerWeeksLeader.weeksWon}
             </p>
           )}
           {careerDogLeader && careerDogLeader.points > 0 && (
             <p style={{ fontSize: "13px", margin: "0" }}>
-              Career Cavedogs points leader: <strong>{careerDogLeader.name}</strong> &mdash;{" "}
+              Career Cavedogs points leader: <strong><PlayerLink name={careerDogLeader.name} /></strong> &mdash;{" "}
               {careerDogLeader.points} pts
             </p>
           )}
@@ -175,7 +176,7 @@ export default async function StatsPage() {
                 <div className="row-between" style={{ alignItems: "center" }}>
                   <span style={{ fontSize: "14px" }}>
                     <span style={{ display: "inline-block", width: "24px", textAlign: "center" }}>{badge}</span>
-                    <a href={`/players/${playerSlug(p.name)}`} className="player-link"><strong>{p.name}</strong></a>
+                    <strong><PlayerLink name={p.name} /></strong>
                     {i === 0 && <span className="meta"> &middot; sharpest 🚬</span>}
                     {last && <span className="meta"> &middot; squarest</span>}
                   </span>
@@ -234,7 +235,7 @@ export default async function StatsPage() {
         <div className="card">
           <div className="matchup">🏈 Conference kings</div>
           <p className="subtext" style={{ margin: "4px 0 0" }}>
-            {CURRENT_SEASON_YEAR} &mdash; who reads each conference best (5+ decided picks to qualify). A spread counts for
+            {CURRENT_SEASON_YEAR} &mdash; the king of each conference has the best record in it (5+ decided picks to qualify). A spread counts for
             the team taken; a total for both teams&apos; conferences.
           </p>
           <table className="stat-table">
@@ -242,7 +243,7 @@ export default async function StatsPage() {
               <tr>
                 <th>Conf</th>
                 <th>Cave %</th>
-                <th>👑 Best</th>
+                <th>👑 King</th>
                 <th>🥶 Worst</th>
               </tr>
             </thead>
@@ -292,69 +293,69 @@ export default async function StatsPage() {
           </p>
           {funStats.earlyBird && (
             <p style={{ fontSize: "13px", margin: "0 0 6px" }}>
-              🌅 Early Bird: <strong>{funStats.earlyBird.name}</strong> &mdash; locks in an average of{" "}
+              🌅 Early Bird: <strong><PlayerLink name={funStats.earlyBird.name} /></strong> &mdash; locks in an average of{" "}
               {Math.round(funStats.earlyBird.avgMinutesBefore / 60)}h before kickoff
             </p>
           )}
           {funStats.lastSecondLarry && (
             <p style={{ fontSize: "13px", margin: "0 0 6px" }}>
-              ⏰ Last-Second Larry: <strong>{funStats.lastSecondLarry.name}</strong> &mdash; averages just{" "}
+              ⏰ Last-Second Larry: <strong><PlayerLink name={funStats.lastSecondLarry.name} /></strong> &mdash; averages just{" "}
               {(funStats.lastSecondLarry.avgMinutesBefore / 60).toFixed(1)}h before kickoff
             </p>
           )}
           {funStats.buzzerBeater && (
             <p style={{ fontSize: "13px", margin: "0 0 6px" }}>
-              🚨 Buzzer Beater record: <strong>{funStats.buzzerBeater.name}</strong> locked{" "}
+              🚨 Buzzer Beater record: <strong><PlayerLink name={funStats.buzzerBeater.name} /></strong> locked{" "}
               {funStats.buzzerBeater.game} just {Math.round(funStats.buzzerBeater.minutesBefore)} min before
               kickoff (Week {funStats.buzzerBeater.weekNumber})
             </p>
           )}
           {funStats.chalkLover && (
             <p style={{ fontSize: "13px", margin: "0 0 6px" }}>
-              🟢 Chalk Lover: <strong>{funStats.chalkLover.name}</strong> &mdash; picks the favorite{" "}
+              🟢 Chalk Lover: <strong><PlayerLink name={funStats.chalkLover.name} /></strong> &mdash; picks the favorite{" "}
               {funStats.chalkLover.pct.toFixed(0)}% of the time
             </p>
           )}
           {funStats.contrarian && funStats.contrarian.name !== funStats.chalkLover?.name && (
             <p style={{ fontSize: "13px", margin: "0 0 6px" }}>
-              🎲 Contrarian: <strong>{funStats.contrarian.name}</strong> &mdash; only picks the favorite{" "}
+              🎲 Contrarian: <strong><PlayerLink name={funStats.contrarian.name} /></strong> &mdash; only picks the favorite{" "}
               {funStats.contrarian.pct.toFixed(0)}% of the time
             </p>
           )}
           {funStats.homeCookin && (
             <p style={{ fontSize: "13px", margin: "0 0 6px" }}>
-              🏟️ Home Cookin&apos;: <strong>{funStats.homeCookin.name}</strong> &mdash; takes the home team{" "}
+              🏟️ Home Cookin&apos;: <strong><PlayerLink name={funStats.homeCookin.name} /></strong> &mdash; takes the home team{" "}
               {funStats.homeCookin.pct.toFixed(0)}% of the time
             </p>
           )}
           {funStats.roadWarrior && funStats.roadWarrior.name !== funStats.homeCookin?.name && (
             <p style={{ fontSize: "13px", margin: "0 0 6px" }}>
-              🛣️ Road Warrior: <strong>{funStats.roadWarrior.name}</strong> &mdash; only takes the home team{" "}
+              🛣️ Road Warrior: <strong><PlayerLink name={funStats.roadWarrior.name} /></strong> &mdash; only takes the home team{" "}
               {funStats.roadWarrior.pct.toFixed(0)}% of the time
             </p>
           )}
           {funStats.overLover && (
             <p style={{ fontSize: "13px", margin: "0 0 6px" }}>
-              📈 Over Lover: <strong>{funStats.overLover.name}</strong> &mdash; takes the over{" "}
+              📈 Over Lover: <strong><PlayerLink name={funStats.overLover.name} /></strong> &mdash; takes the over{" "}
               {funStats.overLover.pct.toFixed(0)}% of the time (group average: {funStats.groupOverPct.toFixed(0)}%)
             </p>
           )}
           {funStats.underLover && funStats.underLover.name !== funStats.overLover?.name && (
             <p style={{ fontSize: "13px", margin: "0 0 6px" }}>
-              📉 Under Lover: <strong>{funStats.underLover.name}</strong> &mdash; takes the over only{" "}
+              📉 Under Lover: <strong><PlayerLink name={funStats.underLover.name} /></strong> &mdash; takes the over only{" "}
               {funStats.underLover.pct.toFixed(0)}% of the time
             </p>
           )}
           {funStats.ghostAward && (
             <p style={{ fontSize: "13px", margin: "0 0 6px" }}>
-              👻 Ghost Award: <strong>{funStats.ghostAward.name}</strong> &mdash; missed a full slate of picks{" "}
+              👻 Ghost Award: <strong><PlayerLink name={funStats.ghostAward.name} /></strong> &mdash; missed a full slate of picks{" "}
               {funStats.ghostAward.missedWeeks} {funStats.ghostAward.missedWeeks === 1 ? "week" : "weeks"} this
               season
             </p>
           )}
           {funStats.flipFlopper && (
             <p style={{ fontSize: "13px", margin: "0 0 6px" }}>
-              🔄 Flip-Flopper: <strong>{funStats.flipFlopper.name}</strong> &mdash; switched sides{" "}
+              🔄 Flip-Flopper: <strong><PlayerLink name={funStats.flipFlopper.name} /></strong> &mdash; switched sides{" "}
               {funStats.flipFlopper.totalChanges} {funStats.flipFlopper.totalChanges === 1 ? "time" : "times"} before
               locking in this season
               {/* a per-pick rate only reads well once it's at least ~1 a pick;
@@ -365,13 +366,13 @@ export default async function StatsPage() {
           )}
           {funStats.quickDraw && (
             <p style={{ fontSize: "13px", margin: "0 0 6px" }}>
-              ⚡ Quick Draw: <strong>{funStats.quickDraw.name}</strong> &mdash; locks a pick in just{" "}
+              ⚡ Quick Draw: <strong><PlayerLink name={funStats.quickDraw.name} /></strong> &mdash; locks a pick in just{" "}
               {Math.round(funStats.quickDraw.avgMinutes * 60)} sec after first selecting it, on average
             </p>
           )}
           {funStats.ponderer && funStats.ponderer.name !== funStats.quickDraw?.name && (
             <p style={{ fontSize: "13px", margin: "0" }}>
-              🤔 Ponderer: <strong>{funStats.ponderer.name}</strong> &mdash; sits on a pick for{" "}
+              🤔 Ponderer: <strong><PlayerLink name={funStats.ponderer.name} /></strong> &mdash; sits on a pick for{" "}
               {Math.round(funStats.ponderer.avgMinutes / 60)}h on average before locking it in
             </p>
           )}

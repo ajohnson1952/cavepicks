@@ -9,6 +9,7 @@ import CopyPicksButton from "./CopyPicksButton";
 import { GHOST_NAME } from "@/lib/ghost";
 import { getLinePaths, lineValue, formatValue, valueTone, type LineValue } from "@/lib/lineValue";
 import { logoFor } from "@/lib/darkLogo";
+import { PlayerLink } from "../PlayerLink";
 
 export const metadata = { title: "Board" };
 
@@ -218,7 +219,7 @@ export default async function BoardPage(props: { searchParams: Promise<{ week?: 
         return (
           <div key={u.id} className="card">
             <div className="matchup">
-              {u.name}
+              <PlayerLink name={u.name} />
               {shareText && <CopyPicksButton name={u.name} text={shareText} />}
               <ValueTotal values={userPicks.map(valueOf)} />
             </div>

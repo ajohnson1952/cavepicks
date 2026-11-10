@@ -2,6 +2,7 @@ import { prisma } from "@/lib/db";
 import { SEASON_YEAR } from "@/lib/currentWeek";
 import { computeCurrentSeasonStats } from "@/lib/seasonStats";
 import HomePicksButton from "./HomePicksButton";
+import { PlayerLink, PlayerNames } from "@/app/PlayerLink";
 
 export const dynamic = "force-dynamic";
 
@@ -112,7 +113,7 @@ export default async function Home() {
             <div style={{ marginTop: "8px" }}>
               {lockRows.map((r) => (
                 <div key={r.name} className="row-between" style={{ fontSize: "13px", marginBottom: "3px" }}>
-                  <span>{r.name}</span>
+                  <PlayerLink name={r.name} />
                   <span className="mono" style={{ color: r.locked >= 5 ? "var(--up)" : "var(--dim)" }}>
                     {r.locked}/5
                   </span>
@@ -127,13 +128,22 @@ export default async function Home() {
         <div className="card">
           <div className="matchup">🏁 Last week</div>
           <p style={{ margin: "6px 0 0", fontSize: "13px" }}>
-            {lastWeek.leader
-              ? `${lastWeek.leader} won $${lastWeek.potAmount} with ${lastWeek.standings[0]?.correct}/5.`
-              : lastWeek.tiedLeaders.length > 0 && lastWeek.payouts.length > 0
-              ? `${lastWeek.tiedLeaders.join(" & ")} tied at ${lastWeek.standings[0]?.correct}/5 and split $${lastWeek.payouts[0].amount} each.`
-              : lastWeek.tiedLeaders.length > 0
-              ? `${lastWeek.tiedLeaders.join(" & ")} tied at ${lastWeek.standings[0]?.correct}/5 - the pot rolled.`
-              : "Nobody hit - the pot rolled."}
+            {lastWeek.leader ? (
+              <>
+                <PlayerLink name={lastWeek.leader} /> won ${lastWeek.potAmount} with {lastWeek.standings[0]?.correct}/5. 🍕
+              </>
+            ) : lastWeek.tiedLeaders.length > 0 && lastWeek.payouts.length > 0 ? (
+              <>
+                <PlayerNames names={lastWeek.tiedLeaders} /> tied at {lastWeek.standings[0]?.correct}/5 and split $
+                {lastWeek.payouts[0].amount} each. 🍕
+              </>
+            ) : lastWeek.tiedLeaders.length > 0 ? (
+              <>
+                <PlayerNames names={lastWeek.tiedLeaders} /> tied at {lastWeek.standings[0]?.correct}/5 - the pot rolled.
+              </>
+            ) : (
+              "Nobody hit - the pot rolled."
+            )}
           </p>
         </div>
       )}

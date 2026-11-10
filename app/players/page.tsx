@@ -28,6 +28,7 @@ export default async function PlayersPage() {
               <span className="meta" style={{ display: "block", marginTop: "2px" }}>
                 Season {recText(p.form.season)}
                 {p.form.season.pct != null && ` (${p.form.season.pct.toFixed(0)}%)`}
+                {p.kings.length > 0 && ` \u00b7 👑 ${p.kings.join(", ")}`}
                 {p.form.streak && p.form.streak.count >= 3 && ` · ${p.form.streak.count}${p.form.streak.kind} streak${p.form.streak.kind === "W" ? " 🚬" : ""}`}
               </span>
             </span>

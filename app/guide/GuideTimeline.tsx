@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { hapticTap } from "@/lib/haptics";
 import HapticButton from "../HapticButton";
+import { PlayerLink } from "../PlayerLink";
 
 export type GuidePick = {
   id: string;
@@ -138,7 +139,7 @@ function GamePanel({ g, onClose }: { g: GuideGame; onClose: () => void }) {
       {g.picks.map((p) => (
         <div key={p.id} style={{ fontSize: "13px", marginBottom: "3px" }}>
           <span style={{ fontWeight: p.alive ? 700 : 400, color: p.alive ? "var(--ink)" : "var(--dim)" }}>
-            {p.name}
+            <PlayerLink name={p.name} />
           </span>
           {!p.alive && p.outcomeLabel !== "not locked" && <span className="meta"> (out)</span>}
           {p.isDog && <span className="meta"> · dog</span>}

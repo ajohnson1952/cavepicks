@@ -7,6 +7,7 @@ import MoneyShower from "./MoneyShower";
 import { formatSpread, formatOdds, bookLabel } from "@/lib/format";
 import HapticButton from "../../HapticButton";
 import HoldToLock from "../../HoldToLock";
+import { PlayerLink } from "../../PlayerLink";
 
 type Snap = {
   spreadHome: number | null;
@@ -523,7 +524,7 @@ export default function PickForm({
                       : o.selection;
                   return (
                     <div key={i} className="banner-note" style={{ marginTop: i === 0 ? 0 : "4px" }}>
-                      {o.name} locked {o.pickType.toLowerCase()}: {selectionDisplay}
+                      <PlayerLink name={o.name} /> locked {o.pickType.toLowerCase()}: {selectionDisplay}
                       {num}
                     </div>
                   );
