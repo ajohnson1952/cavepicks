@@ -349,8 +349,8 @@ any new scheduled job.
   at worst) - never put an uncached database read in `layout.tsx`, it would
   run on every page.
 
-- **Player pages** (`/players`, `/players/[name]`, plus the "Who's hot" and
-  "Conference kings" cards on /stats): all built from ONE cached load of the
+- **Player pages** (`/players` - the hot/cold list, `/players/[name]`, plus the
+  "Conference kings" card on /stats; /stats only links to /players for who's hot): all built from ONE cached load of the
   season's locked picks (`loadSeason` in `lib/playerStats.ts`); the splits are
   pure functions over it. Refreshed by `bumpPlayerStats()` - called from
   `bumpCaveSplits` (every lock/unlock path) and after grading - and hourly at

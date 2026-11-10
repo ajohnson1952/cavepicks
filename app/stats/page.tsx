@@ -2,11 +2,11 @@ import { computeCareer, CURRENT_SEASON_YEAR } from "@/lib/careerStats";
 import { computeFunStats } from "@/lib/funStats";
 import { computeGroupTrends } from "@/lib/groupTrends";
 import { computeSharpness, MIN_SHARP_SAMPLE } from "@/lib/sharpness";
-import { conferenceBoard, fmtPts as pts, formBoard, loadSeason } from "@/lib/playerStats";
+import { conferenceBoard, fmtPts as pts, loadSeason } from "@/lib/playerStats";
 import { TROPHIES, beats, curses, rivalries, trophiesFor } from "@/lib/bragging";
 import { logoFor } from "@/lib/darkLogo";
-import { FormBadge, RecSpan, Sparkline, pctText } from "../players/parts";
-import { PlayerLink, PlayerNames, SpiritLogo } from "@/app/PlayerTag";
+import { pctText } from "../players/parts";
+import { PlayerLink } from "@/app/PlayerTag";
 
 export const metadata = { title: "Stats" };
 
@@ -87,7 +87,6 @@ export default async function StatsPage() {
       computeSharpness(CURRENT_SEASON_YEAR),
       loadSeason(CURRENT_SEASON_YEAR),
     ]);
-  const hotBoard = formBoard(season);
   const confBoard = conferenceBoard(season);
   // bragging rights (lib/bragging.ts) - all from the same cached season load
   const rivalBoard = rivalries(season)
@@ -145,36 +144,17 @@ export default async function StatsPage() {
         </div>
       )}
 
-      {hotBoard.length >= 2 && (
-        <div className="card">
-          <div className="matchup">🚬 Who&apos;s hot</div>
-          <p className="subtext" style={{ margin: "4px 0 6px" }}>
-            Last 3 finished weeks vs. the season. Tap a name for their full page.
-          </p>
-          {hotBoard.map((p, i) => (
-            <a
-              key={p.name}
-              href={`/players/${p.slug}`}
-              className="player-row"
-              style={{ borderBottom: i === hotBoard.length - 1 ? "none" : undefined, padding: "7px 0" }}
-            >
-              <span style={{ minWidth: 0 }}>
-                <SpiritLogo name={p.name} />
-                <strong>{p.name}</strong> <FormBadge status={p.form.status} seasonPct={p.form.season.pct} />
-              </span>
-              <span style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                <Sparkline series={p.form.series} />
-                <span className="meta" style={{ minWidth: "52px", textAlign: "right" }}>
-                  ssn {pctText(p.form.season)}
-                </span>
-                <span style={{ minWidth: "74px", textAlign: "right" }}>
-                  <RecSpan r={p.form.last3} />
-                </span>
-              </span>
-            </a>
-          ))}
-        </div>
-      )}
+      <a href="/players" className="card player-row" style={{ display: "flex", padding: "12px 16px" }}>
+        <span>
+          <strong>🚬 Who&apos;s hot &amp; who&apos;s not</strong>
+          <span className="meta" style={{ display: "block", marginTop: "2px" }}>
+            Everyone&apos;s last 3 weeks, trends and full pages live on the Players tab
+          </span>
+        </span>
+        <span className="meta" aria-hidden="true">
+          Players &rarr;
+        </span>
+      </a>
 
       {sharpRanked.length >= 2 && (
         <div className="card">
