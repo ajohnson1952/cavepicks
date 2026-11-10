@@ -222,7 +222,6 @@ export const TROPHIES: TrophyDef[] = [
   { key: "bigdog", emoji: "🐕", name: "Big Dog", desc: "Hit a dog pick worth 14+ points" },
   { key: "crystal", emoji: "🔮", name: "Crystal Ball", desc: "Beat the closing line on all 5 picks in a week" },
   { key: "heater", emoji: "🚬", name: "Heater", desc: "Won 5 picks in a row" },
-  { key: "island", emoji: "🏝️", name: "Island Hopper", desc: "Won 3+ picks nobody else took in one week" },
   { key: "goose", emoji: "🥚", name: "Goose Egg", desc: "Didn't win a single pick in a week" },
   { key: "icebath", emoji: "🧊", name: "Ice Bath", desc: "Lost 5 picks in a row" },
   { key: "heartbreak", emoji: "😭", name: "Heartbreak Kid", desc: "Lost a pick by a point or less" },
@@ -264,12 +263,6 @@ export function trophiesFor(data: SeasonData, name: string): TrophyWin[] {
     if (run === 5) add(kind ? "heater" : "icebath", r.week);
   }
 
-  // islands: picks nobody else locked, that won
-  const others = new Set(data.rows.filter((r) => r.user !== name && isSide(r)).map((r) => marketKey(r)));
-  const islandWins = new Map<number, number>();
-  for (const r of sides) if (r.win === true && !others.has(marketKey(r))) islandWins.set(r.week, (islandWins.get(r.week) ?? 0) + 1);
-  for (const [week, n] of islandWins) if (n >= 3) add("island", week);
-
   for (const b of beats(sides).bad) add("heartbreak", b.week);
 
   return TROPHIES.filter((t) => earned.has(t.key)).map((t) => ({ ...t, weeks: earned.get(t.key)!.sort((a, b) => a - b) }));
@@ -293,7 +286,6 @@ export type Recap = {
   lucky: Beat[];
   showdowns: Showdown[];
   consensus: { pick: string; game: string; count: number; of: number; result: "win" | "loss" | "push" | "pending" } | null;
-  islands: { user: string; pick: string }[];
   yahngo: { with: Rec; against: Rec };
   newKings: { name: string; conf: string; from: string | null }[];
   newTrophies: { name: string; trophy: TrophyDef }[];
@@ -343,10 +335,6 @@ export function weekRecap(data: SeasonData, week: number): Recap {
     }
   }
 
-  const islands = sides
-    .filter((r) => r.win === true && (byMarket.get(marketKey(r))?.length ?? 0) === 1)
-    .map((r) => ({ user: r.user, pick: pickLabel(r) }));
-
   // kings and trophies that are new as of this week
   const before = upTo(data, week - 1);
   const after = upTo(data, week);
@@ -384,7 +372,6 @@ export function weekRecap(data: SeasonData, week: number): Recap {
     lucky,
     showdowns: showdowns(rows),
     consensus,
-    islands,
     yahngo: {
       with: rec(sides.filter((r) => r.modelSide && r.modelSide.toLowerCase() === r.selection.toLowerCase())),
       against: rec(sides.filter((r) => r.modelSide && r.modelSide.toLowerCase() !== r.selection.toLowerCase())),
@@ -446,12 +433,6 @@ export function recapText(r: Recap): string {
     hl.push(
       `🐑 Cave's favorite: ${r.consensus.pick} (${r.consensus.count} of ${r.consensus.of}) - ${
         r.consensus.result === "pending" ? "pending" : r.consensus.result === "win" ? "cashed ✅" : r.consensus.result === "push" ? "pushed" : "burned ❌"
-      }`
-    );
-  if (r.islands.length)
-    hl.push(
-      `🏝️ Lone wolf wins: ${r.islands.slice(0, 4).map((i) => `${i.user}: ${i.pick}`).join("; ")}${
-        r.islands.length > 4 ? ` +${r.islands.length - 4} more` : ""
       }`
     );
   const won = r.showdowns.filter((d) => !d.push);
