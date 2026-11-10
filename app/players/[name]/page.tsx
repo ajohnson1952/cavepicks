@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { CURRENT_SEASON_YEAR } from "@/lib/careerStats";
 import { buildProfile, findPlayer, loadSeason, playerSlug, MIN_SAMPLE, type Profile } from "@/lib/playerStats";
 import { SpiritLogo, getSpirits, PlayerLink } from "../../PlayerTag";
-import { TROPHIES, beats, curses, rivalsOf, trophiesFor } from "@/lib/bragging";
+import { TROPHIES, beats, curses, pickLabel, rivalsOf, trophiesFor } from "@/lib/bragging";
 import { logoFor } from "@/lib/darkLogo";
 import { ChartKey, FormBadge, RecSpan, SplitTable, TrendChart, VsRow, pctText, recText } from "../parts";
 
@@ -406,9 +406,7 @@ export default async function PlayerPage({ params }: { params: Promise<{ name: s
           {p.thisWeek.map((r) => (
             <div key={`${r.gameId}_${r.type}`} className="row-between" style={{ fontSize: "13px", padding: "4px 0" }}>
               <span>
-                {r.type === "TOTAL"
-                  ? `${r.selection === "over" ? "Over" : "Under"} ${r.line ?? ""} · ${r.away} @ ${r.home}`
-                  : `${r.selection}${r.type === "DOG" ? " (dog)" : r.line != null ? ` ${r.line > 0 ? "+" : ""}${r.line}` : ""}`}
+                {pickLabel(r)}
               </span>
               <span className={`mono ${r.graded ? (r.push ? "pick-push" : r.win ? "pick-win" : "pick-loss") : "meta"}`}>
                 {r.graded ? (r.push ? "push" : r.win ? "win" : "loss") : "pending"}

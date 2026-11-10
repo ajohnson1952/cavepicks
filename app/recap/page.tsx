@@ -178,7 +178,7 @@ export default async function RecapPage({ searchParams }: { searchParams: Promis
                   {r.islands.map((x, i) => (
                     <span key={i}>
                       {i > 0 && ", "}
-                      <PlayerLink name={x.user} /> ({x.pick})
+                      <PlayerLink name={x.user} />: {x.pick}
                     </span>
                   ))}
                 </Item>

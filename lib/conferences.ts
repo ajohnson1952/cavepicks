@@ -5,8 +5,8 @@
 import { CONFERENCE_ROWS } from "./conferenceIds";
 import { bestNameMatch } from "./espnScores";
 
-type Row = { id: number; conf: string; name: string; level: "FBS" | "FCS" };
-const ROWS: Row[] = CONFERENCE_ROWS.map(([id, conf, name, level]) => ({ id, conf, name, level }));
+type Row = { id: number; conf: string; name: string; level: "FBS" | "FCS"; short: string };
+const ROWS: Row[] = CONFERENCE_ROWS.map(([id, conf, name, level, short]) => ({ id, conf, name, level, short }));
 const BY_ID = new Map(ROWS.map((r) => [r.id, r]));
 const byName = new Map<string, Row | null>();
 
@@ -17,11 +17,14 @@ function idFromLogo(logo: string | null | undefined): number | null {
 
 /** The team's conference ("SEC", "Big Sky"...), or null for a team outside
  *  FBS/FCS (D2 and below) or one we can't place. */
-export function conferenceOf(team: string, logo?: string | null): { conf: string; level: "FBS" | "FCS" } | null {
+export function conferenceOf(
+  team: string,
+  logo?: string | null
+): { conf: string; level: "FBS" | "FCS"; short: string } | null {
   const id = idFromLogo(logo);
   const hit = id != null ? BY_ID.get(id) : undefined;
-  if (hit) return { conf: hit.conf, level: hit.level };
+  if (hit) return { conf: hit.conf, level: hit.level, short: hit.short };
   if (!byName.has(team)) byName.set(team, bestNameMatch(team, ROWS, (r) => r.name));
   const r = byName.get(team);
-  return r ? { conf: r.conf, level: r.level } : null;
+  return r ? { conf: r.conf, level: r.level, short: r.short } : null;
 }

@@ -38,6 +38,9 @@ export type PickRow = {
   awayLogo: string | null;
   homeAbbr: string | null;
   awayAbbr: string | null;
+  /** school name without the mascot ("Central Michigan") */
+  homeShort: string;
+  awayShort: string;
   homeConf: string | null;
   awayConf: string | null;
   homeLevel: "FBS" | "FCS" | null;
@@ -130,6 +133,8 @@ async function load(seasonYear: number): Promise<SeasonData> {
         awayLogo: g.awayLogo,
         homeAbbr: g.homeAbbr,
         awayAbbr: g.awayAbbr,
+        homeShort: hc?.short ?? g.homeTeam,
+        awayShort: ac?.short ?? g.awayTeam,
         homeConf: hc?.conf ?? null,
         awayConf: ac?.conf ?? null,
         homeLevel: hc?.level ?? null,
@@ -216,6 +221,9 @@ function ctMinutes(iso: string) {
 /** The team a side pick is ON (spread) - null for totals. */
 const pickedTeam = (r: PickRow) => (r.type === "TOTAL" ? null : r.selection);
 export const pickedIsHome = (r: PickRow) => r.selection === r.home;
+/** A team's school name (no mascot) - falls back to the full name for rows cached before school names existed. */
+export const shortOf = (r: PickRow, team: string) =>
+  team === r.home ? r.homeShort ?? team : team === r.away ? r.awayShort ?? team : team;
 
 /** Conference bucket for a team: its FBS conference, or "FCS" for any FCS team. */
 function bucket(conf: string | null, level: "FBS" | "FCS" | null) {
@@ -405,7 +413,7 @@ export function buildProfile(data: SeasonData, name: string): Profile {
   }
   const teams: TeamLine[] = [...teamMap.entries()]
     .map(([team, v]) => ({
-      team,
+      team: shortOf([...v.spreads, ...v.dogs][0], team),
       picks: v.spreads.length + v.dogs.length,
       ats: rec(v.spreads),
       dogPicks: v.dogs.length,
@@ -418,7 +426,7 @@ export function buildProfile(data: SeasonData, name: string): Profile {
   const nemesis = nemesisPick && nemesisPick.team !== bestTeam?.team && (nemesisPick.ats.pct ?? 100) < 50 ? nemesisPick : null;
   const fadeMap = new Map<string, number>();
   for (const r of spreads) {
-    const opp = pickedIsHome(r) ? r.away : r.home;
+    const opp = pickedIsHome(r) ? r.awayShort ?? r.away : r.homeShort ?? r.home;
     fadeMap.set(opp, (fadeMap.get(opp) ?? 0) + 1);
   }
   const fades = [...fadeMap.entries()]
@@ -543,7 +551,7 @@ export function buildProfile(data: SeasonData, name: string): Profile {
       losses: dogs.filter((d) => d.graded && d.win === false).length,
       points: dogWins.reduce((s, d) => s + d.points, 0),
       avgChased: chased.length ? chased.reduce((a, b) => a + b, 0) / chased.length : null,
-      biggest: biggest ? { team: biggest.selection, points: biggest.points, week: biggest.week } : null,
+      biggest: biggest ? { team: shortOf(biggest, biggest.selection), points: biggest.points, week: biggest.week } : null,
     },
     kings: kingsOf(data).get(name) ?? [],
     career: (() => {
@@ -643,7 +651,7 @@ export function spiritTeams(data: SeasonData): Map<string, SpiritTeam> {
     }
     if (!best) continue;
     const r = best.rows[best.rows.length - 1];
-    out.set(name, { team: best.team, logo: pickedIsHome(r) ? r.homeLogo : r.awayLogo, picks: best.rows.length, ats: best.ats });
+    out.set(name, { team: shortOf(best.rows[0], best.team), logo: pickedIsHome(r) ? r.homeLogo : r.awayLogo, picks: best.rows.length, ats: best.ats });
   }
   return out;
 }

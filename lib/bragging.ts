@@ -10,6 +10,7 @@ import {
   isSide,
   isOver,
   pickedIsHome,
+  shortOf,
   clvOf,
   formFor,
   kingsOf,
@@ -20,23 +21,23 @@ import {
 
 const marketKey = (r: PickRow) => `${r.gameId}_${r.type}`;
 const sameSide = (a: PickRow, b: PickRow) => a.selection.toLowerCase() === b.selection.toLowerCase();
-export const gameLabel = (r: PickRow) => `${r.away} @ ${r.home}`;
+export const gameLabel = (r: PickRow) => `${r.awayShort ?? r.away} @ ${r.homeShort ?? r.home}`;
 
-/** "Georgia Bulldogs -7", "Over 52.5", "Navy (dog +14)". */
+/** "Georgia -7", "Over 52.5 (Navy @ Army)", "Navy (dog +14)" - school names, no mascots. */
 export function pickLabel(r: PickRow): string {
-  if (r.type === "TOTAL")
-    return `${isOver(r) ? "Over" : "Under"} ${r.line ?? ""} (${r.awayAbbr ?? r.away} @ ${r.homeAbbr ?? r.home})`;
-  if (r.type === "DOG") return `${r.selection} (dog${r.dogValue != null ? ` +${r.dogValue}` : ""})`;
-  if (r.line == null) return r.selection;
-  return `${r.selection} ${r.line > 0 ? "+" : r.line === 0 ? "" : ""}${r.line === 0 ? "PK" : r.line}`;
+  if (r.type === "TOTAL") return `${isOver(r) ? "Over" : "Under"} ${r.line ?? ""} (${gameLabel(r)})`;
+  const team = shortOf(r, r.selection);
+  if (r.type === "DOG") return `${team} (dog${r.dogValue != null ? ` +${r.dogValue}` : ""})`;
+  if (r.line == null) return team;
+  return `${team} ${r.line === 0 ? "PK" : `${r.line > 0 ? "+" : ""}${r.line}`}`;
 }
 
 /** "Georgia 27, Florida 20" - winner first. */
 export function scoreLine(r: PickRow): string | null {
   if (r.homeScore == null || r.awayScore == null) return null;
-  return r.homeScore >= r.awayScore
-    ? `${r.home} ${r.homeScore}, ${r.away} ${r.awayScore}`
-    : `${r.away} ${r.awayScore}, ${r.home} ${r.homeScore}`;
+  const home = r.homeShort ?? r.home;
+  const away = r.awayShort ?? r.away;
+  return r.homeScore >= r.awayScore ? `${home} ${r.homeScore}, ${away} ${r.awayScore}` : `${away} ${r.awayScore}, ${home} ${r.homeScore}`;
 }
 
 // ---------------------------------------------------------------- bad beats
@@ -199,7 +200,7 @@ export function curses(data: SeasonData): { kiss: TeamCurse[]; midas: TeamCurse[
     const r = rec(rows);
     if (decided(r) < 3) continue;
     const last = rows[rows.length - 1];
-    const line = { user, team, logo: pickedIsHome(last) ? last.homeLogo : last.awayLogo, w: r.w, l: r.l };
+    const line = { user, team: shortOf(last, team), logo: pickedIsHome(last) ? last.homeLogo : last.awayLogo, w: r.w, l: r.l };
     if (r.w === 0) kiss.push(line);
     if (r.l === 0) midas.push(line);
   }
@@ -374,7 +375,7 @@ export function weekRecap(data: SeasonData, week: number): Recap {
     group: rec(sides),
     sweeps: players.filter((p) => p.rec.w >= 5).map((p) => p.name),
     geese: settled ? players.filter((p) => p.rec.w === 0 && decided(p.rec) >= 4).map((p) => p.name) : [],
-    dogHits: dogs.filter((d) => d.win === true).map((d) => ({ user: d.user, team: d.selection, points: d.points })),
+    dogHits: dogs.filter((d) => d.win === true).map((d) => ({ user: d.user, team: shortOf(d, d.selection), points: d.points })),
     dogPicks: dogs.length,
     badBeats: bad,
     lucky,
@@ -443,13 +444,13 @@ export function recapText(r: Recap): string {
     );
   if (r.islands.length)
     hl.push(
-      `🏝️ Lone wolf wins: ${r.islands.slice(0, 4).map((i) => `${i.user} (${i.pick})`).join(", ")}${
+      `🏝️ Lone wolf wins: ${r.islands.slice(0, 4).map((i) => `${i.user}: ${i.pick}`).join("; ")}${
         r.islands.length > 4 ? ` +${r.islands.length - 4} more` : ""
       }`
     );
   const won = r.showdowns.filter((d) => !d.push);
   if (won.length)
-    hl.push(`⚔️ Head-to-head: ${won.map((d) => `${d.winners.join(" & ")} beat ${d.losers.join(" & ")} (${d.winPick})`).join("; ")}`);
+    hl.push(`⚔️ Head-to-head: ${won.map((d) => `${d.winners.join(" & ")} beat ${d.losers.join(" & ")} on ${d.winPick}`).join("; ")}`);
   if (r.yahngo.with.n + r.yahngo.against.n > 0)
     hl.push(`🤖 With Yahngo ${recStr(r.yahngo.with)} · against ${recStr(r.yahngo.against)}`);
   if (hl.length) {

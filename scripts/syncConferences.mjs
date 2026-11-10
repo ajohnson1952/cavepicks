@@ -26,7 +26,7 @@ async function level(group, division) {
     const blocks = [conf, ...(conf.children ?? [])];
     for (const b of blocks) {
       for (const e of b.standings?.entries ?? []) {
-        out.push({ id: Number(e.team.id), name: e.team.displayName, conf: label, division });
+        out.push({ id: Number(e.team.id), name: e.team.displayName, short: e.team.location ?? e.team.shortDisplayName ?? e.team.displayName, conf: label, division });
       }
     }
   }
@@ -39,16 +39,16 @@ if (byId.size < 200) throw new Error(`only ${byId.size} teams came back - ESPN f
 
 const rows = [...byId.values()]
   .sort((a, b) => a.id - b.id)
-  .map((t) => `  [${t.id}, ${JSON.stringify(t.conf)}, ${JSON.stringify(t.name)}, ${JSON.stringify(t.division)}],`);
+  .map((t) => `  [${t.id}, ${JSON.stringify(t.conf)}, ${JSON.stringify(t.name)}, ${JSON.stringify(t.division)}, ${JSON.stringify(t.short)}],`);
 
 writeFileSync(
   new URL("../lib/conferenceIds.ts", import.meta.url),
-  `// Every FBS/FCS team's conference: [ESPN team id, conference, ESPN name, level].
+  `// Every FBS/FCS team's conference: [ESPN team id, conference, ESPN name, level, school name].
 // Built from ESPN's public standings by \`npm run sync-conferences\` - run it
 // once a season for realignment, then commit + push this file. Nothing reads
 // ESPN for this at runtime. Lookups: lib/conferences.ts.
 // Season ${SEASON}, synced ${new Date().toISOString().slice(0, 10)} (${byId.size} teams)
-export const CONFERENCE_ROWS: ReadonlyArray<readonly [number, string, string, "FBS" | "FCS"]> = [
+export const CONFERENCE_ROWS: ReadonlyArray<readonly [number, string, string, "FBS" | "FCS", string]> = [
 ${rows.join("\n")}
 ];
 `
