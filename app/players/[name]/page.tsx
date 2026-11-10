@@ -1,0 +1,313 @@
+import { notFound } from "next/navigation";
+import { CURRENT_SEASON_YEAR } from "@/lib/careerStats";
+import { buildProfile, findPlayer, loadSeason, playerSlug, MIN_SAMPLE, type Profile } from "@/lib/playerStats";
+import { ChartKey, FormBadge, RecSpan, SplitTable, TrendChart, VsRow, pctText, recText } from "../parts";
+
+export const dynamic = "force-dynamic";
+
+export async function generateMetadata({ params }: { params: Promise<{ name: string }> }) {
+  const { name } = await params;
+  const data = await loadSeason(CURRENT_SEASON_YEAR);
+  return { title: findPlayer(data, name) ?? "Player" };
+}
+
+const ordinal = (n: number) => {
+  const s = ["th", "st", "nd", "rd"];
+  const v = n % 100;
+  return n + (s[(v - 20) % 10] || s[v] || s[0]);
+};
+
+function hoursText(h: number) {
+  if (h < 24) return `${h.toFixed(1)} hours`;
+  return `${(h / 24).toFixed(1)} days`;
+}
+
+function Line({ label, children }: { label: React.ReactNode; children: React.ReactNode }) {
+  return (
+    <div className="row-between" style={{ fontSize: "13px", padding: "5px 0", borderBottom: "1px solid var(--border)" }}>
+      <span>{label}</span>
+      <span>{children}</span>
+    </div>
+  );
+}
+
+function Header({ p, career }: { p: Profile; career: { seasons: number; wins: number; losses: number; weeksWon: number; dogPoints: number } | null }) {
+  const s = p.form.season;
+  return (
+    <div className="card">
+      <div className="row-between" style={{ alignItems: "flex-start" }}>
+        <div>
+          <h1 style={{ margin: 0 }}>
+            {p.name} <FormBadge status={p.form.status} seasonPct={p.form.season.pct} />
+          </h1>
+          <p className="subtext" style={{ margin: "2px 0 0" }}>
+            {p.rank > 0 ? `${ordinal(p.rank)} of ${p.of}` : "unranked"} &middot; {CURRENT_SEASON_YEAR} season
+          </p>
+        </div>
+        {p.form.streak && p.form.streak.count >= 2 && (
+          <span className={`mono ${p.form.streak.kind === "W" ? "pick-win" : "pick-loss"}`} style={{ fontSize: "13px" }}>
+            {p.form.streak.count}
+            {p.form.streak.kind} streak{p.form.streak.kind === "W" && p.form.streak.count >= 3 ? " 🚬" : ""}
+          </span>
+        )}
+      </div>
+      <div className="stat-hero">{s.pct == null ? "—" : `${s.pct.toFixed(1)}%`}</div>
+      <p className="subtext" style={{ margin: 0 }}>
+        {recText(s)} on spreads &amp; totals &middot; last 3 weeks {recText(p.form.last3)} ({pctText(p.form.last3)})
+      </p>
+      <div className="player-tiles">
+        <div>
+          <span className="meta">Weeks won</span>
+          <strong>{p.weeksWon}</strong>
+        </div>
+        <div>
+          <span className="meta">🍕 Pots won</span>
+          <strong>${p.potWon}</strong>
+        </div>
+        <div>
+          <span className="meta">Dog points</span>
+          <strong>{p.dog.points}</strong>
+        </div>
+        <div>
+          <span className="meta">Best week</span>
+          <strong>{p.bestWeek ? `${p.bestWeek.correct}/5` : "—"}</strong>
+        </div>
+      </div>
+      {career && career.seasons > 1 && (
+        <p className="meta" style={{ margin: "10px 0 0" }}>
+          Career ({career.seasons} seasons): {career.wins}-{career.losses}
+          {career.wins + career.losses > 0 && ` (${((career.wins / (career.wins + career.losses)) * 100).toFixed(1)}%)`}
+          {" · "}
+          {career.weeksWon} weeks won &middot; {career.dogPoints} dog pts
+        </p>
+      )}
+    </div>
+  );
+}
+
+export default async function PlayerPage({ params }: { params: Promise<{ name: string }> }) {
+  const { name: slug } = await params;
+  const data = await loadSeason(CURRENT_SEASON_YEAR);
+  const name = findPlayer(data, slug);
+  if (!name) notFound();
+  const p = buildProfile(data, name);
+
+  const sideCount = p.form.season.n;
+
+  return (
+    <main className="wide">
+      <p className="meta" style={{ margin: "0 0 8px" }}>
+        <a href="/players">&larr; All players</a>
+      </p>
+      <Header p={p} career={p.career} />
+
+      {sideCount === 0 ? (
+        <div className="card">
+          <p className="meta" style={{ margin: 0 }}>No locked picks yet this season.</p>
+        </div>
+      ) : (
+        <>
+          <div className="card">
+            <div className="matchup">📈 Form</div>
+            <TrendChart series={p.form.series} season={p.form.season.pct} />
+            <ChartKey />
+          </div>
+
+          <div className="card">
+            <div className="matchup">🧭 How they pick</div>
+            <p className="subtext" style={{ margin: "4px 0 10px" }}>
+              The bar is how often they take each side; the record underneath is how it&apos;s gone.
+            </p>
+            <VsRow leftLabel="↔️ Spreads" left={p.byType.spread} rightLabel="Totals ↕️" right={p.byType.total} />
+            <VsRow leftLabel="🟢 Favorites" left={p.byType.fav} rightLabel="Underdogs 🎲" right={p.byType.dog} />
+            <VsRow leftLabel="🏟️ Home" left={p.byType.home} rightLabel="Road 🛣️" right={p.byType.road} />
+            <VsRow leftLabel="📈 Overs" left={p.byType.over} rightLabel="Unders 📉" right={p.byType.under} />
+            <div className="divider" />
+            <p className="split-title">Spread size</p>
+            <SplitTable rows={p.lineSize} />
+          </div>
+
+          <div className="card">
+            <div className="matchup">🏈 Conferences</div>
+            <p className="subtext" style={{ margin: "4px 0 0" }}>
+              A spread counts for the team they took; a total counts for both teams&apos; conferences.
+            </p>
+            <SplitTable rows={p.conferences} shareLabel="Of picks" />
+            <div className="divider" />
+            <VsRow leftLabel="Conference games" left={p.confGame.conf} rightLabel="Non-conference" right={p.confGame.nonConf} />
+          </div>
+
+          <div className="card">
+            <div className="matchup">🎯 Teams</div>
+            <p className="subtext" style={{ margin: "4px 0 0" }}>Most-picked teams: spreads (ATS record) and dog picks.</p>
+            <table className="stat-table">
+              <thead>
+                <tr>
+                  <th>Team</th>
+                  <th>Picks</th>
+                  <th>ATS</th>
+                  <th>Dog</th>
+                </tr>
+              </thead>
+              <tbody>
+                {p.teams.map((t) => (
+                  <tr key={t.team}>
+                    <td style={{ fontFamily: "inherit" }}>{t.team}</td>
+                    <td>{t.picks}</td>
+                    <td>{t.ats.n ? recText(t.ats) : "—"}</td>
+                    <td>{t.dogPicks ? `${t.dogWins}/${t.dogPicks}` : "—"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {(p.bestTeam || p.nemesis || p.fades.length > 0) && <div className="divider" />}
+            {p.bestTeam && (
+              <p className="player-note">
+                💚 Best team: <strong>{p.bestTeam.team}</strong> &mdash; {recText(p.bestTeam.ats)} ATS
+              </p>
+            )}
+            {p.nemesis && (
+              <p className="player-note">
+                💀 Nemesis: <strong>{p.nemesis.team}</strong> &mdash; {recText(p.nemesis.ats)} ATS
+              </p>
+            )}
+            {p.fades.length > 0 && (
+              <p className="player-note">
+                🙅 Fades most: {p.fades.map((f) => `${f.team} (${f.count}x)`).join(", ")}
+              </p>
+            )}
+          </div>
+
+          <div className="card">
+            <div className="matchup">📅 When</div>
+            <p className="split-title" style={{ marginTop: "8px" }}>Kickoff day</p>
+            <SplitTable rows={p.days} />
+            <div className="divider" />
+            <p className="split-title">Kickoff time (Central)</p>
+            <SplitTable rows={p.windows} />
+          </div>
+
+          <div className="card">
+            <div className="matchup">🔒 Locking habits</div>
+            {p.avgHoursBefore != null && (
+              <p className="subtext" style={{ margin: "4px 0 0" }}>
+                Locks an average of {hoursText(p.avgHoursBefore)} before kickoff.
+              </p>
+            )}
+            <SplitTable rows={p.lockTiming} />
+            <div className="divider" />
+            <VsRow leftLabel="First instinct" left={p.firstInstinct} rightLabel="Changed mind" right={p.changedMind} />
+          </div>
+
+          <div className="card">
+            <div className="matchup">👥 Vs. the cave</div>
+            <p className="subtext" style={{ margin: "4px 0 6px" }}>
+              Compared with everyone else&apos;s locked pick on the same game.
+            </p>
+            <Line label="🐑 With the crowd">
+              <RecSpan r={p.crowd.withCrowd} />
+            </Line>
+            <Line label="🐺 Against the crowd">
+              <RecSpan r={p.crowd.against} />
+            </Line>
+            <Line label="🏝️ On an island (nobody else picked it)">
+              <RecSpan r={p.crowd.solo} />
+            </Line>
+            <Line label="🤖 With Yahngo">
+              <RecSpan r={p.yahngo.with} />
+            </Line>
+            <Line label="🙅 Against Yahngo">
+              <RecSpan r={p.yahngo.against} />
+            </Line>
+            {p.mates.length > 0 && (
+              <>
+                <p className="split-title" style={{ marginTop: "12px" }}>Picks most like&hellip;</p>
+                <p className="meta" style={{ margin: "0 0 4px" }}>Same side on games you both picked.</p>
+                {p.mates.map((m, i) => (
+                  <div key={m.name} className="row-between" style={{ fontSize: "13px", padding: "3px 0" }}>
+                    <span>
+                      <a href={`/players/${playerSlug(m.name)}`} className="player-link">{m.name}</a>
+                      {i === 0 && <span className="meta"> &middot; twin</span>}
+                      {i === p.mates.length - 1 && p.mates.length > 1 && <span className="meta"> &middot; opposite</span>}
+                    </span>
+                    <span className="mono meta">
+                      {m.same}/{m.shared} ({m.pct.toFixed(0)}%)
+                    </span>
+                  </div>
+                ))}
+              </>
+            )}
+          </div>
+
+          <div className="card">
+            <div className="matchup">🔪 Sharpness</div>
+            {p.clv.avg != null ? (
+              <>
+                <Line label="Avg closing line value">
+                  <span className={`mono ${p.clv.avg > 0 ? "pick-win" : p.clv.avg < 0 ? "pick-loss" : ""}`}>
+                    {p.clv.avg > 0 ? "+" : p.clv.avg < 0 ? "−" : ""}
+                    {Math.abs(p.clv.avg).toFixed(2)} pts
+                  </span>
+                </Line>
+                <Line label="Beat the closing line">
+                  <span className="mono">
+                    {p.clv.beatPct!.toFixed(0)}% of {p.clv.sample}
+                  </span>
+                </Line>
+              </>
+            ) : (
+              <p className="meta">No closing lines yet.</p>
+            )}
+            <p className="meta" style={{ margin: "8px 0 0" }}>
+              + means they locked a better number than where the line closed &mdash; the classic sign of a sharp.
+            </p>
+          </div>
+        </>
+      )}
+
+      <div className="card card-accent-dog">
+        <div className="matchup">🐕 Dog picks</div>
+        <Line label="Record">
+          <span className="mono">
+            {p.dog.wins}-{p.dog.losses} &middot; {p.dog.points} pts
+          </span>
+        </Line>
+        {p.dog.avgChased != null && (
+          <Line label="Average points chased">
+            <span className="mono">{p.dog.avgChased.toFixed(1)}</span>
+          </Line>
+        )}
+        {p.dog.biggest && (
+          <Line label="Biggest hit">
+            <span className="mono">
+              {p.dog.biggest.team} +{p.dog.biggest.points} (Wk {p.dog.biggest.week})
+            </span>
+          </Line>
+        )}
+      </div>
+
+      {p.thisWeek.length > 0 && (
+        <div className="card">
+          <div className="matchup">🗓️ Locked this week</div>
+          {p.thisWeek.map((r) => (
+            <div key={`${r.gameId}_${r.type}`} className="row-between" style={{ fontSize: "13px", padding: "4px 0" }}>
+              <span>
+                {r.type === "TOTAL"
+                  ? `${r.selection === "over" ? "Over" : "Under"} ${r.line ?? ""} · ${r.away} @ ${r.home}`
+                  : `${r.selection}${r.type === "DOG" ? " (dog)" : r.line != null ? ` ${r.line > 0 ? "+" : ""}${r.line}` : ""}`}
+              </span>
+              <span className={`mono ${r.graded ? (r.push ? "pick-push" : r.win ? "pick-win" : "pick-loss") : "meta"}`}>
+                {r.graded ? (r.push ? "push" : r.win ? "win" : "loss") : "pending"}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <p className="meta" style={{ lineHeight: 1.5 }}>
+        Locked picks only, {CURRENT_SEASON_YEAR} season. Faded rows have fewer than {MIN_SAMPLE} decided picks &mdash;
+        too few to read much into.
+      </p>
+    </main>
+  );
+}

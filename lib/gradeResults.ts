@@ -4,6 +4,7 @@ import { fetchEspnScoreboard, teamNamesMatch, toYyyymmdd, EspnResult } from "./e
 import { gradePick } from "./scoring";
 import { runGhost } from "./ghost";
 import { bumpHeaderPill } from "./headerPill";
+import { bumpPlayerStats } from "./playerStats";
 
 // Cap games processed per invocation so a pathological backlog (e.g. a whole
 // season's worth of ungraded games) can't spike memory on Render's 512MB
@@ -120,7 +121,10 @@ export async function runGradeResults() {
   }
 
   // a week may have just settled - refresh the top bar's cached pot amount
-  if (gamesGraded > 0) bumpHeaderPill();
+  if (gamesGraded > 0) {
+    bumpHeaderPill();
+    bumpPlayerStats();
+  }
 
   // "Yahn" the ghost player: lock any of its picks whose deadline has passed
   // and grade any that just went final (lib/ghost.ts). Runs here because this

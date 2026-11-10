@@ -40,6 +40,9 @@ any new scheduled job.
   ever changes, a preview deploy from a branch would also run `db push`
   against the same production database.
 - No local dev server is used day-to-day - changes go straight to GitHub -> Vercel
+- `npm run sync-conferences` - rebuilds `lib/conferenceIds.ts` (every FBS/FCS
+  team's conference, from ESPN's public standings) for the player pages'
+  conference splits. Run once a season for realignment, commit + push.
 - `npm run sync-logos` - copies the dark-logo picks from the-yahngorithm's
   /admin/logos page into `lib/darkLogoIds.ts` (needs nothing but internet).
   Run it after logo picks change on yahn, then commit + push that file.
@@ -345,6 +348,19 @@ any new scheduled job.
   in the layout (`lib/headerPill.ts`: refreshed when games are graded, hourly
   at worst) - never put an uncached database read in `layout.tsx`, it would
   run on every page.
+
+- **Player pages** (`/players`, `/players/[name]`, plus the "Who's hot" and
+  "Conference kings" cards on /stats): all built from ONE cached load of the
+  season's locked picks (`loadSeason` in `lib/playerStats.ts`); the splits are
+  pure functions over it. Refreshed by `bumpPlayerStats()` - called from
+  `bumpCaveSplits` (every lock/unlock path) and after grading - and hourly at
+  worst. The URL uses the player's name (`playerSlug`), NEVER `pickSlug` (that's
+  their private pick link). Conference comes from the ESPN id in each game's
+  logo link (`lib/conferences.ts`). Splits under 8 decided picks are faded.
+- **The group's emojis**: 🚬 = a heater (also used to mock someone who thinks
+  they're doing well - the Hot badge shows 🚬 "Hot" in quotes for a player
+  who's hot but under .500 on the season). 🍕 = money being paid out or in.
+  Use them where they fit.
 
 ## New season checklist
 

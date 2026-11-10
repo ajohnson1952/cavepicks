@@ -12,6 +12,7 @@
 import { unstable_cache, revalidateTag } from "next/cache";
 import { prisma } from "./db";
 import { SEASON_YEAR } from "./currentWeek";
+import { bumpPlayerStats } from "./playerStats";
 
 const TAG = "cave-splits";
 
@@ -70,6 +71,8 @@ export const getCaveSplits = unstable_cache(build, [TAG], { revalidate: 6 * 3600
 
 /** Call after anything that locks, unlocks or moves a pick. */
 export function bumpCaveSplits() {
+  // every lock/unlock path calls this, so the player pages refresh with it
+  bumpPlayerStats();
   try {
     revalidateTag(TAG, { expire: 0 });
   } catch {

@@ -2,6 +2,8 @@ import { computeCareer, CURRENT_SEASON_YEAR } from "@/lib/careerStats";
 import { computeFunStats } from "@/lib/funStats";
 import { computeGroupTrends } from "@/lib/groupTrends";
 import { computeSharpness, MIN_SHARP_SAMPLE } from "@/lib/sharpness";
+import { conferenceBoard, formBoard, loadSeason, playerSlug } from "@/lib/playerStats";
+import { FormBadge, RecSpan, Sparkline, pctText } from "../players/parts";
 
 export const metadata = { title: "Stats" };
 
@@ -74,13 +76,16 @@ function WeekAccuracyBar({ weekNumber, correct, total, pct }: { weekNumber: numb
 // page could go back to being just the leaderboards.
 export default async function StatsPage() {
   // four independent reads - run together, not one after another
-  const [{ bestSeason, worstSeason, careerWeeksLeader, careerDogLeader }, funStats, groupTrends, sharpAll] =
+  const [{ bestSeason, worstSeason, careerWeeksLeader, careerDogLeader }, funStats, groupTrends, sharpAll, season] =
     await Promise.all([
       computeCareer(),
       computeFunStats(CURRENT_SEASON_YEAR),
       computeGroupTrends(CURRENT_SEASON_YEAR),
       computeSharpness(CURRENT_SEASON_YEAR),
+      loadSeason(CURRENT_SEASON_YEAR),
     ]);
+  const hotBoard = formBoard(season);
+  const confBoard = conferenceBoard(season);
   const sharpRanked = sharpAll.filter((p) => p.wins + p.losses >= MIN_SHARP_SAMPLE);
 
   return (
@@ -119,6 +124,36 @@ export default async function StatsPage() {
         </div>
       )}
 
+      {hotBoard.length >= 2 && (
+        <div className="card">
+          <div className="matchup">🚬 Who&apos;s hot</div>
+          <p className="subtext" style={{ margin: "4px 0 6px" }}>
+            Last 3 finished weeks vs. the season. Tap a name for their full page.
+          </p>
+          {hotBoard.map((p, i) => (
+            <a
+              key={p.name}
+              href={`/players/${p.slug}`}
+              className="player-row"
+              style={{ borderBottom: i === hotBoard.length - 1 ? "none" : undefined, padding: "7px 0" }}
+            >
+              <span style={{ whiteSpace: "nowrap" }}>
+                <strong>{p.name}</strong> <FormBadge status={p.form.status} seasonPct={p.form.season.pct} />
+              </span>
+              <span style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                <Sparkline series={p.form.series} />
+                <span className="meta" style={{ minWidth: "52px", textAlign: "right" }}>
+                  ssn {pctText(p.form.season)}
+                </span>
+                <span style={{ minWidth: "74px", textAlign: "right" }}>
+                  <RecSpan r={p.form.last3} />
+                </span>
+              </span>
+            </a>
+          ))}
+        </div>
+      )}
+
       {sharpRanked.length >= 2 && (
         <div className="card">
           <div className="matchup">🔪 Sharp Report</div>
@@ -140,8 +175,8 @@ export default async function StatsPage() {
                 <div className="row-between" style={{ alignItems: "center" }}>
                   <span style={{ fontSize: "14px" }}>
                     <span style={{ display: "inline-block", width: "24px", textAlign: "center" }}>{badge}</span>
-                    <strong>{p.name}</strong>
-                    {i === 0 && <span className="meta"> &middot; sharpest</span>}
+                    <a href={`/players/${playerSlug(p.name)}`} className="player-link"><strong>{p.name}</strong></a>
+                    {i === 0 && <span className="meta"> &middot; sharpest 🚬</span>}
                     {last && <span className="meta"> &middot; squarest</span>}
                   </span>
                   <span className="mono" style={{ fontSize: "12px" }}>
@@ -192,6 +227,52 @@ export default async function StatsPage() {
             Tiny sample &mdash; mostly bragging rights. &ldquo;vs Yahngo&rdquo; = your record on games where the
             yahngorithm model also had a pick, split by whether you took its side or the other one.
           </p>
+        </div>
+      )}
+
+      {confBoard.length > 0 && (
+        <div className="card">
+          <div className="matchup">🏈 Conference kings</div>
+          <p className="subtext" style={{ margin: "4px 0 0" }}>
+            {CURRENT_SEASON_YEAR} &mdash; who reads each conference best (5+ decided picks to qualify). A spread counts for
+            the team taken; a total for both teams&apos; conferences.
+          </p>
+          <table className="stat-table">
+            <thead>
+              <tr>
+                <th>Conf</th>
+                <th>Cave %</th>
+                <th>👑 Best</th>
+                <th>🥶 Worst</th>
+              </tr>
+            </thead>
+            <tbody>
+              {confBoard.map((c) => (
+                <tr key={c.conf}>
+                  <td style={{ fontFamily: "inherit" }}>{c.conf}</td>
+                  <td style={{ whiteSpace: "nowrap" }}>{pctText(c.group)}</td>
+                  <td>
+                    {c.best ? (
+                      <a href={`/players/${c.best.slug}`} className="player-link" style={{ color: "var(--up)", whiteSpace: "nowrap" }}>
+                        {c.best.name} {pctText(c.best.rec)}
+                      </a>
+                    ) : (
+                      "\u2014"
+                    )}
+                  </td>
+                  <td>
+                    {c.worst ? (
+                      <a href={`/players/${c.worst.slug}`} className="player-link" style={{ color: "var(--down)", whiteSpace: "nowrap" }}>
+                        {c.worst.name} {pctText(c.worst.rec)}
+                      </a>
+                    ) : (
+                      "\u2014"
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
 

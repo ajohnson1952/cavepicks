@@ -43,7 +43,7 @@ export default async function PotPage() {
 
   return (
     <main className="wide">
-      <h1>The Pot</h1>
+      <h1>The Pot 🍕</h1>
       <p className="subtext">Weekly pot, who owes what, and every payment made.</p>
 
       {current && (
@@ -94,7 +94,7 @@ export default async function PotPage() {
       </div>
 
       <div className="card">
-        <div className="matchup">💵 Balances</div>
+        <div className="matchup">🍕 Balances</div>
         <p className="subtext" style={{ margin: "4px 0 0" }}>
           Players owe {money(bankCheck.uncollected)} &middot; {BANKER_NAME} is holding {money(bankCheck.creditsHeld)} in
           credit
@@ -273,7 +273,7 @@ function WeekOutcome({
       {w.payouts.map((p) => (
         <div key={p.name} className="mono" style={{ fontSize: "12px" }}>
           {p.name}: {money(p.amount)} won &minus; {money(WEEKLY_BUYIN)} buy-in ={" "}
-          <span className="pick-win">{signed(p.amount - WEEKLY_BUYIN)} net</span>
+          <span className="pick-win">{signed(p.amount - WEEKLY_BUYIN)} net 🍕</span>
         </div>
       ))}
       {w.payouts.length > 0 && (
